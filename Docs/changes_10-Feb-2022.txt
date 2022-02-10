@@ -1,0 +1,93 @@
+For Leon/Hans only.
+
+This version of ROMvX0 contains the following changes:
+
+PAGE3:
+    LSRB <var>: logical shift right on a zero page byte var, 28 cycles.
+    LSRV <var>: logical shift right on a zero page word var, 52 cycles.
+    LSLV <var>: logical shift left on a zero page word var, 28 cycles.
+    ADDVI <var>: <imm>, add 8bit immediate to 16bit zero page var, var += imm, vAC = var, 50 cycles.
+    SUBVI <var>: <imm>, subtract 8bit immediate from 16bit zero page var, var -= imm, vAC = var, 50 cycles.
+    ADDVW <var dst>, <var src>: add 16bit zero page vars, dst += src, vAC = dst, 54 cycles.
+    SUBVW <var dst>, <var src>: subtract 16bit zero page vars, dst -=src, vAC = dst, 54 cycles.
+    DJNE <var>, <16bit imm>: decrement word var and jump if not equal to zero, 46 cycles
+    DJGE <var>, <16bit imm>: decrement word var and jump if greater than or equal to zero, 42 cycles
+    CMPHS: Reinstated.
+    CMPHU: Reinstated.
+    LOKEQI: Loke immediate unsigned word into address contained in [vAC], 34 cycles, (3 byte instruction).
+    LOKEI: Loke immediate long into address contained in [vAC], 42 cycles, (5 byte instruction).
+
+PREFX1:
+    NOTE: vAC = ROM:[NotesTable + vAC.lo*2], 22 + 28 cycles.
+    MIDI: vAC = ROM:[NotesTable + (vAC.lo - 11)*2], 22 + 30 cycles.
+
+PREFX2:
+    LSLN <imm n>: vAC <<= n, (16bit shift), 22 + 30*n + 20 cycles.
+    FREQM <var chan>: [(((chan & 3) + 1) <<8) | 0x00FC] = vAC, chan = [0..3], 22 + 26 cycles.
+    FREQA <var chan>: [((((chan - 1) & 3) + 1) <<8) | 0x00FC] = vAC, chan = [1..4], 22 + 26 cycles.
+    FREQZ <imm chan>: [(((chan & 3) + 1) <<8) | 0x00FC] = 0, chan = [0..3], 22 + 22 cycles.
+    VOLM <var chan>: [(((chan & 3) + 1) <<8) | 0x00FA] = vAC.low, chan = [0..3], 22 + 24 cycles.
+    VOLA <var chan>: [((((chan - 1) & 3) + 1) <<8) | 0x00FA] = 63 - vAC.low + 64, chan = [1..4], 22 + 26 cycles.
+    MODA <var chan>: [((((chan - 1) & 3) + 1) <<8) | 0x00FB] = vAC.low, chan = [1..4], 22 + 24 cycles.
+    MODZ <imm chan>: [(((imm & 3) + 1) <<8) | 0x00FA] = 0x0200, imm = [0..3], 22 + 24 cycles.
+    SMPCPY <var addr>, copies 64 packed 4bit samples from [vAC] to the interlaced address in addr, vAC += 32, 22 + 31*58 + 52 cycles, (if vAC overflows a 256 byte boundary then 22 + 30*58 + 60 + 52 cycles).
+    CMPWS <var>: vAC = vAC CMPWS var, combines CMPHS and SUBW into one instruction, 22 + 46 cycles.
+    CMPWU <var>: vAC = vAC CMPWU var, combines CMPHU and SUBW into one instruction, 22 + 46 cycles.
+    LEEKA <var>: var[0..3] = PEEK([vAC+0...vAC+3]), peeks a long from [vAC] to [var], 22 + 44 cycles.
+    LOKEA <var>: POKE vAC[0..3], var[0..3], pokes a long from [var] to [vAC], 22 + 44 cycles.
+    FEEKA <var>: var[0..4] = PEEK([vAC+0...vAC+4]), peeks a float, (5 bytes), from [vAC] to [var], 22 + 48 cycles.
+    FOKEA <var>: POKE vAC[0..4], var[0..4], pokes a float, (5 bytes), from [var] to [vAC], 22 + 48 cycles.
+    MEEKA <var>: var[0..7] = PEEK([vAC+0...vAC+7]), peeks 8 bytes from [vAC] to [var], 22 + 64 cycles.
+    MOKEA <var>: POKE vAC[0..7], var[0..7], pokes 8 bytes from [var] to [vAC], 22 + 64 cycles.
+    LSLVL: Logical shift left var long, 22 + 56 cycles
+    LSRVL: Logical shift right var long, 22 + 104 cycles
+    INCL: Increment long, 22 + 36 cycles
+    DECL: Decrement long, 22 + 40 cycles
+
+PREFX3:
+    STB2 <16bit imm>: store vAC.lo into 16bit immediate address, 22 + 20 cycles.
+    STW2 <16bit imm>: store vAC into 16bit immediate address, 22 + 22 cycles.
+    XCHGB <var0>, <var1>: exchange two zero byte variables, 22 + 28 cycles.
+    ADDWI <16bit imm>: vAC += immediate 16bit value, 22 + 28 cycles.
+    SUBWI <16bit imm>: vAC -= immediate 16bit value, 22 + 28 cycles.
+    ANDWI <16bit imm>: vAC &= immediate 16bit value, 22 + 22 cycles.
+    ORWI <16bit imm>: vAC |= immediate 16bit value, 22 + 22 cycles.
+    XORWI <16bit imm>: vAC ^= immediate 16bit value, 22 + 22 cycles.
+    LDPX, <var addr>, <colour var>: load pixel, <addr>, <colour>, 22 + 30 cycles, (respects VTable).
+    STPX, <var addr>, <colour var>: store pixel, <addr>, <colour>, 22 + 30 cycles, (respects VTable).
+    CONDI, <imm0>, <imm1>: chooses immediate operand based on condition, (vAC == 0), 22 + 26 cycles.
+    CONDB, <var0 byte>, <var1 byte>: chooses byte variable based on condition, (vAC == 0), 22 + 26 cycles.
+    CONDIB, <imm0>, <var byte>: chooses between immediate operand and byte variable based on condition, (vAC == 0), 22 + 26 cycles.
+    CONDBI, <var byte>, <imm0>: chooses between byte variable and immediate operand based on condition, (vAC == 0), 22 + 26 cycles.
+    XCHGW, <var0>, <var1>: exchanges two zero page word variables, 22 + 46 cycles, (destroys vAC).
+    SWAPB, <var0 addr>, <var1 addr>: swaps two bytes in memory, 22 + 46 cycles.
+    SWAPW, <var0 addr>, <var1 addr>: swaps two words in memory, 22 + 58 cycles.
+    NEEKA <var addr>, <imm n>: var[0..n] = PEEK([vAC+0...vAC+n]), peeks n bytes from [vAC] to [var], 22 + 34*n + 24 cycles.
+    NOKEA <var addr>, <imm n>: POKE vAC[0..n], var[0..n], pokes n bytes from [var] to [vAC], 22 + 34*n + 24 cycles.
+    OSCPX <var wave addr>, <var index>: read sample from wave-table address and format it into a screen pixel at address in [vAC], 22 + 42 cycles.
+    ADDVL: Add two 32bit zero page vars, dst += src, 22 + 78 cycles
+    SUBVL: Subtract two 32bit zero page vars, dst -= src, 22 + 74 cycles
+    ANDVL: And two 32bit zero page vars, dst &= src, 22 + 46 cycles
+    ORVL: Or two 32bit zero page vars, dst |= src, 22 + 46 cycles
+    XORVL: Xor two 32bit zero page vars, dst ^= src, 22 + 46 cycles
+    JCCL: Jump to address based on long CC, (address of long in vAC), 22 + (26 to 42) cycles
+
+Example:
+INS106          LDI     0x34
+                LOKEI   0x00001FFF
+                LDI     0x30
+                LOKEI   0x00000000
+INS106.0        INCL    0x30
+                LDI     0x30
+                LEEKA   0x38
+                SUBVL   0x34, 0x38
+                LDI     0x38
+                JLTL    INS106.0
+                RET
+
+SYS_ReceiveSerial1:
+A public version of SYS_LoaderNextByteIn_32, found at address 0x00a7, only requires a LDI instead of a LDWI.
+
+TODO:
+- Add Leon's SYS_MemCpy's
+- Document and finish new SYS calls for arithmetic, graphics and Sprites.
