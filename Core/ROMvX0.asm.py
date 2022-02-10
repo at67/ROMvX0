@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#-----------------------------------------------------------------------
+#----------------------------------------------------------------------- 
 #
 #  Core video, sound and interpreter loop for Gigatron TTL microcomputer
 #
