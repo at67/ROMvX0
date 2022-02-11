@@ -12,6 +12,7 @@
 import inspect
 import json
 from os.path import basename, splitext
+import re
 import sys
 
 # Python 2/3 compatibility
@@ -436,13 +437,27 @@ def disassemble(opcode, operand, address=None, lastOpcode=None):
   # Emit as text
   return text
 
+# Read a given file Python source file, using the correct encoding.
+# Taken from the Python3 reference Section 2.1.4
+_encodingRe = re.compile(rb'coding[=:]\s*([-\w.]+)')
+def _readSource(filename):
+  encoding = 'utf-8'
+  with open(filename, 'rb') as fp:
+    for _ in range(2):
+      line = fp.readline()
+      match = _encodingRe.search(line)
+      if match:
+        encoding = match.group(1).decode('ascii')
+        break
+  with open(filename, 'r', encoding=encoding) as fp:
+    return fp.readlines()
+
 # Start to include source lines in output listing
 def enableListing():
   global _listing, _listingSource, _lineno
   _listing = inspect.currentframe().f_back
   info = inspect.getframeinfo(_listing)
-  with open(info.filename, 'r') as fp:
-    _listingSource = fp.readlines()
+  _listingSource = _readSource(info.filename)
   _lineno = inspect.getframeinfo(_listing).lineno
 
 # Get source lines from last line number up to current
@@ -469,11 +484,11 @@ def disableListing():
 def _emit(opcode, operand):
   global _romSize, _maxRomSize
   lineno = inspect.getframeinfo(_listing).lineno if has(_listing) else None
-  #if _romSize >= _maxRomSize:
-  #    disassembly = disassemble(opcode, operand)
-  #    print('%04x %02x%02x  %s' % (_romSize, opcode, operand, disassembly))
-  #    highlight('Error: Program size limit exceeded')
-  #    _maxRomSize = 0x10000 # Extend to full address space to prevent more of the same errors
+  if _romSize >= _maxRomSize:
+      disassembly = disassemble(opcode, operand)
+      print('%04x %02x%02x  %s' % (_romSize, opcode, operand, disassembly))
+      highlight('Error: Program size limit exceeded')
+      _maxRomSize = 0x10000 # Extend to full address space to prevent more of the same errors
   _rom0.append(opcode)
   _rom1.append(operand)
   _linenos.append(lineno)
@@ -527,7 +542,7 @@ def writeRomFiles(sourceFile):
   # Disassemble for readability
   filename = stem + '.lst'
   print('Create file', filename)
-  with open(filename, 'w') as file:
+  with open(filename, 'w', encoding='utf-8') as file:
     address = 0
     repeats, previous, line0 = 0, None, None
     maxRepeat = 3
@@ -668,4 +683,24 @@ def highlight(*args):
   if line.upper().startswith('ERROR'):
     print('Assembly failed')
     sys.exit(1)
+
+# Conditional compilation
+# - command line arguments of the form -DSYMBOL[=VALUE]
+#   are removed from sys.argv and collected into a dict.
+# - function defined('SYMBOL') returns VALUE or 1 if the
+#   symbol was defined, None if if wasn't.
+_defined = {}
+def defined(s):
+  if s in _defined:
+    return _defined[s]
+  return None
+import ast
+for (i,arg) in enumerate(sys.argv):
+  if arg.startswith("-D"):
+    arg, val = arg[2:], 1
+    if '=' in arg:
+      arg, val = arg.split('=', 1)
+      val = ast.literal_eval(val)
+    _defined[arg]=val
+    del sys.argv[i]
 
