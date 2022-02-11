@@ -1,0 +1,181 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &hFFFF
+_codeRomType_ ROMvX0
+
+const SW = 9
+const SH = 10
+const NUM_SPRITES = 8
+const NUM_FREE_SCANLINES = 10
+
+'not using strings
+free STRINGWORKAREA
+
+'first 10 scanlines are free for code and data
+'free &h0800, 160, NUM_FREE_SCANLINES, 0x0100
+
+load image, ../../res/image/forest.tga
+
+load sprite, ../../res/image/Digits/zero.tga,  0
+load sprite, ../../res/image/Digits/one.tga,   1
+load sprite, ../../res/image/Digits/two.tga,   2
+load sprite, ../../res/image/Digits/three.tga, 3
+load sprite, ../../res/image/Digits/four.tga,  4
+load sprite, ../../res/image/Digits/five.tga,  5
+load sprite, ../../res/image/Digits/six.tga,   6
+load sprite, ../../res/image/Digits/seven.tga, 7
+
+load pattern, ../../res/image/Digits/zero.tga,  0
+load pattern, ../../res/image/Digits/one.tga,   1
+load pattern, ../../res/image/Digits/two.tga,   2
+load pattern, ../../res/image/Digits/three.tga, 3
+load pattern, ../../res/image/Digits/four.tga,  4
+load pattern, ../../res/image/Digits/five.tga,  5
+load pattern, ../../res/image/Digits/six.tga,   6
+load pattern, ../../res/image/Digits/seven.tga, 7
+load pattern, ../../res/image/Digits/eight.tga, 8
+load pattern, ../../res/image/Digits/nine.tga,  9
+load pattern, ../../res/image/Digits/A.tga,     10
+load pattern, ../../res/image/Digits/B.tga,     11
+load pattern, ../../res/image/Digits/C.tga,     12
+load pattern, ../../res/image/Digits/D.tga,     13
+load pattern, ../../res/image/Digits/E.tga,     14
+load pattern, ../../res/image/Digits/F.tga,     15
+
+' initialise internal sprite positions
+const xAddr = get("SPRITE_LUTS", 3)
+const yAddr = get("SPRITE_LUTS", 5)
+
+dim xs%(NUM_SPRITES-1)
+def byte(@xs, 0, 1, #xs) = rand(3)-1
+
+dim ys%(NUM_SPRITES-1)
+def byte(@ys, 0, 1, #ys) = rand(3)-1
+
+dim vtX%(119) = 0
+
+dim sysArgs%(7) = 0
+
+frame = 0 : anim = frame
+
+gosub initSprites
+
+repeat
+    sprites draw, SH
+
+    gosub updateSprites
+    gosub convertVTableX
+    
+    vscroll  1, 10, 50
+    vscroll -1, 60, 60
+
+    sprites restore, SH
+
+    inc frame.lo
+&forever
+
+
+convertVTableX:
+    asm
+        LDWI    SYS_ConvertVTableX_66
+        STW     giga_sysFn
+        LDWI    _vtX_array
+        STW     giga_sysArg0
+        MOVQW   giga_sysArg2, 1         'sys_Args2=1, sys_Args3=0
+        MOVQB   giga_sysArg4, 40        'sys call process 3 entries per loop, 120/3=40
+        SYS     66
+    endasm
+return
+
+
+initSprites:
+    mode 2
+    set VIDEO_TOP, NUM_FREE_SCANLINES*2
+
+    for i=NUM_SPRITES-1 &downto 0
+        poke xAddr + i, rnd(160-SW)
+        poke yAddr + i, rnd(110-SH)+10
+    next i
+
+    x = peek(xAddr)
+    y = peek(yAddr)
+
+    sprites init
+return
+
+
+updateSprites:
+    b = NOT get("BUTTON_STATE")
+    if (b AND 1) then inc x
+    if (b AND 2) then dec x
+    if (b AND 4) then inc y
+    if (b AND 8) then dec y
+    
+    if x < 0 then x = 0
+    if x.lo > 160-SW then x = 160-SW
+    if y.lo < 10 then y = 10
+    if y.lo > 120-SH then y = 120-SH
+    sprite move, 0, x, y
+    
+    vec8 add, @xs, xAddr, NUM_SPRITES-1, 1
+    vec8 chk, xAddr, onCheckBoundsX, 0, 161-SW, NUM_SPRITES-1, 1
+    
+    vec8 add, @ys, yAddr, NUM_SPRITES-1, 1
+    vec8 chk, yAddr, onCheckBoundsY, 10, 121-SH, NUM_SPRITES-1, 1
+    
+    if frame.lo &= 16
+        frame.lo = 0
+        inc anim.lo
+        anim.lo = anim.lo AND 15
+        sprite pattern, 0, anim
+    endif
+    
+    gosub toggleSprites    
+return
+
+
+kk = 255
+dim show(NUM_SPRITES-1) = &hFF
+toggleSprites:
+    k = get("PS2_KEYBD")
+    if (kk = 255) AND (k < 255)
+        if (k >= 48) AND (k <= 55) '0 - 9
+            sh = k - 48
+            show(sh) = NOT show(sh)
+            sprite show, sh, show(sh)
+        endif
+    endif
+    kk = k
+return
+
+dim spren(NUM_SPRITES-1) = 1
+48:  sprite show, 0, spren(0) : return
+49:  sprite show, 1, spren(1) : return
+50:  sprite show, 2, spren(2) : return
+51:  sprite show, 3, spren(3) : return
+52:  sprite show, 4, spren(4) : return
+53:  sprite show, 5, spren(5) : return
+54:  sprite show, 6, spren(6) : return
+55:  sprite show, 7, spren(7) : return
+
+
+onCheckBoundsX:
+    asm
+        PUSH
+        STW     _i
+    endasm
+
+    xs(i) = -xs(i)
+    poke xAddr + i, peek(xAddr + i) + xs(i)
+return
+
+
+onCheckBoundsY:
+    asm
+        PUSH
+        STW     _i
+    endasm
+
+    ys(i) = -ys(i)
+    poke yAddr + i, peek(yAddr + i) + ys(i)
+return
+

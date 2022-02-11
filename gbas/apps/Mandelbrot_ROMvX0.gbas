@@ -1,0 +1,55 @@
+_runtimePath_ "../runtime"
+_codeRomType_ ROMvX0
+
+mode 3
+cls
+
+init time
+
+set FGBG_COLOUR, &h0000
+const colours = &h0600
+def byte(colours) = &h00, &h10, &h20, &h30, &h34, &h38, &h3c, &h0c, &h0d, &h0e, &h0f, &h0b, &h07, &h03, &h02, &h01
+
+
+const xmin = -90
+const xmax =  70
+const ymin = -60
+const ymax =  60
+const dx = (xmax-xmin)/160
+const dy = (ymax-ymin)/120
+const fracbits = 5
+
+cy = ymin 
+
+set TIMER, 0
+for py=0 &to 59
+    cx = xmin
+    ipy = 119 - py
+    for px=0 &to 159
+        x=0 : y=x : x2=y : y2=x2
+        
+        'c=0 when Mandelbrot equation tends to infinity
+        for c=15 &downto 0
+            if abs(x) > (2**fracbits * 2) then goto &break
+            if abs(y) > (2**fracbits * 2) then goto &break
+            
+            x2 = (x*x) LSR fracbits
+            y2 = (y*y) LSR fracbits
+            if x2+y2 > (2**fracbits * 4) then goto &break
+            
+            'x*y may be -ve, so use arithmetic shift right, (ASR)
+            y = ((x*y) ASR (fracbits-1)) + cy
+            x = x2 - y2 + cx
+        next c
+break:
+        'use symmetry around y to cheat 2 pixels at a time
+        c = peek(colours + c)
+        pset px, py, c
+        pset px, ipy, c
+        cx = cx + dx
+    next px
+    cy = cy + dy
+next py
+ticks = get("TIMER")
+set FGBG_COLOUR, &h3F00
+at 50, 56 : print ticks/60;" ";ticks % 60;"/60"

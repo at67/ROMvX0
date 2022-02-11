@@ -1,0 +1,29 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+
+'not using strings
+free STRINGWORKAREA
+
+cls
+
+set FG_COLOUR, &h25
+rectf 40, 20, 120, 100
+
+set FG_COLOUR, &h21
+circlef 80, 60, 35
+
+set FG_COLOUR, 0
+rect 40, 20, 120, 100
+
+line 40, 20, 60, 60
+line 60, 60, 40, 100
+line 61, 20, 61, 100
+
+line 99, 20, 99, 100
+line 120, 20, 100, 60
+line 100, 60, 120, 100
+
+fill 40, 20, 80, 80, &h1E, &h00, &h21, 1
+
+end

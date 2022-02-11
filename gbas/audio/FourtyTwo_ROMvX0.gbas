@@ -1,0 +1,89 @@
+'a simple example of bytebeat procedurally generated music 'Forty-Two Melody'
+'*NOTE* the timing is off and it doesn't sound exactly the same as the original
+'http://countercomplex.blogspot.com/2011/10/some-deep-analysis-of-one-line-music.html
+
+_runtimePath_ "../../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+_enable8BitAudioEmu_ ON 'experimental
+
+'not using strings
+free STRINGWORKAREA
+
+const SAMPLES_ADDR = &h0600
+const SAMPLES = 64
+const SMP_H = 64
+const OSC_X = (160 - 64)/2
+const OSC_Y = (120 - 64)/2
+const OSC_A = &h0800 + OSC_Y*256 + OSC_X
+
+samplesAddr = SAMPLES_ADDR
+def byte(SAMPLES_ADDR,        0, 1, SAMPLES) = 0 'buffer A
+def byte(SAMPLES_ADDR + &h40, 0, 1, SAMPLES) = 0 'buffer B
+
+gosub initialise
+
+t = 0 : s = t
+
+'use waveform 2 for all channels
+sound on, 1, 800, 64, 2
+sound on, 2, 800, 64, 2
+sound on, 3, 800, 64, 2
+sound on, 4, 800, 64, 2
+
+repeat
+    'wait
+    smpsAddr = samplesAddr
+    for i=0 &to 63
+        tt = t + i
+        tr9 = tt.hi LSR 1
+        poke &h0702 + (i LSL 2), s 'modify waveform 2
+        asm
+            LD      _s
+            POKE+   _smpsAddr
+        endasm
+        s = s + (tr9 AND 42) 
+    next i
+
+    'erase waveform buffer B
+    set FG_COLOUR, &h10
+    sAddr = samplesAddr XOR &h40
+    for i=SAMPLES-1 &downto 0
+        asm
+            LDWI    _OSC_A
+            OSCPX   _sAddr, _i
+        endasm
+        'pixelAddr = ((peek(sAddr + i) AND &hFC) LSR 2) LSL 8
+        'poke OSC_A + pixelAddr + i, &h10
+    next i
+
+    'draw waveform buffer A
+    set FG_COLOUR, &h1D
+    for i=SAMPLES-1 &downto 0
+        asm
+            LDWI    _OSC_A
+            OSCPX   _samplesAddr, _i
+        endasm
+        'pixelAddr = ((peek(samplesAddr + i) AND &hFC) LSR 2) LSL 8
+        'poke OSC_A + pixelAddr + i, &h1D
+    next i
+
+    samplesAddr = samplesAddr XOR &h40
+
+    set SOUND_TIMER, 5
+    
+    t = t + 64
+&forever
+
+
+initialise:
+    mode 3
+    set FGBG_COLOUR, &h1030
+    cls
+    set FG_COLOUR, &h20
+    rectf OSC_X - 3, OSC_Y - 3, OSC_X + SAMPLES + 2, OSC_Y + SMP_H + 2
+    set FG_COLOUR, &h10
+    rectf OSC_X, OSC_Y, OSC_X + SAMPLES - 1, OSC_Y + SMP_H - 1
+    set FG_COLOUR, &h2F
+return
+

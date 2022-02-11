@@ -1,0 +1,56 @@
+_runtimePath_ "../../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+
+free STRINGWORKAREA
+
+'alloc offscreen scrolling areas, (<address>, <optional width>, <optional height>, <optional offset>)
+alloc &h08A0, 96, 120, &h0100
+
+mode 2
+cls
+
+i = 0 : yx = 160 : m = 3
+
+repeat
+    asm
+        MOVQB   _yx + 1, 119
+        
+loop:   LD      _i
+        XORBA   _yx + 1
+        STW     giga_sysArg0
+        MOVB     _m, giga_sysArg2
+        MOVQB   giga_sysArg4, 8
+        MOVQW   giga_sysFn, SYS_Divide_u168_vX_56
+        SYS     56
+        LD      giga_sysArg1
+        STPX    _yx, giga_vAC
+        DBGE    _yx + 1, _loop
+    endasm
+
+    inc i.lo
+    if (i.lo AND 63) &&= 63
+        inc m.lo
+    endif
+    poke &h0101, i.lo
+    
+    inc yx.lo
+&forever
+
+
+'i = 0 : ii = 160 : m = 3
+'
+'repeat
+'    for y = 119 &downto 0
+'        c.lo = FMOD((i.lo XOR y.lo), m.lo)
+'        pset ii.lo, y.lo, c.lo
+'    next y
+'
+'    inc i.lo
+'    if (i.lo AND 63) &&= 63
+'        inc m.lo
+'    endif
+'    poke &h0101, i.lo
+'
+'    inc ii.lo
+'&forever

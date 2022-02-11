@@ -37,7 +37,7 @@ SDCARD_bmwtcu.rom: Core/* Apps/*/* makefile interface.json
 		SYS_Loader_vX.py\
 		Loader=Apps/Loader/Loader_v4.gcl\
 		Main=Apps/MainMenu/MainMenu_SDCARD_bmwtcu.gcl\
-        SDCard=Browser_SDCard_ROMv5a_v1.gt1\
+        SDCard=gbas/browser/Browser_SDCard_ROMv5a_v1.gt1\
 		Reset=Core/Reset_SDCARD_bmwtcu.gcl
         
 # SDCard Development using "ROM v5" as a foundation
@@ -48,7 +48,7 @@ SDCARD.rom: Core/* Apps/*/* Makefile interface.json
 		SYS_Racer_v1.py\
 		zippedRacerHorizon=Apps/Racer/Horizon-256x16.rgb\
 		Racer=Apps/Racer/Racer_v2.gcl\
-        SDCard=Browser_SDCard_ROMv5a_v1.gt1\
+        SDCard=gbas/browser/Browser_SDCard_ROMv5a_v1.gt1\
 		Mandelbrot=Apps/Mandelbrot/Mandelbrot_v1.gcl\
 		Pictures=Apps/Pictures/Pictures_v3.gcl\
 		Loader=Apps/Loader/Loader_v4.gcl\
@@ -73,7 +73,7 @@ ROMvX0.rom: Core/* Apps/*/* Makefile ROMvX0_interface.json
 		SYS_Racer_v1.py\
 		zippedRacerHorizon=Apps/Racer/Horizon-256x16.rgb\
 		Racer=Apps/Racer/Racer_v2.gcl\
-        SDCard=Browser_SDCard_ROMv5a_v1.gt1\
+        SDCard=gbas/browser/Browser_SDCard_ROMv5a_v1.gt1\
 		Mandelbrot=Apps/Mandelbrot/Mandelbrot_v1.gcl\
 		Loader=Apps/Loader/Loader_v4.gcl\
 		Credits=Apps/Credits/Credits_v3.gcl\

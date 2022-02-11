@@ -1,0 +1,161 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &hFFFF
+_codeRomType_ ROMvX0
+
+free STRINGWORKAREA
+
+'defines the amount of contiguous RAM needed for blit stripes, (in this case 15*6 + 1), min address and search direction
+_blitStripeChunks_ 15, &h08A0, &hD100, ascending
+
+const frameStart = 0
+const fgBgColour = &h0008
+
+load blit, ../../res/image/SC3000H/frame00.tga, frameStart + 0
+load blit, ../../res/image/SC3000H/frame01.tga, frameStart + 1
+load blit, ../../res/image/SC3000H/frame02.tga, frameStart + 2
+load blit, ../../res/image/SC3000H/frame03.tga, frameStart + 3
+load blit, ../../res/image/SC3000H/frame04.tga, frameStart + 4
+load blit, ../../res/image/SC3000H/frame05.tga, frameStart + 5
+load blit, ../../res/image/SC3000H/frame06.tga, frameStart + 6
+load blit, ../../res/image/SC3000H/frame07.tga, frameStart + 7
+load blit, ../../res/image/SC3000H/frame08.tga, frameStart + 8
+load blit, ../../res/image/SC3000H/frame09.tga, frameStart + 9
+load blit, ../../res/image/SC3000H/frame10.tga, frameStart + 10
+load blit, ../../res/image/SC3000H/frame11.tga, frameStart + 11
+load blit, ../../res/image/SC3000H/frame12.tga, frameStart + 12
+load blit, ../../res/image/SC3000H/frame13.tga, frameStart + 13
+
+load font, ../../res/font/sc3000/sc3000.tga, 0, fgBgColour
+
+load midi, ../../res/audio/midi/gotcha.gtmid, 0
+
+init midiv
+
+set FGBG_COLOUR, fgBgColour
+mode 2
+
+'audio fix for ROMv5a
+poke &h21, peek(&h21) OR 3
+cls
+
+sound off
+
+print " ________________________"
+print
+print "   SEGA SC-3000H BASIC"
+print "    Level 3.0 ver 1.0"
+print "   Export Version With"
+print "        Diereses"
+print "   Copyright 1983 (C)"
+print "        by MITEC"
+print " ________________________"
+print
+print "  26620 Bytes free"
+print " Ready"
+
+done = 0
+
+duration = 8 : gosub beep
+    
+loop:
+    at 8,96 : print chr$(127)
+    gosub waitKey
+    if done = 1 then goto ohNoes
+
+    at 8,96 : print " "
+    gosub waitKey
+    if done = 1 then goto ohNoes
+goto loop
+
+waitKey:
+    for i=1 to 15
+        wait
+        k = get("SERIAL_RAW")
+        if k <> 255
+            done = 1
+            goto break
+        endif    
+    next i
+break:    
+return
+
+ohNoes:
+
+duration = 3 : gosub beep
+
+const dim hello$(2) = {"10 PRINT \"Hello World!\"",
+                       "20 GOTO 10",
+                       "RUN"}
+
+at 8,96
+for i=0 to 2
+    for j=1 to len(hello$(i)) 'skip past length byte
+        print chr$(peek(addr(hello$(i)) + j)); : gosub printCursor
+        duration = 3 : gosub beep
+        wait (rnd(0) AND 15) + 2
+    next j
+    print " "
+    at 8
+next i
+print
+
+play mididv, 0, 3
+
+cls INIT
+cls
+posX = 2 : posY = posX
+stepX = 1 : stepY = stepX
+
+t = 0 : frame = t
+repeat
+    posW = 124 - posX
+    posZ = 76 - posY
+
+    set FG_COLOUR, 8
+    rect posX-2, posY-2, posX+37, posY+45
+    set FG_COLOUR, 0
+    rect posX-1, posY-1, posX+36, posY+44
+    blit noFlip, frame, posX, posY
+    
+    set FG_COLOUR, 8
+    rect posW-2, posZ-2, posW+37, posZ+45
+    set FG_COLOUR, 0
+    rect posW-1, posZ-1, posW+36, posZ+44
+    blit noFlip, 13 - frame, posW, posZ
+
+    inc t.lo
+    if t.lo &> 8
+        t.lo = 0
+        inc frame.lo
+        if frame.lo &> frameStart + 13
+            frame = frameStart
+        endif
+    endif
+    
+    posX = posX + stepX
+    if &((posX > 122) OR (posX < 2))
+        stepX = -stepX
+        posX = posX + stepX
+    endif
+    
+    posY = posY + stepY
+    if &((posY > 74) OR (posY < 2))
+        stepY = -stepY
+        posY = posY + stepY
+    endif
+forever
+
+
+printCursor:
+    cursor = get("CURSOR_XY")
+    print chr$(127);
+    set CURSOR_XY, cursor
+return
+
+
+beep:
+    sound on, 1, 8200, 63, 1
+    set SOUND_TIMER, duration
+    wait duration
+    sound off
+return

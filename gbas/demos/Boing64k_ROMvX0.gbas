@@ -1,0 +1,173 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &hFFFF
+_codeRomType_ ROMvX0
+
+free STRINGWORKAREA
+
+'defines the amount of contiguous RAM needed for blit stripes, (in this case 15*6 + 1), min address and search direction
+_blitStripeChunks_ 15, &h1FA0, &hFFFF, ascending
+
+'alloc offscreen scrolling area, (<address>, <optional size>, <optional count>, <optional offset>), so that compiler does not try and use it
+alloc &h52A0, 96, 23, &h0100
+
+const RIPPLE_ADDR = &h1DA0
+const RIPPLE_SIZE = 16
+const RIPPLE_LENGTH = 32 ' must be a power of 2
+def word(RIPPLE_ADDR, x, 0.0, 360.0, RIPPLE_LENGTH) = sin(x)*RIPPLE_SIZE
+
+'volume extinction function, (modelled in Desmos), used to control ADSR
+const V_LUT=&h1EA0
+const V_SIZ=64
+def byte(V_LUT, y, 0.0, 0.5, V_SIZ) = 63.0 - exp(-0.5*y)*(1.0-exp(-3.0*y))*1.6125*63.0
+
+'frequency sweep
+const F_LUT=&h1EE0
+const F_SIZ=16
+def word(F_LUT, y, 0.0, 360.0, F_SIZ) = sin(y)*200.0 + 1000.0
+
+module "BoingData64k_ROMvX0.m"
+
+'audio fix for ROMv5a
+poke &h21, peek(&h21) OR 3
+sound off
+
+mode 3
+set FGBG_COLOUR, &h0000
+cls
+
+set FG_COLOUR, 0
+rectf 0, 74, 159 + 96, 96 'clear text scrolling onscreen and offscreen area
+
+'i and l = 6, m and w = 18, space and fstop = 6
+'static initialisation of the array produces no code, always attempt this first
+dim fontWidths(27) = 12, 12, 12, 12, 12, 12, 12, 12, 6, 12, 12, 6, 18, 12, 12, 12, 12, 12, 12, 12, 12, 12, 18, 12, 12, 12, 6, 6
+
+'reflect scanlines statically
+def word(&h01BE) = {&h0067, &h0066, &h0065, &h0064, &h0063, &h0062, &h0061, &h0060, &h005F, &h005E,
+                    &h005D, &h005C, &h005B, &h005A, &h0059, &h0058, &h0057, &h0056, &h0055, &h0054,
+                    &h0053, &h0052, &h0052, &h0052, &h0052}
+
+def f, y, text, fstep, xstep, x, ystep, scrl, char, stamp, width, quote, crash, time, phase
+
+const g = 4
+
+gosub initVars
+
+loop:
+    set SOUND_TIMER, 2
+    
+    blit noFlip, f, x.hi, y.hi
+    
+    'boing frame
+    f = f + fstep
+    if f > boingStart + 13 then f = boingStart
+    if f < boingStart then f = boingStart + 13
+  
+    'boing xpos
+    x = x + xstep
+    if x.hi > 111 'performs the following check if (x.hi > 111) or (x.hi < 0)
+        xstep = -xstep
+        x = x + xstep
+        fstep = -fstep
+        crash = 1
+        time = 0
+    endif
+    
+    'boing ypos
+    ystep = ystep + g
+    y = y + ystep
+    if y.hi > 33
+        y.hi = 33
+        ystep = -ystep
+        crash = 1
+        time = 0
+    endif
+    
+    'collision sound
+    if crash = 1
+        gosub crashSound
+    endif
+
+    'print character one at a time offscreen
+    gosub printText
+    
+    'scrolling text
+    gosub scrollText
+goto &loop
+
+
+printText:
+    if stamp = 0
+getChar:
+        c = peek(addr(quotes$(quote)) + 1 + char) '+1 to get past the length byte
+        'gprintf "%b %b %b 0x%04x", quote, char, c, addr(quotes$(quote))
+        inc char.lo
+        
+        if c = 0
+            char = 0
+            inc quote.lo
+            if quote = 21
+                quote = 0
+            endif
+            goto getChar
+        elseif c = 32
+            c = 26
+        elseif c = 46
+            c = 27
+        else
+            c = c - 97
+        endif
+        
+        blit noFlip, fontStart + c, text, 75
+        
+        width = fontWidths(c)
+        text = text + width
+    endif
+    
+    inc stamp.lo
+    if stamp = width
+        stamp = 0
+    endif
+return
+
+scrollText:
+    'wait
+    prev = 0 : count = phase
+    vtable = &h0195                 ' video indirection table starts here, (x offset)
+    repeat
+        if vtable <= &h01C1
+            offset = scrl
+        else
+            scale = deek(RIPPLE_ADDR + ((count AND (RIPPLE_LENGTH-1)) LSL 1))
+            scale = scale * (44 - (&h01ED - vtable)) LSL 3
+            offset = scale.hi + scrl
+        endif
+        
+        poke vtable, offset - prev  ' add sin LUT and subtract previous offset
+        prev = offset               ' save previous offset
+        inc count.lo
+        vtable = vtable + 4         ' skip every second scanline for efficiency
+    until vtable >= &h01F1        ' video indirection table ends at &h01EF, but we are incrementing by 4
+    if &(scrl.lo AND 1) then inc phase.lo ' phase moves the ripples up the screen
+    inc scrl.lo
+return
+
+crashSound:
+    volume = peek(V_LUT + (time AND (V_SIZ-1)))
+    freq = deek(F_LUT + ((time AND (F_SIZ-1)) LSL 1))
+    foffs = 0
+    for i=1 to 4
+        sound on, i, freq + foffs, volume, 0
+        foffs = foffs + 100
+    next i
+
+    inc time.lo
+    if time = 64
+        time = 0 : crash = 0
+    endif
+return
+
+initVars:
+    f = boingStart : y = &h0100 : text = 160 : fstep = 1 : xstep = 100
+    init vars @x
+return

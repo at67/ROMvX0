@@ -1,0 +1,43 @@
+_runtimePath_ "../runtime"
+_codeRomType_ ROMv3
+
+cls : mode 2
+
+init TIME
+
+' lines
+set TIMER, 0
+for i=1 to 100
+    set FG_COLOUR, rnd(0) AND &h3F
+    vline 0,   0,   119
+    hline 0,   119, 159
+    vline 159, 0,   119
+    hline 0,   0,   159
+    line  0,   0,   159, 119
+    line  0,   119, 159, 0
+next i
+timerL = get("TIMER")
+
+' filled rects
+cls
+set TIMER, 0
+for i=1 to 100
+    set FG_COLOUR, rnd(0) AND &h3F
+    rectf 0, 0, 159, 119
+next i
+timerR = get("TIMER")
+
+' filled circles
+cls
+set TIMER, 0
+for i=1 to 100
+    set FG_COLOUR, rnd(0) AND &h3F
+    circlef 80, 60, 60
+next i
+timerC = get("TIMER")
+
+cls
+set FG_COLOUR, &h3F
+print "Lines: ";timerL/60;" ";timerL % 60;"/60"
+print "Rects: ";timerR/60;" ";timerR % 60;"/60"
+print "Circs: ";timerC/60;" ";timerC % 60;"/60"

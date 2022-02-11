@@ -19708,7 +19708,7 @@ Racer:        4cf0 0002  ld   $02         ;| RAM segment address (high byte firs
               543f 00a0  ld   $a0
               5440 0000  ld   $00         ;End of Apps/Racer/Racer_v2.gcl, size 1873
                                           ;+-----------------------------------+
-                                          ;| Browser_SDCard_ROMv5a_v1.gt1      |
+                                          ;| gbas/Browser/Browser_SDCard_ROMv5a_v1.gt1 |
                                           ;+-----------------------------------+
               5441 dc52  st   $52,[y,x++] ;'R'
               5442 dc61  st   $61,[y,x++] ;'a'
@@ -22536,7 +22536,7 @@ SDCard:       544f 0002  ld   $02
               5f97 0000  ld   $00
               5f98 0000  ld   $00
               5f99 0000  ld   $00
-              5f9a 0000  ld   $00         ;End of Browser_SDCard_ROMv5a_v1.gt1, size 2892
+              5f9a 0000  ld   $00         ;End of gbas/Browser/Browser_SDCard_ROMv5a_v1.gt1, size 2892
                                           ;+-----------------------------------+
                                           ;| Apps/Mandelbrot/Mandelbrot_v1.gcl |
                                           ;+-----------------------------------+
