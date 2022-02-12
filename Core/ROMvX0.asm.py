@@ -751,9 +751,10 @@ ld(hi('sys_DrawLine'),Y)        #15 slot 0xa4
 jmp(Y,'sys_DrawLine')           #16
 ld([0xA3])                      #17 fgcolour
 
-ld(hi('REENTER'),Y)             #15 slot 0xa7
-jmp(Y,'REENTER')                #16
-ld(-20/2)                       #17
+label('SYS_ReceiveSerial1')
+ld(hi('sys_ReceiveSerial1'),Y)  #15 slot 0xa7
+jmp(Y,'sys_ReceiveSerial1')     #16
+ld([videoY])                    #17 scanline Y
 
 label('SYS_WaitVBlank_vX_28')
 ld(hi('sys_WaitVBlank'),Y)      #15 slot 0xaa
@@ -864,83 +865,37 @@ ld(hi('REENTER'),Y)             #15 slot 0xe0
 jmp(Y,'REENTER')                #16
 ld(-20/2)                       #17
 
+ld(hi('REENTER'),Y)             #15 slot 0xe3
+jmp(Y,'REENTER')                #16
+ld(-20/2)                       #17
+
+ld(hi('REENTER'),Y)             #15 slot 0xe6
+jmp(Y,'REENTER')                #16
+ld(-20/2)                       #17
+
 #-----------------------------------------------------------------------
-# Extension SYS_ScanMemoryExt_vX_50
+# Extension SYS_StoreBytes_DEVROM_XXX
 #-----------------------------------------------------------------------
 
-# SYS function for searching a byte in a 0 to 256 bytes string located
-# in a different bank. Doesn't cross page boundaries. Returns a
-# pointer to the target if found or zero. Temporarily deselects SPI
-# devices.
+ld(hi('REENTER'),Y)             #15 slot 0xe9
+jmp(Y,'REENTER')                #16
+ld(-20/2)                       #17
+
+#-----------------------------------------------------------------------
+# Extension SYS_LoadBytes_DEVROM_XXX
+#-----------------------------------------------------------------------
+
+# Load object variables into zero-page
+# XXX Unfinished
 #
-# sysArgs[0:1]            Start address
-# sysArgs[2], sysArgs[3]  Bytes to locate in the string
-# vACL                    Length of the string (0 means 256)
-# vACH                    Bit 6 and 7 contain the bank number
+# Variables
+#       vLR             Pointer to size byte + object variables
+#       $30...$30+n-1   Target location
 
-label('SYS_ScanMemoryExt_vX_50')
-ld(hi('sys_ScanMemoryExt'),Y)   #15 slot 0xe3
-jmp(Y,'sys_ScanMemoryExt')      #16
-ld([vAC+1])                     #17
-
-
-#-----------------------------------------------------------------------
-# Extension SYS_ScanMemory_vX_50
-#-----------------------------------------------------------------------
-
-# SYS function for searching a byte in a 0 to 256 bytes string.
-# Returns a pointer to the target if found or zero.  Doesn't cross
-# page boundaries.
-
-#
-# sysArgs[0:1]            Start address
-# sysArgs[2], sysArgs[3]  Bytes to locate in the string
-# vACL                    Length of the string (0 means 256)
-
-label('SYS_ScanMemory_vX_50')
-ld(hi('sys_ScanMemory'),Y)      #15 slot 0xe6
-jmp(Y,'sys_ScanMemory')         #16
-ld([sysArgs+1],Y)               #17
-
-#-----------------------------------------------------------------------
-# Extension SYS_CopyMemory_vX_80
-#-----------------------------------------------------------------------
-
-# SYS function for copying 1..256 bytes
-#
-# sysArgs[0:1]    Destination address
-# sysArgs[2:3]    Source address
-# vAC[0]          Count (0 means 256)
-#
-# Doesn't cross page boundaries.
-# Overwrites sysArgs[4:7] and vLR.
-
-label('SYS_CopyMemory_vX_80')
-ld(hi('sys_CopyMemory'),Y)       # 15 slot 0xe9
-jmp(Y, 'sys_CopyMemory')         # 16
-ld([vAC])                        # 17
-
-#-----------------------------------------------------------------------
-# Extension SYS_CopyMemoryExt_vX_100
-#-----------------------------------------------------------------------
-
-# SYS function for copying 1..256 bytes across banks
-#
-# sysArgs[0:1]  Destination address
-# sysArgs[2:3]  Source address
-# vAC[0]        Count (0 means 256)
-# vAC[1]        Bits 7 and 6 contain the destination bank number,
-#               and bits 5 and 4 the source bank number.
-#
-# Doesn't cross page boundaries.
-# Overwrites sysArgs[4:7], vLR, and vTmp.
-# Temporarily deselect all SPI devices.
-# Should not call without expansion board
-
-label('SYS_CopyMemoryExt_vX_100')
-ld(hi('sys_CopyMemoryExt'),Y)    # 15 slot 0xec
-jmp(Y, 'sys_CopyMemoryExt')      # 16
-ld([vAC+1])                      # 17
+label('SYS_LoadBytes_DEVROM_XXX')
+ld(hi('sys_LoadBytes'),Y)       #15
+jmp(Y,'sys_LoadBytes')          #16
+ld([vLR+1],Y)                   #17
 
 #-----------------------------------------------------------------------
 # Extension SYS_ReadRomDir_v5_80
@@ -3182,7 +3137,7 @@ xora(videoYline0)               #17 First line of vertical blank
 label('SYS_ExpanderControl_v4_40')
 ld(hi('sys_ExpanderControl'),Y) #15
 jmp(Y,'sys_ExpanderControl')    #16
-ld(0b00001100)                  #17
+ld(0b11111100)                  #17 Safety (SCLK=0)
 #    ^^^^^^^^
 #    |||||||`-- SCLK
 #    ||||||`--- Not connected
@@ -3312,29 +3267,6 @@ label('SYS_SpiExchangeBytes_v4_134')
 ld(hi('sys_SpiExchangeBytes'),Y)#15
 jmp(Y,'sys_SpiExchangeBytes')   #16
 ld(hi(ctrlBits),Y)              #17 Control state as saved by SYS_ExpanderControl
-
-#-----------------------------------------------------------------------
-# Extension SYS_ReceiveSerial1_vX_32
-#-----------------------------------------------------------------------
-
-# SYS function for receiving one byte over the serial controller port.
-# This is a public version of SYS_NextByteIn from the loader private
-# extension.  A byte is read from IN when videoY reaches
-# sysArgs[3]. The byte is added to the checksum sysArgs[2] then stored
-# at address sysArgs[0:1] which gets incremented.
-#
-# The 65 bytes of a serial frame can be read for the following values
-# of videoY: 207 (protocol byte) 219 (length, 6 bits only) 235, 251
-# (address) then 2, 6, 10, .. 238 stepping by four, then 185.
-#
-# Variables:
-#     sysArgs[0:1] Address
-#     sysArgs[2]   Checksum
-#     sysArgs[3]   Wait value (videoY)
-
-label('SYS_ReceiveSerial1_vX_32')
-bra('sys_ReceiveSerial1')       #15
-ld([sysArgs+3])                 #16
 
 #-----------------------------------------------------------------------
 #  Implementations
@@ -3514,35 +3446,18 @@ st([vAC+1])                     #41
 jmp(Y,'REENTER')                #42
 ld(-46/2)                       #43
 
-# SYS_ReceiveSerialByte implementation
-label('sys_ReceiveSerial1')
-xora([videoY])                  #17
-bne('.sysRsb#20')               #18
-ld([sysArgs+0],X)               #19
-ld([sysArgs+1],Y)               #20
-ld(IN)                          #21
-st([Y,X])                       #22
-adda([sysArgs+2])               #23
-st([sysArgs+2])                 #24
-ld([sysArgs+0])                 #25
-adda(1)                         #26
-st([sysArgs+0])                 #27
-ld(hi('NEXTY'),Y)               #28
-jmp(Y,'NEXTY')                  #29
-ld(-32/2)                       #30
-# Restart the instruction in the next timeslice
-label('.sysRsb#20')
-ld([vPC])                       #20
-suba(2)                         #21
-st([vPC])                       #22
-ld(hi('REENTER'),Y)             #23
-jmp(Y,'REENTER')                #24
-ld(-28/2)                       #25
-
-# -------------------------------------------------------------
-# vCPU instructions : POP PUSH
-# -------------------------------------------------------------
-
+# LDWI implementation (vCPU instruction)
+label('ldwi#13')
+st([vAC])                       #13 Operand
+st([Y,Xpp])                     #14 Just X++
+ld([Y,X])                       #15 Fetch second operand
+st([vAC+1])                     #16
+ld([vPC])                       #17 Advance vPC one more
+adda(1)                         #18
+st([vPC])                       #19
+ld(hi('NEXTY'),Y)               #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
 
 # POP implementation (vCPU instruction)
 label('pop#13')
@@ -3580,88 +3495,52 @@ ld(hi('NEXTY'),Y)               #24
 jmp(Y,'NEXTY')                  #25
 ld(-28/2)                       #26
 
-# -------------------------------------------------------------
-# vCPU instructions for comparisons between two 16-bit operands
-# -------------------------------------------------------------
-#
-# vCPU's conditional branching (BCC) always compares vAC against 0,
-# treating vAC as a two's complement 16-bit number. When we need to
-# compare two arbitrary numnbers we normally first take their difference
-# with SUBW.  However, when this difference is too large, the subtraction
-# overflows and we get the wrong outcome. To get it right over the
-# entire range, an elaborate sequence is needed. TinyBASIC uses this
-# blurp for its relational operators. (It compares stack variable $02
-# with zero page variable $3a.)
-#
-#       0461  ee 02            LDLW  $02
-#       0463  fc 3a            XORW  $3a
-#       0465  35 53 6a         BGE   $046c
-#       0468  ee 02            LDLW  $02
-#       046a  90 6e            BRA   $0470
-#       046c  ee 02            LDLW  $02
-#       046e  b8 3a            SUBW  $3a
-#       0470  35 56 73         BLE   $0475
-#
-# The CMPHS and CMPHU instructions were introduced to simplify this.
-# They inspect both operands to see if there is an overflow risk. If
-# so, they modify vAC such that their difference gets smaller, while
-# preserving the relation between the two operands. After that, the
-# SUBW instruction can't overflow and we achieve a correct comparison.
-# Use CMPHS for signed comparisons and CMPHU for unsigned. With these,
-# the sequence above becomes:
-#
-#       0461  ee 02            LDLW  $02
-#       0463  1f 3b            CMPHS $3b        Note: high byte of operand
-#       0465  b8 3a            SUBW  $3a
-#       0467  35 56 73         BLE   $0475
-#
-# CMPHS/CMPHU don't make much sense other than in combination with
-# SUBW. These modify vACH, if needed, as given in the following table:
-#
-#       vACH  varH  |     vACH
-#       bit7  bit7  | CMPHS  CMPHU
-#       ---------------------------
-#         0     0   |  vACH   vACH      no change needed
-#         0     1   | varH+1 varH-1     narrowing the range
-#         1     0   | varH-1 varH+1     narrowing the range
-#         1     1   |  vACH   vACH      no change needed
-#       ---------------------------
+# CALLI implementation (vCPU instruction)
+label('calli#13')
+adda(3)                         #13
+st([vLR])                       #14
+ld([vPC+1])                     #15
+st([vLR+1],Y)                   #16
+ld([Y,X])                       #17
+st([Y,Xpp])                     #18 Just X++
+suba(2)                         #19
+st([vPC])                       #20
+ld([Y,X])                       #21
+ld(hi('REENTER_28'),Y)          #22
+jmp(Y,'REENTER_28')             #23
+st([vPC+1])                     #24
 
-# CMPHS implementation (vCPU instruction)
-label('cmphs#13')
-ld(AC,X)                        #13
-ld([X])                         #14
-xora([vAC+1])                   #15
-bpl('.cmphu#18')                #16 Skip if same sign
-ld([vAC+1])                     #17
-bmi(pc()+3)                     #18
-bra(pc()+3)                     #19
-label('.cmphs#20')
-ld(+1)                          #20    vAC < variable
-ld(-1)                          #20(!) vAC > variable
-label('.cmphs#21')
-adda([X])                       #21
-st([vAC+1])                     #22
-ld(hi('REENTER'),Y)             #23
-jmp(Y,'REENTER')                #24
-ld(-28/2)                       #25
+# SUBW implemetation
+label('subw#13')
+adda(1)                         #13
+st([vTmp])                      #14 Address of high byte to be subtracted
+ld([vAC])                       #15 Low byte
+bmi('.subw#18')                 #16
+suba([X])                       #17
+st([vAC])                       #18 Store low result
+ora([X])                        #19 Carry in bit 7
+anda(0x80,X)                    #20 Move carry to bit 0
+ld([vAC+1])                     #21
+suba([X])                       #22
+ld([vTmp],X)                    #23
+suba([X])                       #24
+st([vAC+1])                     #25
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
+label('.subw#18')
+st([vAC])                       #18 Store low result
+anda([X])                       #19 Carry in bit 7
+anda(0x80,X)                    #20 Move carry to bit 0
+ld([vAC+1])                     #21
+suba([X])                       #22
+ld([vTmp],X)                    #23
+suba([X])                       #24
+st([vAC+1])                     #25
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
 
-# CMPHU implementation (vCPU instruction)
-label('cmphu#13')
-ld(AC,X)                        #13
-ld([X])                         #14
-xora([vAC+1])                   #15
-bpl('.cmphu#18')                #16 Skip if same sign
-ld([vAC+1])                     #17
-bmi('.cmphs#20')                #18
-bra('.cmphs#21')                #19
-ld(-1)                          #20    vAC > variable
-
-# No-operation for CMPHS/CMPHU when high bits are equal
-label('.cmphu#18')
-ld(hi('NEXTY'),Y)               #18
-jmp(Y,'NEXTY')                  #19
-ld(-22/2)                       #20
 
 #-----------------------------------------------------------------------
 #
@@ -3989,33 +3868,25 @@ ld(-62/2)                       #59
 
 #-----------------------------------------------------------------------
 
-align(0x100)
-
 label('sys_ExpanderControl')
 
-ld(hi(ctrlBits),Y)                  #18
-anda([vAC])                         #19 check for special ctrl code space
-beq('sysEx#22')                     #20
-ld([vAC])                           #21 load low byte of ctrl code in delay slot
-anda(0xfc)                          #22 sanitize normal ctrl code
-st([Y,ctrlBits])                    #23 store in ctrlBits
-st([vTmp])                          #24 store in vTmp
-bra('sysEx#27')                     #25 jump to issuing normal ctrl code
-ld([vAC+1],Y)                       #26 load high byte of ctrl code in delay slot
-label('sysEx#22')
-anda(0xfc,X)                        #22 * special ctrl code
-ld([Y,ctrlBits])                    #23 get previous normal code from ctrlBits
-st([vTmp])                          #24 save it in vTmp
-ld([vAC+1],Y)                       #25 load high byte of ctrl code
-ctrl(Y,X)                           #26 issue special ctrl code
-label('sysEx#27')
-ld([vTmp])                          #27 load saved normal ctrl code
-anda(0xfc,X)                        #28 sanitize ctrlBits
-ctrl(Y,X)                           #29 issue normal ctrl code
-ld([vTmp])                          #30 always load something after ctrl
-ld(hi('REENTER'),Y)                 #31
-jmp(Y,'REENTER')                    #32
-ld(-36/2)                           #33
+anda([vAC])                     #18
+st([vAC],X)                     #19
+ld(hi(ctrlBits),Y)              #20
+st([Y,ctrlBits])                #21 Set control variable
+ld([vAC+1],Y)                   #22 MOSI (A15)
+ctrl(Y,X)                       #23 Try set the expander control register
+
+ld([sysArgs+3])                 #24 Prepare for SYS_SpiExchangeBytes
+assert pc()&255 < 255-3         # Beware of page crossing: asm.py won't warn
+bne(pc()+3)                     #25
+bra(pc()+2)                     #26
+ld([sysArgs+1])                 #27
+st([sysArgs+3])                 #27,28 (must be idempotent)
+
+ld(hi('REENTER'),Y)             #29
+jmp(Y,'REENTER')                #30
+ld(-34/2)                       #31
 
 #-----------------------------------------------------------------------
 
@@ -5713,7 +5584,7 @@ ld(hi('NEXTY'),Y)               #40
 jmp(Y,'NEXTY')                  #41
 ld(-44/2)                       #42
 
-# SYS_LoadBytes_vX_XXX implementation
+# SYS_LoadBytes_DEVROM_XXX implementation
 label('sys_LoadBytes')
 ld(0x30)                        # Target address
 st([sysArgs+1])                 #
@@ -6883,64 +6754,88 @@ align(0x100, size=0x100)
 #       More vCPU instruction implementations, (0x1700)
 #-----------------------------------------------------------------------
 
-# LDWI implementation (vCPU instruction)
-label('ldwi#13')
-st([vAC])                       #13 Operand
-st([Y,Xpp])                     #14 Just X++
-ld([Y,X])                       #15 Fetch second operand
-st([vAC+1])                     #16
-ld([vPC])                       #17 Advance vPC one more
-adda(1)                         #18
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
+# -------------------------------------------------------------
+# vCPU instructions for comparisons between two 16-bit operands
+# -------------------------------------------------------------
+#
+# vCPU's conditional branching (BCC) always compares vAC against 0,
+# treating vAC as a two's complement 16-bit number. When we need to
+# compare two arbitrary numnbers we normally first take their difference
+# with SUBW.  However, when this difference is too large, the subtraction
+# overflows and we get the wrong outcome. To get it right over the
+# entire range, an elaborate sequence is needed. TinyBASIC uses this
+# blurp for its relational operators. (It compares stack variable $02
+# with zero page variable $3a.)
+#
+#       0461  ee 02            LDLW  $02
+#       0463  fc 3a            XORW  $3a
+#       0465  35 53 6a         BGE   $046c
+#       0468  ee 02            LDLW  $02
+#       046a  90 6e            BRA   $0470
+#       046c  ee 02            LDLW  $02
+#       046e  b8 3a            SUBW  $3a
+#       0470  35 56 73         BLE   $0475
+#
+# The CMPHS and CMPHU instructions were introduced to simplify this.
+# They inspect both operands to see if there is an overflow risk. If
+# so, they modify vAC such that their difference gets smaller, while
+# preserving the relation between the two operands. After that, the
+# SUBW instruction can't overflow and we achieve a correct comparison.
+# Use CMPHS for signed comparisons and CMPHU for unsigned. With these,
+# the sequence above becomes:
+#
+#       0461  ee 02            LDLW  $02
+#       0463  1f 3b            CMPHS $3b        Note: high byte of operand
+#       0465  b8 3a            SUBW  $3a
+#       0467  35 56 73         BLE   $0475
+#
+# CMPHS/CMPHU don't make much sense other than in combination with
+# SUBW. These modify vACH, if needed, as given in the following table:
+#
+#       vACH  varH  |     vACH
+#       bit7  bit7  | CMPHS  CMPHU
+#       ---------------------------
+#         0     0   |  vACH   vACH      no change needed
+#         0     1   | varH+1 varH-1     narrowing the range
+#         1     0   | varH-1 varH+1     narrowing the range
+#         1     1   |  vACH   vACH      no change needed
+#       ---------------------------
 
-# CALLI implementation (vCPU instruction)
-label('calli#13')
-adda(3)                         #13
-st([vLR])                       #14
-ld([vPC+1])                     #15
-st([vLR+1],Y)                   #16
-ld([Y,X])                       #17
-st([Y,Xpp])                     #18 Just X++
-suba(2)                         #19
-st([vPC])                       #20
-ld([Y,X])                       #21
-ld(hi('REENTER_28'),Y)          #22
-jmp(Y,'REENTER_28')             #23
-st([vPC+1])                     #24
+# CMPHS implementation (vCPU instruction)
+label('cmphs#13')
+ld(AC,X)                        #13
+ld([X])                         #14
+xora([vAC+1])                   #15
+bpl('.cmphu#18')                #16 Skip if same sign
+ld([vAC+1])                     #17
+bmi(pc()+3)                     #18
+bra(pc()+3)                     #19
+label('.cmphs#20')
+ld(+1)                          #20    vAC < variable
+ld(-1)                          #20(!) vAC > variable
+label('.cmphs#21')
+adda([X])                       #21
+st([vAC+1])                     #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
 
-# SUBW implemetation
-label('subw#13')
-adda(1)                         #13
-st([vTmp])                      #14 Address of high byte to be subtracted
-ld([vAC])                       #15 Low byte
-bmi('.subw#18')                 #16
-suba([X])                       #17
-st([vAC])                       #18 Store low result
-ora([X])                        #19 Carry in bit 7
-anda(0x80,X)                    #20 Move carry to bit 0
-ld([vAC+1])                     #21
-suba([X])                       #22
-ld([vTmp],X)                    #23
-suba([X])                       #24
-st([vAC+1])                     #25
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
-label('.subw#18')
-st([vAC])                       #18 Store low result
-anda([X])                       #19 Carry in bit 7
-anda(0x80,X)                    #20 Move carry to bit 0
-ld([vAC+1])                     #21
-suba([X])                       #22
-ld([vTmp],X)                    #23
-suba([X])                       #24
-st([vAC+1])                     #25
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
+# CMPHU implementation (vCPU instruction)
+label('cmphu#13')
+ld(AC,X)                        #13
+ld([X])                         #14
+xora([vAC+1])                   #15
+bpl('.cmphu#18')                #16 Skip if same sign
+ld([vAC+1])                     #17
+bmi('.cmphs#20')                #18
+bra('.cmphs#21')                #19
+ld(-1)                          #20    vAC > variable
+
+# No-operation for CMPHS/CMPHU when high bits are equal
+label('.cmphu#18')
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
 
 # BEQ implementation
 label('beq#15')
@@ -7888,6 +7783,35 @@ align(0x100, size=0x100)
 #-----------------------------------------------------------------------
 #       More sys implementations, (0x1A00)
 #-----------------------------------------------------------------------
+
+# sys_ReceiveSerial1
+# sysArgs[0:1] Current address
+# sysArgs[2]   Checksum
+# sysArgs[3]   Wait value (videoY)
+label('sys_ReceiveSerial1')
+xora([sysArgs+3])               #18
+bne('.sys_receiveserial1#21')   #19 wait for scanline
+ld([sysArgs+0],X)               #20
+ld([sysArgs+1],Y)               #21
+ld(IN)                          #22
+st([Y,X])                       #23
+adda([sysArgs+2])               #24
+st([sysArgs+2])                 #25
+ld([sysArgs+0])                 #26
+adda(1)                         #27
+st([sysArgs+0])                 #28
+ld(hi('REENTER'),Y)             #29
+jmp(Y,'REENTER')                #30
+ld(-34/2)                       #31
+
+# Restart the instruction in the next timeslice
+label('.sys_receiveserial1#21')
+ld([vPC])                       #21
+suba(2)                         #22
+st([vPC])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
 
 
 # sys_WaitVBlank
@@ -12764,347 +12688,8 @@ jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 
 
-
-#-----------------------------------------------------------------------
-#
-#  CopyMemory[Ext]/ScanMemory[Ext]/OsCall 
-#
-#-----------------------------------------------------------------------
-
 fillers(until=0xff)
 align(0x100, size=0x100)
-
-# SYS_CopyMemory_vX_80 implementation
-
-label('sys_CopyMemory')
-ble('.sysCm#20')                     #18   goto burst6
-suba(6)                              #19
-bge('.sysCm#22')                     #20   goto burst6
-ld([sysArgs+3],Y)                    #21
-adda(3)                              #22
-bge('.sysCm#25')                     #23   goto burst3
-ld([sysArgs+2],X)                    #24
-
-adda(2)                              #25   single
-st([vAC])                            #26
-ld([Y,X])                            #27
-ld([sysArgs+1],Y)                    #28
-ld([sysArgs+0],X)                    #29
-st([Y,X])                            #30
-ld([sysArgs+0])                      #31
-adda(1)                              #32
-st([sysArgs+0])                      #33
-ld([sysArgs+2])                      #34
-adda(1)                              #35
-st([sysArgs+2])                      #36
-ld([vAC])                            #37
-beq(pc()+3)                          #38
-bra(pc()+3)                          #39
-ld(-2)                               #40
-ld(0)                                #40!
-adda([vPC])                          #41
-st([vPC])                            #42
-ld(hi('REENTER'),Y)                  #43
-jmp(Y,'REENTER')                     #44
-ld(-48/2)                            #45
-
-label('.sysCm#25')
-st([vAC])                            #25   burst3
-for i in range(3):
-  ld([Y,X])                            #26+3*i
-  st([sysArgs+4+i])                    #27+3*i
-  st([Y,Xpp]) if i<2 else None         #28+3*i
-ld([sysArgs+1],Y)                    #34
-ld([sysArgs+0],X)                    #35
-for i in range(3):
-  ld([sysArgs+4+i])                    #36+2*i
-  st([Y,Xpp])                          #37+2*i
-ld([sysArgs+0])                      #42
-adda(3)                              #43
-st([sysArgs+0])                      #44
-ld([sysArgs+2])                      #45
-adda(3)                              #46
-st([sysArgs+2])                      #47
-ld([vAC])                            #48
-beq(pc()+3)                          #49
-bra(pc()+3)                          #50
-ld(-2)                               #51
-ld(0)                                #51!
-adda([vPC])                          #52
-st([vPC])                            #53
-ld(hi('NEXTY'),Y)                    #54
-jmp(Y,'NEXTY')                       #55
-ld(-58/2)                            #56
-
-label('.sysCm#20')
-nop()                                #20   burst6
-ld([sysArgs+3],Y)                    #21
-label('.sysCm#22')
-st([vAC])                            #22   burst6
-ld([sysArgs+2],X)                    #23
-for i in range(6):
-  ld([Y,X])                            #24+i*3
-  st([vLR+i if i<2 else sysArgs+2+i])  #25+i*3
-  st([Y,Xpp]) if i<5 else None         #26+i*3 if i<5
-ld([sysArgs+1],Y)                    #41
-ld([sysArgs+0],X)                    #42
-for i in range(6):
-  ld([vLR+i if i<2 else sysArgs+2+i])  #43+i*2
-  st([Y,Xpp])                          #44+i*2
-ld([sysArgs+0])                      #55
-adda(6)                              #56
-st([sysArgs+0])                      #57
-ld([sysArgs+2])                      #58
-adda(6)                              #59
-st([sysArgs+2])                      #60
-
-ld([vAC])                            #61
-bne('.sysCm#64')                     #62
-ld(hi('REENTER'),Y)                  #63
-jmp(Y,'REENTER')                     #64
-ld(-68/2)                            #65
-
-label('.sysCm#64')
-ld(-52/2)                            #64
-adda([vTicks])                       #13 = 65 - 52
-st([vTicks])                         #14
-adda(min(0,maxTicks-(26+52)/2))      #15   could probably be min(0,maxTicks-(26+52)/2)
-bge('sys_CopyMemory')                #16
-ld([vAC])                            #17
-ld(-2)                               #18   notime
-adda([vPC])                          #19
-st([vPC])                            #20
-ld(hi('REENTER'),Y)                  #21
-jmp(Y,'REENTER')                     #22
-ld(-26/2)                            #23
-
-# SYS_CopyMemoryExt_vX_100 implementation
-
-label('sys_CopyMemoryExt')
-
-adda(AC)                             #18
-adda(AC)                             #19
-ora(0x3c)                            #20
-st([vTmp])                           #21 [vTmp] = src ctrl value
-ld([vAC+1])                          #22
-anda(0xfc)                           #23
-ora(0x3c)                            #24
-st([vLR])                            #25 [vLR] = dest ctrl value
-
-label('.sysCme#26')
-ld([vAC])                            #26
-ble('.sysCme#29')                    #27   goto burst5
-suba(5)                              #28
-bge('.sysCme#31')                    #29   goto burst5
-ld([sysArgs+3],Y)                    #30
-adda(4)                              #31
-
-st([vAC])                            #32   single
-ld([vTmp],X)                         #33
-ctrl(X)                              #34
-ld([sysArgs+2],X)                    #35
-ld([Y,X])                            #36
-ld([vLR],X)                          #37
-ctrl(X)                              #38
-ld([sysArgs+1],Y)                    #39
-ld([sysArgs+0],X)                    #40
-st([Y,X])                            #41
-ld(hi(ctrlBits), Y)                  #42
-ld([Y,ctrlBits])                     #43
-ld(AC,X)                             #44
-ctrl(X)                              #45
-ld([sysArgs+0])                      #46
-adda(1)                              #47
-st([sysArgs+0])                      #48
-ld([sysArgs+2])                      #49
-adda(1)                              #50
-st([sysArgs+2])                      #51
-ld([vAC])                            #52  done?
-beq(pc()+3)                          #53
-bra(pc()+3)                          #54
-ld(-2)                               #55  restart
-ld(0)                                #55! finished
-adda([vPC])                          #56
-st([vPC])                            #57
-ld(hi('NEXTY'),Y)                    #58
-jmp(Y,'NEXTY')                       #59
-ld(-62/2)                            #60
-
-label('.sysCme#29')
-nop()                                #29   burst5
-ld([sysArgs+3],Y)                    #30
-label('.sysCme#31')
-st([vAC])                            #31   burst5
-ld([vTmp],X)                         #32
-ctrl(X)                              #33
-ld([sysArgs+2],X)                    #34
-for i in range(5):
-  ld([Y,X])                            #35+i*3
-  st([vLR+1 if i<1 else sysArgs+3+i])  #36+i*3
-  st([Y,Xpp]) if i<4 else None         #37+i*3 if i<4
-ld([vLR],X)                          #49
-ctrl(X)                              #50
-ld([sysArgs+1],Y)                    #51
-ld([sysArgs+0],X)                    #52
-for i in range(5):
-  ld([vLR+1 if i<1 else sysArgs+3+i])  #53+i*2
-  st([Y,Xpp])                          #54+i*2
-ld([sysArgs+0])                      #63
-adda(5)                              #64
-st([sysArgs+0])                      #65
-ld([sysArgs+2])                      #66
-adda(5)                              #67
-st([sysArgs+2])                      #68
-
-ld([vAC])                            #69
-bne('.sysCme#72')                    #70
-ld(hi(ctrlBits), Y)                  #71  we're done!
-ld([Y,ctrlBits])                     #72
-anda(0xfc,X)                         #73
-ctrl(X)                              #74
-ld([vTmp])                           #75  always read after ctrl
-ld(hi('NEXTY'),Y)                    #76
-jmp(Y,'NEXTY')                       #77
-ld(-80/2)                            #78
-
-label('.sysCme#72')
-ld(-52/2)                            #72
-adda([vTicks])                       #21 = 72 - 52
-st([vTicks])                         #22
-adda(min(0,maxTicks-(40+52)/2))      #23
-bge('.sysCme#26')                    #24  enough time for another loop
-ld(-2)                               #25
-adda([vPC])                          #26  restart
-st([vPC])                            #27
-ld(hi(ctrlBits), Y)                  #28
-ld([Y,ctrlBits])                     #29
-anda(0xfc,X)                         #30
-ctrl(X)                              #31
-ld([vTmp])                           #32 always read after ctrl
-ld(hi('REENTER'),Y)                  #33
-jmp(Y,'REENTER')                     #34
-ld(-38/2)                            #35 max: 38 + 52 = 90 cycles
-
-align(0x100, size=0x100)
-
-# SYS_ScanMemory_vX_50 implementation
-
-label('sys_ScanMemory')
-ld([sysArgs+0],X)                    #18
-ld([Y,X])                            #19
-label('.sysSme#20')
-xora([sysArgs+2])                    #20
-beq('.sysSme#23')                    #21
-ld([Y,X])                            #22
-xora([sysArgs+3])                    #23
-beq('.sysSme#26')                    #24
-ld([sysArgs+0])                      #25
-adda(1);                             #26
-st([sysArgs+0],X)                    #27
-ld([vAC])                            #28
-suba(1)                              #29
-beq('.sysSme#32')                    #30 return zero
-st([vAC])                            #31
-ld(-18/2)                            #14 = 32 - 18
-adda([vTicks])                       #15
-st([vTicks])                         #16
-adda(min(0,maxTicks -(28+18)/2))     #17
-bge('.sysSme#20')                    #18
-ld([Y,X])                            #19
-ld(-2)                               #20 restart
-adda([vPC])                          #21
-st([vPC])                            #22
-ld(hi('REENTER'),Y)                  #23
-jmp(Y,'REENTER')                     #24
-ld(-28/2)                            #25
-
-label('.sysSme#32')
-st([vAC+1])                          #32 return zero
-ld(hi('REENTER'),Y)                  #33
-jmp(Y,'REENTER')                     #34
-ld(-38/2)                            #35
-
-label('.sysSme#23')
-nop()                                #23 success
-nop()                                #24
-ld([sysArgs+0])                      #25
-label('.sysSme#26')
-st([vAC])                            #26 success
-ld([sysArgs+1])                      #27
-st([vAC+1])                          #28
-ld(hi('REENTER'),Y)                  #29
-jmp(Y,'REENTER')                     #30
-ld(-34/2)                            #31
-
-
-# SYS_ScanMemoryExt_vX_50 implementation
-
-label('sys_ScanMemoryExt')
-ora(0x3c,X)                          #18
-ctrl(X)                              #19
-ld([sysArgs+1],Y)                    #20
-ld([sysArgs+0],X)                    #21
-ld([Y,X])                            #22
-nop()                                #23
-label('.sysSmx#24')
-xora([sysArgs+2])                    #24
-beq('.sysSmx#27')                    #25
-ld([Y,X])                            #26
-xora([sysArgs+3])                    #27
-beq('.sysSmx#30')                    #28
-ld([sysArgs+0])                      #29
-adda(1);                             #30
-st([sysArgs+0],X)                    #31
-ld([vAC])                            #32
-suba(1)                              #33
-beq('.sysSmx#36')                    #34 return zero
-st([vAC])                            #35
-ld(-18/2)                            #18 = 36 - 18
-adda([vTicks])                       #19
-st([vTicks])                         #20
-adda(min(0,maxTicks -(30+18)/2))     #21
-bge('.sysSmx#24')                    #22
-ld([Y,X])                            #23
-ld([vPC])                            #24
-suba(2)                              #25 restart
-st([vPC])                            #26
-ld(hi(ctrlBits),Y)                   #27 restore and return
-ld([Y,ctrlBits])                     #28
-anda(0xfc,X)                         #29
-ctrl(X)                              #30
-ld([vTmp])                           #31
-ld(hi('NEXTY'),Y)                    #32
-jmp(Y,'NEXTY')                       #33
-ld(-36/2)                            #34
-
-label('.sysSmx#27')
-nop()                                #27 success
-nop()                                #28
-ld([sysArgs+0])                      #29
-label('.sysSmx#30')
-st([vAC])                            #30 success
-ld([sysArgs+1])                      #31
-nop()                                #32
-nop()                                #33
-nop()                                #34
-nop()                                #35
-label('.sysSmx#36')
-st([vAC+1])                          #36
-ld(hi(ctrlBits),Y)                   #37 restore and return
-ld([Y,ctrlBits])                     #38
-anda(0xfc,X)                         #39
-ctrl(X)                              #40
-ld([vTmp])                           #41
-ld(hi('NEXTY'),Y)                    #42
-jmp(Y,'NEXTY')                       #43
-ld(-46/2)                            #44
-
-
-#-----------------------------------------------------------------------
-#
-#  Spare pages
-#
-#-----------------------------------------------------------------------
 
 fillers(until=0xff)
 align(0x100, size=0x100)
@@ -13152,6 +12737,9 @@ fillers(until=0xff)
 align(0x100, size=0x100)
 
 fillers(until=0xff) 
+align(0x100, size=0x100)
+
+fillers(until=0xff)
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------

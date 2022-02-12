@@ -252,7 +252,7 @@ getRomType:
         if romType &&= &h38 then NextByteIn_32 = &h8A31         'ROMv4
         if romType &=  &h40 then NextByteIn_32 = &h5907         'ROMv5a
     else        
-        NextByteIn_32 = &h0b18                                  'SYS_ReceiveSerial1
+        NextByteIn_32 = &h00a7                                  'SYS_ReceiveSerial1
         if romType &= &hf0      
             NextByteIn_32 = &h1300                              'SDCARD
         elseif romType &= &hf8                                  'DEVROM (v5a+)
