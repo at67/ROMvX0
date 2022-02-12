@@ -62,7 +62,7 @@ SDCARD.rom: Core/* Apps/*/* Makefile interface.json
 		Apple1=Apps/Apple-1/Apple-1_v2.gt1\
 		MSBASIC=Apps/MSBASIC/MSBASIC_v1.gt1\
 		Egg=Apps/Horizon/Horizon_at67_v1.gt1\
-		Boot=Apps/CardTest/CardBoot.gcl\
+		Boot=Apps/CardBoot/CardBoot.gt1\
 		Main=Apps/MainMenu/MainMenu_SDCARD.gcl\
 		Reset=Core/Reset_SDCARD.gcl
 
@@ -85,7 +85,7 @@ ROMvX0.rom: Core/* Apps/*/* Makefile ROMvX0_interface.json
 		Apple1=Apps/Apple-1/Apple-1_v2.gt1\
 		MSBASIC=Apps/MSBASIC/MSBASIC_v1.gt1\
 		Egg=Apps/Horizon/Horizon_at67_v1.gt1\
-		Boot=Apps/CardTest/CardBoot.gcl\
+		Boot=Apps/CardBoot/CardBoot.gt1\
 		Main=Apps/MainMenu/MainMenu_vX0.gcl\
 		Reset=Core/Reset_vX0.gcl
         
@@ -111,7 +111,7 @@ dev.rom: Core/* Apps/*/* Makefile interface.json
 		Apple1=Apps/Apple-1/Apple-1_v2.gt1\
 		MSBASIC=Apps/MSBASIC/MSBASIC_v1.gt1\
 		Egg=Apps/Horizon/Horizon_at67_v1.gt1\
-		Boot=Apps/CardTest/CardBoot.gcl\
+		Boot=Apps/CardBoot/CardBoot.gt1\
 		Main=Apps/MainMenu/MainMenu_v5.gcl\
 		Reset=Core/Reset.gcl
 
@@ -179,7 +179,7 @@ ROMv5a.rom: Core/* Apps/*/* Makefile interface.json
 		Apple1=Apps/Apple-1/Apple-1_v2.gt1\
 		MSBASIC=Apps/MSBASIC/MSBASIC_v1.gt1\
 		Egg=Apps/Horizon/Horizon_at67_v1.gt1\
-		Boot=Apps/CardTest/CardBoot_v1.gcl\
+		Boot=Apps/CardBoot/CardBoot_v1.gcl\
 		Main=Apps/MainMenu/MainMenu_v5.gcl\
 		Reset=Core/Reset_v5.gcl
 
