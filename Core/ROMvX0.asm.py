@@ -13154,9 +13154,6 @@ align(0x100, size=0x100)
 fillers(until=0xff) 
 align(0x100, size=0x100)
 
-fillers(until=0xff)
-align(0x100, size=0x100)
-
 #-----------------------------------------------------------------------
 #
 #  End of core
