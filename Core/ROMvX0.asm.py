@@ -9791,7 +9791,7 @@ jmp(Y,'condbi#13')              #11
 # dummy                         #12
 #
 # pc = 0x2235, Opcode = 0x35
-# Instruction XCHGW: Exchange two zero word variables, 22 + 46 cycles, destroys vAC 
+# Instruction XCHGW: Exchange two zero word variables, 22 + 46 cycles
 label('XCHGW')
 ld(hi('xchgw#13'),Y)            #10 #12
 jmp(Y,'xchgw#13')               #11
@@ -10274,36 +10274,37 @@ ld(-28/2)                       #26
 
 # XCHGW implementation
 label('xchgw#13')
-ld(min(0,maxTicks-44/2))        #13
+ld(min(0,maxTicks-46/2))        #13
 adda([vTicks])                  #14
 blt('.xchgw#17')                #15 not enough time left, so retry
-ld(0,Y)                         #16 vPC.hi
-ld([sysArgs+7],X)               #17 var2
+ld(0,Y)                         #16
+ld([sysArgs+7],X)               #17
 ld([X])                         #18
-st([vAC])                       #19 vAC.lo = var2.lo
-st([Y,Xpp])                     #20 X++
-ld([X])                         #21
-st([vAC+1])                     #22 vAC.hi = var2.hi
-ld([sysArgs+6],X)               #23
-ld([X])                         #24
-ld([sysArgs+7],X)               #25
-st([X])                         #26 var2.lo = var1.lo
-ld([sysArgs+6])                 #27
-adda(1,X)                       #28
-ld([X])                         #29
-st([vTmp])                      #30
-ld([sysArgs+7])                 #31
-adda(1,X)                       #32
-ld([vTmp])                      #33
-st([X])                         #34 var2.hi = var1.hi
-ld([sysArgs+6],X)               #35
-ld([vAC])                       #36
-st([Y,Xpp])                     #37 var1.lo = vAC.lo, X++
-ld([vAC+1])                     #38
-st([X])                         #39 var1.hi = vAC.hi
-ld(hi('NEXTY'),Y)               #40
-jmp(Y,'NEXTY')                  #41
-ld(-44/2)                       #42
+st([vTmp])                      #19 vTmp = var2.lo
+ld([sysArgs+6],X)               #20
+ld([X])                         #21 AC = var1.lo
+ld([sysArgs+7],X)               #22
+st([X])                         #23 var2.lo = AC
+ld([sysArgs+6],X)               #24
+ld([vTmp])                      #25
+st([X])                         #26 var1.lo = vTmp
+ld([sysArgs+7])                 #27
+adda(1)                         #28
+st([sysArgs+7],X)               #29 inc sysArgs+7
+ld([X])                         #30
+st([vTmp])                      #31 vTmp = var2.hi
+ld([sysArgs+6])                 #32
+adda(1,X)                       #33
+ld([X])                         #34 AC = var1.hi
+ld([sysArgs+7],X)               #35
+st([X])                         #36 var2.hi = AC
+ld([sysArgs+6])                 #37
+adda(1,X)                       #38
+ld([vTmp])                      #39
+st([X])                         #40 var1.hi = vTmp
+ld(hi('REENTER'),Y)             #41
+jmp(Y,'REENTER')                #42
+ld(-46/2)                       #43
 label('.xchgw#17')
 ld(hi('PREFX3_PAGE'))           #17 ENTER is at $(n-1)ff, where n = instruction page
 st([vCpuSelect])                #18 restore PREFX3 instruction page
