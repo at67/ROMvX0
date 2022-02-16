@@ -2198,9 +2198,13 @@ jmp(Y,'tle#13')                #11
 #
 # pc = 0x03dd, Opcode = 0xdd
 # Instruction SPARE2:
-label('SPARE2')
-ld(hi('SPARE2'),Y)             #10 #12
-jmp(Y,'SPARE2')                #11
+# label('SPARE2')
+# ld(hi('SPARE2'),Y)             #10 #12
+# jmp(Y,'SPARE2')                #11
+# lb3361: instruction JMPI
+label('JMPI')
+ld(hi('jmpi#13'),Y)            #10 #12
+jmp(Y,'jmpi#13')               #11
 #dummy                         #12 Overlap
 #
 # pc = 0x03df, Opcode = 0xdf
@@ -13139,6 +13143,24 @@ ld(0)                           #8
 
 
 #--------------------------------
+
+# JMPI implementation
+# - Jump to immediate address.
+#   Similar to CALLI but without changing vLR.
+#   Page hopping with JMPI preserves vLR
+#   and makes XLA more useful
+label('jmpi#13')
+ld([vPC+1],Y)                   #13
+st([Y,Xpp])                     #14 Just X++
+suba(2)                         #15
+st([vPC])                       #16
+ld([Y,X])                       #17
+st([vPC+1])                     #18
+ld(hi('REENTER'),Y)             #19
+jmp(Y,'REENTER')                #20
+ld(-24//2)                      #21
+
+
 
 
 #--------------------------------
