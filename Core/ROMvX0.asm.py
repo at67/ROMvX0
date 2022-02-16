@@ -1533,6 +1533,7 @@ label('.next2')
 st([vTicks])                    #2
 ld([vPC])                       #3 Advance vPC
 adda(2)                         #4
+label('.next3')
 st([vPC],X)                     #5
 ld([Y,X])                       #6 Fetch opcode (actually a branch target)
 st([Y,Xpp])                     #7 Just X++
@@ -1944,9 +1945,13 @@ jmp(Y,'inc#13')                 #11
 #
 # pc = 0x0395, Opcode = 0x95
 # Instruction SPARE1:
-label('SPARE1')
-ld(hi('SPARE1'),Y)              #10 #12
-jmp(Y,'SPARE1')                 #11
+#label('SPARE1')
+#ld(hi('SPARE1'),Y)              #10 #12
+#jmp(Y,'SPARE1')                 #11
+# lb3361: Instruction XLA: exchange vLR and vAC
+label('XLA')
+ld(hi('xla#13'),Y)              #10 #12
+jmp(Y,'xla#13')                 #11
 #dummy                          #12 Overlap
 #
 # pc = 0x0397, Opcode = 0x97
@@ -13085,17 +13090,113 @@ jmp(Y,'NEXTY')                       #43
 ld(-46/2)                            #44
 
 
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#
+#  lb3361 experiments - temporary location for experimental ops
+#
+#-----------------------------------------------------------------------
+
+
+# XLA implementation
+# -- one byte instruction to exchange vAC and vLR
+label('xla#13')
+ld([vAC])                       #13
+st([vTmp])                      #14
+ld([vLR])                       #15
+st([vAC])                       #16
+ld([vTmp])                      #17
+st([vLR])                       #18
+ld([vAC+1])                     #19
+st([vTmp])                      #20
+ld([vLR+1])                     #21
+st([vAC+1])                     #22
+ld([vTmp])                      #23
+st([vLR+1])                     #24
+# Inline dispatch code to avoid vPC adjustment overhead
+nop()                           #25
+ld(-30//2)                      #26
+adda([vTicks])                  #27-30
+blt('xla#exit')                 #28-30
+st([vTicks])                    #29-30
+ld([vPC])                       #0
+adda(1)                         #1
+ld(hi('.next3'),Y)              #2
+jmp(Y,'.next3')                 #3
+ld([vPC+1],Y)                   #4
+label('xla#exit')
+adda(maxTicks)                  #0
+bgt(pc()&255)                   #1 Resync
+suba(1)                         #2
+ld([vPC])                       #3
+suba(1)                         #4
+st([vPC])                       #5
+ld(hi('vBlankStart'),Y)         #6
+jmp(Y,[vReturn])                #7 To video driver
+ld(0)                           #8
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+#--------------------------------
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
 #-----------------------------------------------------------------------
 #
 #  Spare pages
 #
 #-----------------------------------------------------------------------
-
-fillers(until=0xff)
-align(0x100, size=0x100)
-
-fillers(until=0xff)
-align(0x100, size=0x100)
 
 fillers(until=0xff)
 align(0x100, size=0x100)
