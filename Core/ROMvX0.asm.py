@@ -1563,28 +1563,28 @@ ld([vPC+1],Y)                   #12
 label('DEC')
 ld(hi('dec#13'),Y)              #10
 jmp(Y,'dec#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0316, Opcode = 0x16
 # Instruction MOVQB: Load a byte var with a small constant 0..255, 28 cycles
 label('MOVQB')
 ld(hi('movqb#13'),Y)            #10 #12
 jmp(Y,'movqb#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0318, Opcode = 0x18
 # Instruction LSRB: Logical shift right on a byte var, 28 cycles
 label('LSRB')
 ld(hi('lsrb#13'),Y)             #10 #12
 jmp(Y,'lsrb#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x031a, Opcode = 0x1a
 # Instruction LD: Load byte from zero page (vAC=[D]), 22 cycles
 label('LD')
 ld(hi('ld#13'),Y)               #10 #12
 jmp(Y,'ld#13')                  #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x031c, Opcode = 0x1c
 # Instruction LOKEQI: Loke immediate unsigned word into address contained in [vAC], 34 cycles
@@ -1598,56 +1598,56 @@ st([vTmp])                      #12 imm.1
 label('CMPHS')
 ld(hi('cmphs#13'),Y)            #10
 jmp(Y,'cmphs#13')               #11
-#dummy                          #12 Overlap, not dependent on ld(AC,X) anymore
+# dummy                         #12 Overlap, not dependent on ld(AC,X) anymore
 #
 # pc = 0x0321, Opcode = 0x21
 # Instruction LDW: Load word from zero page (vAC=[D]+256*[D+1]), 24 cycles
 label('LDW')
 ld(hi('ldw#13'),Y)              #10 #12
 jmp(Y,'ldw#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 # 
 # pc = 0x0323, Opcode = 0x23
 # Instruction PEEK+: Peek byte at address contained in var, inc var, 30 cycles
 label('PEEK+') 
 ld(hi('peek+#13'),Y)            #10 #12
 jmp(Y,'peek+#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0325, Opcode = 0x25
 # Instruction POKEI: Poke immediate byte into address contained in [vAC], 20 cycles
 label('POKEI') 
 ld(hi('pokei#13'),Y)            #10 #12
 jmp(Y,'pokei#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 # 
 # pc = 0x0327, Opcode = 0x27
 # Instruction LSLV: Logical shift left word var, 28 cycles
 label('LSLV')
 ld(hi('lslv#13'),Y)             #10 #12
 jmp(Y,'lslv#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0329, Opcode = 0x29
 # Instruction ADDBA: vAC += var.lo, 28 cycles
 label('ADDBA')
 ld(hi('addba#13'),Y)            #10 #12
 jmp(Y,'addba#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 # 
 # pc = 0x032b, Opcode = 0x2b
 # Instruction STW: Store word in zero page ([D],[D+1]=vAC&255,vAC>>8), 24 cycles
 label('STW')
 ld(hi('stw#13'),Y)              #10 #12
 jmp(Y,'stw#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x032d, Opcode = 0x2d
 # Instruction ADDBI: Add a constant 0..255 to byte var, 28 cycles
 label('ADDBI') 
 ld(hi('addbi#13'),Y)            #10 #12
 jmp(Y,'addbi#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x032f, Opcode = 0x2f
 # Instruction PREFX2
@@ -1674,28 +1674,28 @@ st([Y,Xpp])                     #11 X++
 label('DOKEI') 
 ld(hi('dokei#13'),Y)            #10
 jmp(Y,'dokei#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0339, Opcode = 0x39
 # Instruction PEEKV: Read byte from address contained in var, 30 cycles
 label('PEEKV')
 ld(hi('peekv#13'),Y)            #10
 jmp(Y,'peekv#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x033b, Opcode = 0x3b
 # Instruction DEEKV: Read word from address contained in var, 28 cycles
 label('DEEKV')
 ld(hi('deekv#13'),Y)            #10 #12
 jmp(Y,'deekv#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x033d, Opcode = 0x3d
 # Instruction LOKEI: Loke immediate long into address contained in [vAC], 42 cycles
 label('LOKEI') 
 ld(hi('lokei#13'),Y)            #10
 jmp(Y,'lokei#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x033f, Opcode = 0x3f
 # Conditional EQ: Branch if zero (if(vACL==0)vPCL=D)
@@ -1708,28 +1708,28 @@ ld([vPC+1],Y)                   #14 vPC.hi
 label('ADDVI')
 ld(hi('addvi#13'),Y)            #10
 jmp(Y,'addvi#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x0344, Opcode = 0x44
 # Instruction SUBVI: Subtract 8bit immediate from 16bit zero page var, var -= imm, vAC = var, 50 cycles
 label('SUBVI')
-ld(hi('subvi#13'),Y)            #10
+ld(hi('subvi#13'),Y)            #10 #12
 jmp(Y,'subvi#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x0346, Opcode = 0x46
 # Instruction DOKE+: doke word in vAC to address contained in var, var += 2, 30 cycles
 label('DOKE+') 
 ld(hi('doke+#13'),Y)            #10 #12
 jmp(Y,'doke+#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0348, Opcode = 0x48
 # Instruction NOTB: var.lo = ~var.lo, 22 cycles
 label('NOTB') 
 ld(hi('notb#13'),Y)             #10 #12
 jmp(Y,'notb#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x034a, Opcode = 0x4a
 # Instruction DJGE:
@@ -1767,7 +1767,7 @@ ld([vPC+1],Y)                   #14 vPC.hi
 label('LDI')
 ld(hi('ldi#13'),Y)              #10
 jmp(Y,'ldi#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x035b, Opcode = 0x5b
 # Instruction MOVQW: Load a word var with a small constant 0..255, 30 cycles
@@ -1781,7 +1781,7 @@ ld([vPC+1],Y)                   #12 vPC.hi
 label('ST')
 ld(hi('st#13'),Y)               #10
 jmp(Y,'st#13')                  #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0360, Opcode = 0x60
 # Instruction DEEK+: Deek word at address contained in var, var += 2, 30 cycles
@@ -1795,47 +1795,47 @@ ld(0,Y)                         #12
 label('POP')
 ld(hi('pop#13'),Y)              #10
 jmp(Y,'pop#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0365, Opcode = 0x65
 # Instruction MOV: Moves a byte from src var to dst var, 28 cycles
 label('MOV')
-ld(hi('mov#13'),Y)              #10
+ld(hi('mov#13'),Y)              #10 #12
 jmp(Y,'mov#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0367, Opcode = 0x67
 # Instruction PEEKA: Peek a byte from [vAC] to var, 24 cycles
 label('PEEKA') 
 ld(hi('peeka#13'),Y)            #10 #12
 jmp(Y,'peeka#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0369, Opcode = 0x69
 # Instruction POKEA: Poke a byte from var to [vAC], 22 cycles
 label('POKEA') 
 ld(hi('pokea#13'),Y)            #10 #12
 jmp(Y,'pokea#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x036b, Opcode = 0x6b
 # Instruction TEQ: Test for EQ, returns 0x0000 or 0x0101 in vAC, 28 cycles
 label('TEQ')
 ld(hi('teq#13'),Y)              #10 #12
 jmp(Y,'teq#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x036d, Opcode = 0x6d
 # Instruction TNE: Test for NE, returns 0x0000 or 0x0101 in vAC, 28 cycles
 label('TNE')
 ld(hi('tne#13'),Y)              #10 #12
 jmp(Y,'tne#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x036f, Opcode = 0x6f
 # Instruction DEEKA: Deek a word from [vAC] to var, 30 cycles
 label('DEEKA')
-ld(hi('deeka#13'),Y)            #10, #12
+ld(hi('deeka#13'),Y)            #10 #12
 jmp(Y,'deeka#13')               #11
 st([vTmp])                      #12 mask
 
@@ -1850,35 +1850,35 @@ ld([vPC+1],Y)                   #14 vPC.hi
 label('PUSH')
 ld(hi('push#13'),Y)             #10
 jmp(Y,'push#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0377, Opcode = 0x77
 # Instruction SUBBA: vAC -= var.lo, 28 cycles
 label('SUBBA')
 ld(hi('subba#13'),Y)            #10 #12
 jmp(Y,'subba#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0379, Opcode = 0x79
 # Instruction INCW: Increment word var, 26 cycles
 label('INCW')
-ld(hi('incw#13'),Y)             #10
+ld(hi('incw#13'),Y)             #10 #12
 jmp(Y,'incw#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x037b, Opcode = 0x7b
 # Instruction DECW: Decrement word var, 26 cycles
 label('DECW')
 ld(hi('decw#13'),Y)             #10 #12
 jmp(Y,'decw#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x037d, Opcode = 0x7d
 # Instruction DOKEA: Doke a word from var to [vAC], 30 cycles
 label('DOKEA') 
 ld(hi('dokea#13'),Y)            #10 #12
 jmp(Y,'dokea#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x037f, Opcode = 0x7f
 # Instruction LUP: ROM lookup (vAC=ROM[vAC+D]), 26 cycles
@@ -1906,33 +1906,33 @@ ld([vPC])                       #12
 label('ORI')
 ld(hi('ori#13'),Y)              #10
 jmp(Y,'ori#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x038a, Opcode = 0x8a
 # Instruction PEEKA+: Peek a byte from [vAC] to var, incw vAC, 28 to 30 cycles
 label('PEEKA+') 
-ld(hi('peeka+#13'),Y)           #10
+ld(hi('peeka+#13'),Y)           #10 #12
 jmp(Y,'peeka+#13')              #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 # 
 # pc = 0x038c, Opcode = 0x8c
 # Instruction XORI: Logical-XOR with small constant (vAC^=D), 20 cycles
 label('XORI')
 ld(hi('xori#13'),Y)             #10 #12
 jmp(Y,'xori#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x038e, Opcode = 0x8e
 # Instruction DBGE:  Decrement byte var and branch if >= 0, 30 cycles
 label('DBGE')
-ld(hi('dbge#13'),Y)             #10
+ld(hi('dbge#13'),Y)             #10 #12
 jmp(Y,'dbge#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0390, Opcode = 0x90
 # Instruction BRA: Branch unconditionally (vPC=(vPC&0xff00)+D), 18 cycles
 label('BRA')
-ld(hi('bra#13'),Y)              #10
+ld(hi('bra#13'),Y)              #10 #12
 jmp(Y,'bra#13')                 #11
 st([vPC])                       #12
 
@@ -1941,25 +1941,21 @@ st([vPC])                       #12
 label('INC')
 ld(hi('inc#13'),Y)              #10
 jmp(Y,'inc#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x0395, Opcode = 0x95
 # Instruction SPARE1:
-#label('SPARE1')
-#ld(hi('SPARE1'),Y)              #10 #12
-#jmp(Y,'SPARE1')                 #11
-# lb3361: Instruction XLA: exchange vLR and vAC
-label('XLA')
-ld(hi('xla#13'),Y)              #10 #12
-jmp(Y,'xla#13')                 #11
-#dummy                          #12 Overlap
+label('SPARE1')
+ld(hi('SPARE1'),Y)              #10 #12
+jmp(Y,'SPARE1')                 #11
+# dummy                         #12 Overlap
 #
 # pc = 0x0397, Opcode = 0x97
 # Instruction CMPHU: Adjust high byte for unsigned compare (vACH=XXX), 28 cycles
 label('CMPHU')
 ld(hi('cmphu#13'),Y)            #10 #12
 jmp(Y,'cmphu#13')               #11
-#dummy                          #12 Overlap, not dependent on ld(AC,X) anymore
+# dummy                         #12 Overlap, not dependent on ld(AC,X) anymore
 #
 # pc = 0x0399, Opcode = 0x99
 # Instruction ADDW: Word addition with zero page (vAC+=[D]+256*[D+1]), 30 cycles
@@ -1973,33 +1969,33 @@ ld(AC,X)                        #12 Address of low byte to be added
 label('LDNI')
 ld(hi('ldni#13'),Y)             #10
 jmp(Y,'ldni#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x039e, Opcode = 0x9e
 # Instruction ANDBK: vAC = var & imm, 30 cycles
 label('ANDBK')
-ld(hi('andbk#13'),Y)            #10
+ld(hi('andbk#13'),Y)            #10 #12
 jmp(Y,'andbk#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x03a0, Opcode = 0xa0
 # Instruction ORBK: vAC = var | imm, 30 cycles
 label('ORBK')
-ld(hi('orbk#13'),Y)             #10
+ld(hi('orbk#13'),Y)             #10 #12
 jmp(Y,'orbk#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x03a2, Opcode = 0xa2
 # Instruction XORBK: vAC = var ^ imm, 30 cycles
 label('XORBK')
-ld(hi('xorbk#13'),Y)            #10
+ld(hi('xorbk#13'),Y)            #10 #12
 jmp(Y,'xorbk#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x03a4, Opcode = 0xa4, 26 to 46 cycles
 # Instruction DJNE:
 label('DJNE')
-ld(hi('djne#13'),Y)             #10
+ld(hi('djne#13'),Y)             #10 #12
 jmp(Y,'djne#13')                #11
 ld([vPC+1],Y)                   #12
 
@@ -2008,28 +2004,28 @@ ld([vPC+1],Y)                   #12
 label('CMPI')
 ld(hi('cmpi#13'),Y)             #10
 jmp(Y,'cmpi#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x03a9, Opcode = 0xa9
 # Instruction ADDVW: Add two 16bit zero page vars, dst += src, vAC = dst, 28 to 54 cycles
 label('ADDVW')
 ld(hi('addvw#13'),Y)            #10 #12
 jmp(Y,'addvw#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x03ab, Opcode = 0xab
 # Instruction SUBVW: Subtract two 16bit zero page vars, dst -= src, vAC = dst, 30 to 54 cycles
 label('SUBVW')
 ld(hi('subvw#13'),Y)            #10 #12
 jmp(Y,'subvw#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 
 # pc = 0x03ad, Opcode = 0xad
 # Instruction PEEK: Read byte from memory (vAC=[vAC]), 26 cycles
 label('PEEK')
 ld(hi('peek#13'),Y)             #10 #12
 jmp(Y,'peek#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # The 'SYS' vCPU instruction first checks the number of desired ticks given by
 # the operand. As long as there are insufficient ticks available in the current
@@ -2046,14 +2042,14 @@ jmp(Y,'peek#13')                #11
 # SYS functions can modify vPC to implement repetition. For example to split
 # up work into multiple chucks.
 label('.sys#13')
-ld(hi('.sys#16'),Y)             #13
+ld(hi('.sys#16'),Y)             #13 #12
 jmp(Y,'.sys#16')                #14
-#dummy                          #15 Overlap
+# dummy                         #15 Overlap
 #
 # pc = 0x03b1, Opcode = 0xb1
 # Instruction PREFX1
 label('PREFX1')
-ld(hi('prefx1#13'),Y)           #10 #12
+ld(hi('prefx1#13'),Y)           #10 #15
 jmp(Y,'prefx1#13')              #11
 ld(hi('PREFX1_PAGE'))           #12 ENTER is at $(n-1)ff, where n = instruction page
 
@@ -2064,7 +2060,7 @@ adda([vTicks])                  #10
 blt('.sys#13')                  #11
 ld([sysFn+1],Y)                 #12
 jmp(Y,[sysFn])                  #13
-#dummy                          #14 Overlap
+# dummy                         #14 Overlap
 #
 # pc = 0x03b8, Opcode = 0xb8
 # Instruction SUBW: Word subtract with zero page (AC-=[D]+256*[D+1]), 30 cycles
@@ -2078,46 +2074,46 @@ ld(AC,X)                        #12 Address of low byte to be added
 label('JEQ')
 ld(hi('jeq#13'),Y)              #10
 jmp(Y,'jeq#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03bd, Opcode = 0xbd
 # Instruction JNE: jump to 16bit address if vAC!=0
 label('JNE')
 ld(hi('jne#13'),Y)              #10 #12
 jmp(Y,'jne#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03bf, Opcode = 0xbf
 # Instruction JLT: jump to 16bit address if vAC<0
 label('JLT')
 ld(hi('jlt#13'),Y)              #10 #12
 jmp(Y,'jlt#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03c1, Opcode = 0xc1
 # Instruction JGT: jump to 16bit address if vAC>0
 label('JGT')
 ld(hi('jgt#13'),Y)              #10 #12
 jmp(Y,'jgt#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03c3, Opcode = 0xc3
 # Instruction JLE: jump to 16bit address if vAC<=0
 label('JLE')
 ld(hi('jle#13'),Y)              #10 #12
 jmp(Y,'jle#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03c5, Opcode = 0xc5
 # Instruction JGE: jump to 16bit address if vAC>=0
 label('JGE')
 ld(hi('jge#13'),Y)              #10 #12
 jmp(Y,'jge#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03c7, Opcode = 0xc7
 # Instruction PREFX3: switches instruction page to 0x2200
-# Original idea by lb3361, see https://forum.gigatron.io/viewtopic.php?p=2099#p2099
+# original idea by lb3361, see https://forum.gigatron.io/viewtopic.php?p=2099#p2099
 label('PREFX3')
 ld(hi('prefx3#13'),Y)           #10 #12
 jmp(Y,'prefx3#13')              #11
@@ -2145,81 +2141,77 @@ fillers(until=0xcd)
 label('DEF')
 ld(hi('def#13'),Y)              #10
 jmp(Y,'def#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03cf, Opcode = 0xcf
 # Instruction CALL: Goto address and remember vPC (vLR,vPC=vPC+2,[D]+256*[D+1]-2), 30 cycles
 label('CALL')
-ld(hi('call#13'),Y)             #10, #12
+ld(hi('call#13'),Y)             #10 #12
 jmp(Y,'call#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03d1, Opcode = 0xd1
 # Instruction POKE+: Poke byte in vAC to address contained in var, inc var, 30 cycles
 label('POKE+') 
 ld(hi('poke+#13'),Y)            #10 #12
 jmp(Y,'poke+#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03d3, Opcode = 0xd3
 # Instruction LSRV: Logical shift right word var, 56 cycles
 label('LSRV')
 ld(hi('lsrv#13'),Y)             #10 #12
 jmp(Y,'lsrv#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03d5, Opcode = 0xd5
 # Instruction TGE: Test for GE, returns 0x0000 or 0x0101 in vAC, 26 cycles
 label('TGE')
 ld(hi('tge#13'),Y)              #10 #12
 jmp(Y,'tge#13')                 #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03d7, Opcode = 0xd7
 # Instruction TLT: Test for LT, returns 0x0000 or 0x0101 in vAC, 26 cycles
 label('TLT')
 ld(hi('tlt#13'),Y)             #10 #12
 jmp(Y,'tlt#13')                #11
-#dummy                         #12 Overlap
+# dummy                        #12 Overlap
 #
 # pc = 0x03d9, Opcode = 0xd9
 # Instruction TGT: Test for GT, returns 0x0000 or 0x0101 in vAC, 28 cycles
 label('TGT')
 ld(hi('tgt#13'),Y)             #10 #12
 jmp(Y,'tgt#13')                #11
-#dummy                         #12 Overlap
+# dummy                        #12 Overlap
 #
 # pc = 0x03db, Opcode = 0xdb
 # Instruction TLE: Test for LE, returns 0x0000 or 0x0101 in vAC
 label('TLE')
 ld(hi('tle#13'),Y)             #10 #12
 jmp(Y,'tle#13')                #11
-#dummy                         #12 Overlap
+# dummy                        #12 Overlap
 #
 # pc = 0x03dd, Opcode = 0xdd
 # Instruction SPARE2:
-# label('SPARE2')
-# ld(hi('SPARE2'),Y)             #10 #12
-# jmp(Y,'SPARE2')                #11
-# lb3361: instruction JMPI
-label('JMPI')
-ld(hi('jmpi#13'),Y)            #10 #12
-jmp(Y,'jmpi#13')               #11
-#dummy                         #12 Overlap
+label('SPARE2')
+ld(hi('SPARE2'),Y)             #10 #12
+jmp(Y,'SPARE2')                #11
+# dummy                        #12 Overlap
 #
 # pc = 0x03df, Opcode = 0xdf
 # Instruction ALLOC: Create or destroy stack frame (vSP+=D), 20 cycles
 label('ALLOC')
-ld(hi('alloc#13'),Y)           #10
+ld(hi('alloc#13'),Y)           #10 #12
 jmp(Y,'alloc#13')              #11
-#dummy                         #12 Overlap
+# dummy                        #12 Overlap
 #
 # pc = 0x03e1, Opcode = 0xe1
 # Instruction SUBBI: Subtract a constant 0..255 from a byte var, 28 cycles
 label('SUBBI')
 ld(hi('subbi#13'),Y)            #10 #12
 jmp(Y,'subbi#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x03e3, Opcode = 0xe3
 # Instruction ADDI: Add small positive constant (vAC+=D), 26 cycles
@@ -2253,14 +2245,14 @@ jmp(Y,'stlw#13')                #11
 # pc = 0x03ee, Opcode = 0xee
 # Instruction LDLW: Load word from stack frame (vAC=[vSP+D]+256*[vSP+D+1]), 24 cycles
 label('LDLW')
-ld(hi('ldlw#13'),Y)             #10,12
+ld(hi('ldlw#13'),Y)             #10 #12
 jmp(Y,'ldlw#13')                #11
 #dummy()                        #12 Overlap
 #
 # pc = 0x03f0, Opcode = 0xf0
 # Instruction POKE: Write byte in memory ([[D+1],[D]]=vAC&255), 26 cycles
 label('POKE')
-ld(hi('poke#13'),Y)             #10,12
+ld(hi('poke#13'),Y)             #10 #12
 jmp(Y,'poke#13')                #11
 st([vTmp])                      #12
 
@@ -2281,21 +2273,21 @@ jmp(Y,'deek#13')                #11
 # pc = 0x03f8, Opcode = 0xf8
 # Instruction ANDW: Word logical-AND with zero page (vAC&=[D]+256*[D+1]), 28 cycles
 label('ANDW')
-ld(hi('andw#13'),Y)             #10,12
+ld(hi('andw#13'),Y)             #10 #12
 jmp(Y,'andw#13')                #11
 #dummy()                        #12 Overlap
 #
 # pc = 0x03fa, Opcode = 0xfa
 # Instruction ORW: Word logical-OR with zero page (vAC|=[D]+256*[D+1]), 28 cycles
 label('ORW')
-ld(hi('orw#13'),Y)              #10,12
+ld(hi('orw#13'),Y)              #10 #12
 jmp(Y,'orw#13')                 #11
 #dummy()                        #12 Overlap
 #
 # pc = 0x03fc, Opcode = 0xfc
 # Instruction XORW: Word logical-XOR with zero page (vAC^=[D]+256*[D+1]), 28 cycles
 label('XORW')
-ld(hi('xorw#13'),Y)             #10,12
+ld(hi('xorw#13'),Y)             #10 #12
 jmp(Y,'xorw#13')                #11
 ld(AC,X)                        #12
 
@@ -9921,23 +9913,30 @@ st([sysArgs+6])                 #12 jump.hi
 # pc = 0x2267, Opcode = 0x67
 # Instruction ANDBI: And immediate byte with byte var, result in byte var, 22 + 20 cycles
 label('ANDBI')
-ld(hi('andbi#13'),Y)            #10 #12
+ld(hi('andbi#13'),Y)            #10
 jmp(Y,'andbi#13')               #11
 ld(AC,X)                        #12 address of var
 
 # pc = 0x226A, Opcode = 0x6A
 # Instruction ORBI: OR immediate byte with byte var, result in byte var, 22 + 20 cycles
 label('ORBI')
-ld(hi('orbi#13'),Y)             #10 #12
+ld(hi('orbi#13'),Y)             #10
 jmp(Y,'orbi#13')                #11
 ld(AC,X)                        #12 address of var
 
 # pc = 0x226D, Opcode = 0x6D
 # Instruction XORBI: var.lo ^= imm, 22 + 20 cycles
 label('XORBI')
-ld(hi('xorbi#13'),Y)            #10 #12
+ld(hi('xorbi#13'),Y)            #10
 jmp(Y,'xorbi#13')               #11
 ld(AC,X)                        #12 address of var
+
+# pc = 0x2270, Opcode = 0x70
+# Instruction JMPI, (lb3361): Jump to immediate 16bit address, does not destroy vLR, 22 + 22 cycles
+label('JMPI')
+ld(hi('jmpi#13'),Y)             #10
+jmp(Y,'jmpi#13')                #11
+ld([vPC+1],Y)                   #12
 
 
 # SYS calls and instruction implementations rely on these
@@ -9986,28 +9985,28 @@ assert vCPU_overhead ==          9
 label('LSLN')
 ld(hi('lsln#13'),Y)             #10
 jmp(Y,'lsln#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x2313, Opcode = 0x13
 # Instruction SEXT: Sign extend vAC based on a variable mask, 22 + 24 cycles
 label('SEXT')
 ld(hi('sext#13'),Y)             #10 #12
 jmp(Y,'sext#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x2315, Opcode = 0x15
 # Instruction NOTW: Boolean invert var, 22 + 26 cycles
 label('NOTW')
 ld(hi('notw#13'),Y)             #10 #12
 jmp(Y,'notw#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x2317, Opcode = 0x17
 # Instruction NEGW: Arithmetic negate var, 22 + 28 cycles
 label('NEGW')
-ld(hi('negw#13'),Y)             #10, #12
+ld(hi('negw#13'),Y)             #10 #12
 jmp(Y,'negw#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x2319, Opcode = 0x19
 # Instruction ANDBA: vAC &= var.lo, 22 + 22 cycles
@@ -10035,7 +10034,7 @@ ld(AC,X)                        #12 var
 label('FREQM')
 ld(hi('freqm#13'),Y)            #10
 jmp(Y,'freqm#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x2324, Opcode = 0x24
 # Instruction FREQA: [((((chan - 1) & 3) + 1) <<8) | 0x00FC] = vAC, chan var = [1..4], 22 + 26 cycles
@@ -10056,7 +10055,7 @@ anda(3)                         #12 channel
 label('VOLM')
 ld(hi('volm#13'),Y)             #10
 jmp(Y,'volm#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x232c, Opcode = 0x2c
 # Instruction VOLA: [((((chan - 1) & 3) + 1) <<8) | 0x00FA] = 63 - vAC.low + 64, chan var = [1..4],  22 + 26 cycles
@@ -10077,7 +10076,7 @@ ld(AC,X)                        #12 chan + 1
 label('MODZ')
 ld(hi('modz#13'),Y)             #10
 jmp(Y,'modz#13')                #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x2234, Opcode = 0x34
 # Instruction SMPCPY:
@@ -10091,21 +10090,21 @@ ld(AC,X)                        #12 dst var
 label('CMPWS')
 ld(hi('cmpws#13'),Y)            #10
 jmp(Y,'cmpws#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x2239, Opcode = 0x39
 # Instruction CMPWU:
 label('CMPWU')
 ld(hi('cmpwu#13'),Y)            #10 #12
 jmp(Y,'cmpwu#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x223b, Opcode = 0x3b
 # Instruction LEEKA:
 label('LEEKA')
 ld(hi('leeka#13'),Y)            #10 #12
 jmp(Y,'leeka#13')               #11
-#dummy                          #12 Overlap
+# dummy                         #12 Overlap
 #
 # pc = 0x223d, Opcode = 0x3d
 # Instruction LOKEA:
@@ -10213,18 +10212,25 @@ ld(0)                           #8 AC should be 0 already. Still..
 assert vCPU_overhead ==          9
 
 # pc = 0x2411, Opcode = 0x11
-# Instruction NOTE: vAC = ROM:[NotesTable + vAC.lo*2], 22 + 28 cycles
+# Instruction NOTE: vAC = ROM:[NotesTable + vAC.lo*2], 18 + 28 cycles
 label('NOTE')
 ld(hi('note#13'),Y)             #10
 jmp(Y,'note#13')                #11
 ld('.note#28')                  #12 low byte of low note return address
 
 # pc = 0x2414, Opcode = 0x14
-# Instruction MIDI: vAC = ROM:[NotesTable + (vAC.lo - 11)*2], 22 + 30 cycles
+# Instruction MIDI: vAC = ROM:[NotesTable + (vAC.lo - 11)*2], 18 + 30 cycles
 label('MIDI')
 ld(hi('midi#13'),Y)             #10
 jmp(Y,'midi#13')                #11
 ld('.midi#29')                  #12 low byte of low midi return address
+
+# pc = 0x2417, Opcode = 0x17
+# Instruction XLA, (lb3361): Exchange vLR with vAC, 18 + 28 cycles
+label('XLA')
+ld(hi('xla#13'),Y)              #10
+jmp(Y,'xla#13')                 #11
+ld([vAC])                       #12
 
 
 # SYS calls and instruction implementations rely on these
@@ -10927,6 +10933,34 @@ st([vCpuSelect])                #19 restore PREFX1 instruction page
 adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
+
+# XLA, implementation, (lb3361)
+label('xla#13')
+st([vTmp])                      #13
+ld([vLR])                       #14
+st([vAC])                       #15
+ld([vTmp])                      #16
+st([vLR])                       #17
+ld([vAC+1])                     #18
+st([vTmp])                      #19
+ld([vLR+1])                     #20
+st([vAC+1])                     #21
+ld([vTmp])                      #22
+st([vLR+1])                     #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
+# JMPI implementation, (lb3361)
+label('jmpi#13')
+st([Y,Xpp])                     #13 Just X++
+suba(2)                         #14
+st([vPC])                       #15
+ld([Y,X])                       #16
+st([vPC+1])                     #17
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22//2)                      #20
 
 
 fillers(until=0xff)
@@ -12755,9 +12789,7 @@ fillers(until=0xff)
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------
-#
-#  Implementation of SYS_CopyMemory[Ext]
-#
+#  Implementation of SYS_CopyMemory[Ext], (0x2F00)
 #-----------------------------------------------------------------------
 
 # SYS_CopyMemory_vX_80 implementation
@@ -12976,9 +13008,7 @@ fillers(until=0xff)
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------
-#
-#  Implementation of SYS_ScanMemory[Ext]
-#
+#  Implementation of SYS_ScanMemory[Ext], (0x3000)
 #-----------------------------------------------------------------------
 
 # SYS_ScanMemory_vX_50 implementation
@@ -13098,69 +13128,10 @@ fillers(until=0xff)
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------
-#
-#  lb3361 experiments - temporary location for experimental ops
-#
+#  lb3361 experiments - temporary location for experimental ops, (0x3100)
 #-----------------------------------------------------------------------
 
-
-# XLA implementation
-# -- one byte instruction to exchange vAC and vLR
-label('xla#13')
-ld([vAC])                       #13
-st([vTmp])                      #14
-ld([vLR])                       #15
-st([vAC])                       #16
-ld([vTmp])                      #17
-st([vLR])                       #18
-ld([vAC+1])                     #19
-st([vTmp])                      #20
-ld([vLR+1])                     #21
-st([vAC+1])                     #22
-ld([vTmp])                      #23
-st([vLR+1])                     #24
-# Inline dispatch code to avoid vPC adjustment overhead
-nop()                           #25
-ld(-30//2)                      #26
-adda([vTicks])                  #27-30
-blt('xla#exit')                 #28-30
-st([vTicks])                    #29-30
-ld([vPC])                       #0
-adda(1)                         #1
-ld(hi('.next3'),Y)              #2
-jmp(Y,'.next3')                 #3
-ld([vPC+1],Y)                   #4
-label('xla#exit')
-adda(maxTicks)                  #0
-bgt(pc()&255)                   #1 Resync
-suba(1)                         #2
-ld([vPC])                       #3
-suba(1)                         #4
-st([vPC])                       #5
-ld(hi('vBlankStart'),Y)         #6
-jmp(Y,[vReturn])                #7 To video driver
-ld(0)                           #8
-
-
 #--------------------------------
-
-# JMPI implementation
-# - Jump to immediate address.
-#   Similar to CALLI but without changing vLR.
-#   Page hopping with JMPI preserves vLR
-#   and makes XLA more useful
-label('jmpi#13')
-ld([vPC+1],Y)                   #13
-st([Y,Xpp])                     #14 Just X++
-suba(2)                         #15
-st([vPC])                       #16
-ld([Y,X])                       #17
-st([vPC+1])                     #18
-ld(hi('REENTER'),Y)             #19
-jmp(Y,'REENTER')                #20
-ld(-24//2)                      #21
-
-
 
 
 #--------------------------------
