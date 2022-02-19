@@ -1953,7 +1953,7 @@ jmp(Y,'djne#13')                #11
 ld([vPC+1],Y)                   #12
 
 # pc = 0x03a7, Opcode = 0xa7
-# Instruction CMPI: Compare byte variable to 8bit immediate, 36 to 36 cycles
+# Instruction CMPI: Compare byte variable to 8bit immediate, 36 cycles
 label('CMPI')
 ld(hi('cmpi#13'),Y)             #10
 jmp(Y,'cmpi#13')                #11
