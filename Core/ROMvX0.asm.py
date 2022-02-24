@@ -10226,6 +10226,13 @@ ld(-28/2)                       #25
 bra('NEXT')                     #26 Return from SYS calls
 ld([vPC+1],Y)                   #27
 
+# pc = 0x23cd, Opcode = 0xcd
+# Instruction NCOPY: copy n bytes from [vAC] to [vDST]. vAC+=n. vDST+=n
+label('NCOPY')
+ld(hi('ncopy#13'),Y)            #10
+jmp(Y,'ncopy#13')               #11
+ld([vTicks])                    #12
+
 
 fillers(until=0xff)
 
@@ -13255,55 +13262,137 @@ ld(-46/2)                       #44
 
 
 
-
-
-
-#--------------------------------
-
+fillers(until=0xff)
+align(0x100, size=0x100)
 
 #--------------------------------
 
+# NCOPY implementation
 
-#--------------------------------
+label('ncopy#16')
+ld(hi('PREFX2_PAGE'))           #16 else restart
+st([vCpuSelect])                #17
+adda(1,Y)                       #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
+label('ncopy#11')
+adda([vTicks])                  #11
+st([vTicks])                    #12
+label('ncopy#13')               #-- entry point
+adda(min(0,maxTicks-(22+50)/2)) #13 time for longest path (72 cycles)
+blt('ncopy#16')                 #14 > restart
+ld([vAC])                       #15
+anda(0xfc)                      #16
+xora(0xfc)                      #17
+beq('ncopy#20')                 #18 > slow because src crosses page boundary
+ld([vDST])                      #19
+anda(0xfc)                      #20
+xora(0xfc)                      #21
+beq('ncopy#24')                 #22 > slow because dst crosses page boundnary
+ld([sysArgs+7])                 #23
+anda(0xfc)                      #24
+beq('ncopy#27')                 #25 > slow because n<4 but no page crossings
+ld([vAC+1],Y)                   #26
+ld([vAC],X)                     #27 four bytes burst
+ld([Y,X])                       #28
+st([Y,Xpp])                     #29
+st([vTmpL])                     #30
+ld([Y,X])                       #31
+st([Y,Xpp])                     #32
+st([vTmpL+1])                   #33
+ld([Y,X])                       #34
+st([Y,Xpp])                     #35
+st([vTmpL+2])                   #36
+ld([Y,X])                       #37
+st([Y,Xpp])                     #38
+st([vTmpL+3])                   #39
+ld([vDST+1],Y)                  #40
+ld([vDST],X)                    #41
+ld([vTmpL])                     #42
+st([Y,Xpp])                     #43
+ld([vTmpL+1])                   #44
+st([Y,Xpp])                     #45
+ld([vTmpL+2])                   #46
+st([Y,Xpp])                     #47
+ld([vTmpL+3])                   #48
+st([Y,Xpp])                     #40
+ld(4)                           #50 increment (no page crossing)
+adda([vAC])                     #51
+st([vAC])                       #52
+ld(4)                           #53
+adda([vDST])                    #54
+st([vDST])                      #55
+ld([sysArgs+7])                 #56
+suba(4)                         #57
+st([sysArgs+7])                 #58
+bne('ncopy#11')                 #59-50=9
+ld(-50/2)                       #60-50=10
+ld(hi('REENTER'),Y)             #61
+jmp(Y,'REENTER')                #62
+ld(-66/2)                       #63
 
+label('ncopy#27')
+ld([vAC],X)                     #27 one byte, no page crossings
+ld([Y,X])                       #28
+ld([vDST+1],Y)                  #29
+ld([vDST],X)                    #30
+st([Y,X])                       #31
+ld(1)                           #32 increment (no page crossing)
+adda([vAC])                     #33
+st([vAC])                       #34
+ld(1)                           #35
+adda([vDST])                    #36
+st([vDST])                      #37
+ld([sysArgs+7])                 #38
+suba(1)                         #39
+st([sysArgs+7])                 #40
+bne('ncopy#11')                 #41-32=9
+ld(-32/2)                       #42-32=10
+nop()                           #43
+ld(hi('NEXTY'),Y)               #44
+jmp(Y,'NEXTY')                  #45
+ld(-48/2)                       #46
 
-#--------------------------------
+label('ncopy#20')
+nop()                           #20
+nop()                           #21
+nop()                           #22
+nop()                           #23
+label('ncopy#24')
+ld([vAC+1],Y)                   #24
+ld([vAC],X)                     #25 one byte, possible page crossings
+ld([Y,X])                       #26
+ld([vDST+1],Y)                  #27
+ld([vDST],X)                    #28
+st([Y,X])                       #29
+ld(1)                           #30 increment vAC
+adda([vAC])                     #31
+st([vAC])                       #32
+beq(pc()+3)                     #33
+bra(pc()+3)                     #34
+ld(0)                           #35
+ld(1)                           #35!
+adda([vAC+1])                   #36
+st([vAC+1])                     #37
+ld(1)                           #38 increment vDST
+adda([vDST])                    #39
+st([vDST])                      #40
+beq(pc()+3)                     #41
+bra(pc()+3)                     #42
+ld(0)                           #43
+ld(1)                           #43!
+adda([vDST+1])                  #44
+st([vDST+1])                    #45
+nop()                           #46
+ld([sysArgs+7])                 #47 decrement sysArgs7
+suba(1)                         #48
+st([sysArgs+7])                 #49
+ld(hi('NEXTY'),Y)               #50
+bne('ncopy#11')                 #51-42=9
+ld(-42/2)                       #52-42=10
+jmp(Y,'NEXTY')                  #53
+ld(-56/2)                       #54
 
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
-
-
-#--------------------------------
 
 
 fillers(until=0xff)
@@ -13314,9 +13403,6 @@ align(0x100, size=0x100)
 #  Spare pages
 #
 #-----------------------------------------------------------------------
-
-fillers(until=0xff)
-align(0x100, size=0x100)
 
 fillers(until=0xff)
 align(0x100, size=0x100)
