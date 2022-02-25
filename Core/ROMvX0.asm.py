@@ -9981,6 +9981,20 @@ ld(-28/2)                       #25
 bra('NEXT')                     #26 Return from SYS calls
 ld([vPC+1],Y)                   #27
 
+# pc = 0x22cd, Opcode = 0xcd
+# Instruction MOVL (lb3361): Move long variable. 22+40 cycles
+label('MOVL')
+ld(hi('movl#13'),Y)             #10
+jmp(Y,'movl#13')                #11
+st([sysArgs+6])                 #12
+
+# pc = 0x22d0, Opcode = 0xd0
+# Instruction MOVF (lb3361): Move float variable. 22+46 cycles
+label('MOVF')
+ld(hi('movf#13'),Y)             #10
+jmp(Y,'movf#13')                #11
+st([sysArgs+6])                 #12
+
 
 fillers(until=0xff)
 
@@ -13166,6 +13180,82 @@ align(0x100, size=0x100)
 #-----------------------------------------------------------------------
 
 #--------------------------------
+
+# MOVL implementation
+
+label('movl#13')
+adda(1, X)                      #13
+ld(min(0,maxTicks-40/2))        #14
+adda([vTicks])                  #15
+blt('movl#18')                  #16
+ld(0,Y)                         #17
+ld([Y,X])                       #18
+st([Y,Xpp])                     #19
+st([vTmpL])                     #20
+ld([Y,X])                       #21
+st([Y,Xpp])                     #22
+st([vTmpL+1])                   #23
+ld([Y,X])                       #24
+st([vTmpL+2])                   #25
+ld([sysArgs+6],X)               #26
+ld([Y,X])                       #27
+ld([sysArgs+7],X)               #28
+st([Y,Xpp])                     #29
+ld([vTmpL])                     #30
+st([Y,Xpp])                     #31
+ld([vTmpL+1])                   #32
+st([Y,Xpp])                     #33
+ld([vTmpL+2])                   #34
+st([Y,Xpp])                     #35
+ld(hi('NEXTY'),Y)               #36
+jmp(Y,'NEXTY')                  #37
+ld(-40/2)                       #38
+label('movl#18')
+ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX3 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+# MOVL implementation
+
+label('movf#13')
+adda(1, X)                      #13
+ld(min(0,maxTicks-46/2))        #14
+adda([vTicks])                  #15
+blt('movl#18')                  #16
+ld(0,Y)                         #17
+ld([Y,X])                       #18
+st([Y,Xpp])                     #19
+st([vTmpL])                     #20
+ld([Y,X])                       #21
+st([Y,Xpp])                     #22
+st([vTmpL+1])                   #23
+ld([Y,X])                       #24
+st([Y,Xpp])                     #25
+st([vTmpL+2])                   #26
+ld([Y,X])                       #27
+st([vTmpL+3])                   #28
+ld([sysArgs+6],X)               #29
+ld([Y,X])                       #30
+ld([sysArgs+7],X)               #31
+st([Y,Xpp])                     #32
+ld([vTmpL])                     #33
+st([Y,Xpp])                     #34
+ld([vTmpL+1])                   #35
+st([Y,Xpp])                     #36
+ld([vTmpL+2])                   #37
+st([Y,Xpp])                     #38
+ld([vTmpL+3])                   #39
+st([Y,Xpp])                     #40
+nop()                           #41
+ld(hi('NEXTY'),Y)               #42
+jmp(Y,'NEXTY')                  #43
+ld(-46/2)                       #44
+
+
+
+
 
 
 #--------------------------------
