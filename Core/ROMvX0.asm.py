@@ -343,8 +343,44 @@ ledTimer        = zpByte() # Number of ticks until next LED change
 ledState_v2     = zpByte() # Current LED state
 ledTempo        = zpByte() # Next value for ledTimer after LED state change
 
-# All bytes above, except 0x80, are free for temporary/scratch/stacks etc
+# All bytes above userVars, except 0x80, are potentially usable by user code
+# that refrains from using ROM facilities introduced since ROMv5a.
 userVars        = zpByte(0)
+
+# [0x30-0x35]
+# Saved vCPU context during vIRQ (since ROMv5a)
+# Code that uses vCPU interrupts should not use these locations.
+# area register save area
+vIrqSave        = zpByte(6)
+userVars1       = zpByte(0)
+
+# [0x80]
+# Constant 0x01. 
+zpReset(0x80)
+oneConst        = zpByte(1)
+userVars2       = zpByte(0)  
+
+# [0x82-0xB7]
+# Scratch for certain ops and sys calls introduced in ROMvX0.
+# Pending more specific information to be inserted here.
+zpReset(0x82)
+vX0Scratch      = zpByte(0xB8-0x82)
+
+# [0xB8-0xBF]
+# State for ROMvX0 SYS calls with vCPU callbacks.
+# Pending more specific information to be inserted here.
+vX0State        = zpByte(0xC0-0xB8)
+
+# [0xC0-0xCF]
+# Fixed locations for ROMvX0 opcodes that operate on long and floats.
+# Pending more specific information to be inserted here.
+vFAC_reserved   = zpByte(4)     # reserved for float accumulator
+vLAC            = zpByte(4)     # long accumulator/continued float accumulator
+vTmpL           = zpByte(4)     # long scratch register
+vDST            = zpByte(2)     # destination address for copy opcodes.
+vTmpW           = zpByte(2)     # word scratch register
+
+
 
 #-----------------------------------------------------------------------
 #
@@ -2646,15 +2682,15 @@ ld([sysArgs+4],X)               #17
 #       LUP  $xx        -> vRTI and switch interpreter type as stored in [$xx]
 fillers(until=251-13)
 label('vRTI#15')
-ld([0x30])                      #15 Continue with vCPU in the same timeslice (faster)
+ld([vIrqSave])                  #15 Continue with vCPU in the same timeslice (faster)
 st([vPC])                       #16
-ld([0x31])                      #17
+ld([vIrqSave+1])                #17
 st([vPC+1])                     #18
-ld([0x32])                      #19
+ld([vIrqSave+2])                #19
 st([vAC])                       #20
-ld([0x33])                      #21
+ld([vIrqSave+3])                #21
 st([vAC+1])                     #22
-ld([0x34])                      #23 Restore vCpuSelect for PREFIX
+ld([vIrqSave+4])                #23 Restore vCpuSelect for PREFIX
 st([vCpuSelect])                #24
 adda(1,Y)                       #25 Jump to correct PREFIX page, (or page by default)
 jmp(Y,'REENTER')                #26
@@ -5415,15 +5451,15 @@ runVcpu(186-82-extra,           #82 Application cycles (scan line 0)
     returnTo='vBlankFirst#186')
 
 label('vBlankFirst#82')
-st([0x30])                      #82 Save vPC
+st([vIrqSave])                  #82 Save vPC
 ld([vPC+1])                     #83
-st([0x31])                      #84
+st([vIrqSave+1])                #84
 ld([vAC])                       #85 Save vAC
-st([0x32])                      #86
+st([vIrqSave+2])                #86
 ld([vAC+1])                     #87
-st([0x33])                      #88
+st([vIrqSave+3])                #88
 ld([vCpuSelect])                #89 Save vCpuSelect for PREFIX
-st([0x34])                      #90
+st([vIrqSave+4])                #90
 ld([Y,vIRQ_v5])                 #91 Set vPC to vIRQ
 suba(2)                         #92
 st([vPC])                       #93
