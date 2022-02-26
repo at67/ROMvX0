@@ -9968,11 +9968,11 @@ jmp(Y,'xorbi#13')               #11
 ld(AC,X)                        #12 address of var
 
 # pc = 0x2270, Opcode = 0x70
-# Instruction JMPI, (lb3361): Jump to immediate 16bit address, does not destroy vLR, 22 + 22 cycles
+# Instruction JMPI, (lb3361): Jump to 16bit address, preserve vLR, 22 + 20 cycles
 label('JMPI')
 ld(hi('jmpi#13'),Y)             #10
 jmp(Y,'jmpi#13')                #11
-ld([vPC+1],Y)                   #12
+suba(2)                         #12
 
 
 # SYS calls and instruction implementations rely on these
@@ -10989,14 +10989,12 @@ ld(-28/2)                       #26
 
 # JMPI implementation, (lb3361)
 label('jmpi#13')
-st([Y,Xpp])                     #13 Just X++
-suba(2)                         #14
-st([vPC])                       #15
-ld([Y,X])                       #16
-st([vPC+1])                     #17
-ld(hi('NEXTY'),Y)               #18
-jmp(Y,'NEXTY')                  #19
-ld(-22//2)                      #20
+st([vPC])                       #13
+ld([sysArgs+7])                 #14
+st([vPC+1])                     #15
+ld(hi('NEXTY'),Y)               #16
+jmp(Y,'NEXTY')                  #17
+ld(-20/2)                       #18
 
 
 fillers(until=0xff)
