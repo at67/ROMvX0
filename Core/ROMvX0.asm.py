@@ -10234,6 +10234,21 @@ jmp(Y,'ncopy#13')               #11
 ld([vTicks])                    #12
 
 
+# pc = 0x23d0, Opcode = 0xd0
+# Instruction STLU (lb3361): store zero extended vAC into long var. 22+26 cycles
+label('STLU')
+ld(hi('stlu#13'),Y)
+jmp(Y,'stlu#13')
+ld(AC,X)
+
+# pc = 0x23d3, Opcode = 0xd3
+# Instruction STLS (lb3361): store sign extended vAC into long var. 22+28 cycles
+label('STLS')
+ld(hi('stls#13'),Y)
+jmp(Y,'stls#13')
+ld(AC,X)
+
+
 fillers(until=0xff)
 
 #-----------------------------------------------------------------------
@@ -13652,6 +13667,39 @@ bne('ncopy#11')                 #51-42=9
 ld(-42/2)                       #52-42=10
 jmp(Y,'NEXTY')                  #53
 ld(-56/2)                       #54
+
+# STLU implementation
+
+label('stlu#13')
+ld(0,Y)                         #13
+ld([vAC])                       #14
+st([Y,Xpp])                     #15
+ld([vAC+1])                     #16
+st([Y,Xpp])                     #17
+ld(0)                           #18
+st([Y,Xpp])                     #19
+st([Y,X])                       #20
+ld(hi('REENTER'),Y)             #21
+jmp(Y,'REENTER')                #22
+ld(-26/2)                       #23
+
+# STLS implementation
+
+label('stls#13')
+ld(0,Y)                         #13
+ld([vAC])                       #14
+st([Y,Xpp])                     #15
+ld([vAC+1])                     #16
+st([Y,Xpp])                     #17
+bmi(pc()+3)                     #18
+bra(pc()+3)                     #19
+ld(0)                           #20
+ld(0xff)                        #20
+st([Y,Xpp])                     #21
+st([Y,X])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
 
 
 
