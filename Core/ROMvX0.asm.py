@@ -10290,17 +10290,41 @@ jmp(Y,'xla#13')                 #11
 ld([vAC])                       #12
 
 # pc = 0x241a Opcode = 0x1a
-# Instruction ADDLP (lb3361): Add [vAC] to LAC. 22+66 cycles
+# Instruction ADDLP (lb3361): vLAC += [vAC]. 22+66 cycles
 label('ADDLP')
 ld(hi('addlp#13'),Y)            #10
 jmp(Y,'addlp#13')               #11
 ld([vTicks])                    #12
 
 # pc = 0x241d Opcode = 0x1d
-# Instruction SUBLP (lb3361): Subtract [vAC] from LAC. 22+60 cycles
+# Instruction SUBLP (lb3361): vLAC -= [vAC]. 22+60 cycles
 label('SUBLP')
 ld(hi('sublp#13'),Y)            #10
 jmp(Y,'sublp#13')               #11
+ld([vTicks])                    #12
+
+# pc = 0x241d Opcode = 0x20
+# Instruction ANDLP (lb3361): vLAC &= [vAC]. 22+42 cycles
+# On return vAC>0 (resp =0, <0) iff LAC>0 (resp =0, <0)
+label('ANDLP')
+ld(hi('andlp#13'),Y)            #10
+jmp(Y,'andlp#13')               #11
+ld([vTicks])                    #12
+
+# pc = 0x2423 Opcode = 0x23
+# Instruction ORLP (lb3361): vLAC |= [vAC]. 22+42 cycles
+# On return vAC>0 (resp =0, <0) iff LAC>0 (resp =0, <0)
+label('ORLP')
+ld(hi('orlp#13'),Y)             #10
+jmp(Y,'orlp#13')                #11
+ld([vTicks])                    #12
+
+# pc = 0x2426 Opcode = 0x26
+# Instruction XORLP (lb3361): vLAC ^= [vAC]. 22+42 cycles
+# On return vAC>0 (resp =0, <0) iff LAC>0 (resp =0, <0)
+label('XORLP')
+ld(hi('xorlp#13'),Y)            #10
+jmp(Y,'xorlp#13')               #11
 ld([vTicks])                    #12
 
 # SYS calls and instruction implementations rely on these
@@ -13417,6 +13441,84 @@ ld(hi('NEXTY'),Y)               #56
 jmp(Y,'NEXTY')                  #57
 ld(-60/2)                       #58
 
+# ANDLP implementation
+
+label('andlp#13')
+adda(min(0,maxTicks-42/2))      #13
+blt('addlp#16')                 #14
+ld([vAC+1],Y)                   #15
+ld([vAC],X)                     #16
+ld([Y,X])                       #17
+st([Y,Xpp])                     #18
+anda([vLAC+0])                  #19
+st([vLAC+0])                    #20
+ld([Y,X])                       #21
+st([Y,Xpp])                     #22
+anda([vLAC+1])                  #23
+st([vLAC+1])                    #24
+ld([Y,X])                       #25
+st([Y,Xpp])                     #26
+anda([vLAC+2])                  #27
+st([vLAC+2])                    #28
+ld([Y,X])                       #29
+anda([vLAC+3])                  #30
+nop()                           #31
+label('andlp#32')
+st([vLAC+3])                    #32
+st([vAC+1])                     #33
+ld([vLAC+0])                    #34
+ora([vLAC+1])                   #35
+ora([vLAC+2])                   #36
+st([vAC])                       #37
+ld(hi('NEXTY'),Y)               #38
+jmp(Y,'NEXTY')                  #39
+ld(-42/2)                       #40
+
+# ORLP implementation
+
+label('orlp#13')
+adda(min(0,maxTicks-42/2))      #13
+blt('addlp#16')                 #14
+ld([vAC+1],Y)                   #15
+ld([vAC],X)                     #16
+ld([Y,X])                       #17
+st([Y,Xpp])                     #18
+ora([vLAC+0])                   #19
+st([vLAC+0])                    #20
+ld([Y,X])                       #21
+st([Y,Xpp])                     #22
+ora([vLAC+1])                   #23
+st([vLAC+1])                    #24
+ld([Y,X])                       #25
+st([Y,Xpp])                     #26
+ora([vLAC+2])                   #27
+st([vLAC+2])                    #28
+ld([Y,X])                       #29
+bra('andlp#32')                 #30
+ora([vLAC+3])                   #31
+
+# XORLP implementation
+
+label('xorlp#13')
+adda(min(0,maxTicks-42/2))      #13
+blt('addlp#16')                 #14
+ld([vAC+1],Y)                   #15
+ld([vAC],X)                     #16
+ld([Y,X])                       #17
+st([Y,Xpp])                     #18
+xora([vLAC+0])                  #19
+st([vLAC+0])                    #20
+ld([Y,X])                       #21
+st([Y,Xpp])                     #22
+xora([vLAC+1])                  #23
+st([vLAC+1])                    #24
+ld([Y,X])                       #25
+st([Y,Xpp])                     #26
+xora([vLAC+2])                  #27
+st([vLAC+2])                    #28
+ld([Y,X])                       #29
+bra('andlp#32')                 #30
+xora([vLAC+3])                  #31
 
 
 fillers(until=0xff)
