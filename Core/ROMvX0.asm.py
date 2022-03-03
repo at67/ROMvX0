@@ -11306,24 +11306,24 @@ ld([vAC+1],Y)                   #17
 ld([vAC],X)                     #18
 ld([Y,X])                       #19 peek [vAC]
 st([Y,Xpp])                     #20
-st([0xB0])                      #21
+st([vTmpL+0])                   #21
 ld([Y,X])                       #22 peek [vAC+1]
 st([Y,Xpp])                     #23
-st([0xB1])                      #24
+st([vTmpL+1])                   #24
 ld([Y,X])                       #25 peek [vAC+2]
 st([Y,Xpp])                     #26
-st([0xB2])                      #27
+st([vTmpL+2])                   #27
 ld([Y,X])                       #28 peek [vAC+3]
-st([0xB3])                      #29
+st([vTmpL+3])                   #29
 ld(0,Y)                         #30
 ld([vTmp],X)                    #31 dst var
-ld([0xB0])                      #32
+ld([vTmpL+0])                   #32
 st([Y,Xpp])                     #33 [var.0] = peek [vAC]
-ld([0xB1])                      #34
+ld([vTmpL+1])                   #34
 st([Y,Xpp])                     #35 [var.1] = peek [vAC+1]
-ld([0xB2])                      #36
+ld([vTmpL+2])                   #36
 st([Y,Xpp])                     #37 [var.2] = peek [vAC+2]
-ld([0xB3])                      #38
+ld([vTmpL+3])                   #38
 st([Y,X])                       #39 [var.3] = peek [vAC+3]
 ld(hi('NEXTY'),Y)               #40
 jmp(Y,'NEXTY')                  #41
@@ -11346,24 +11346,24 @@ blt('.lokea#18')                #16 not enough time left, so retry
 ld(0,Y)                         #17
 ld([X])                         #18 var.0
 st([Y,Xpp])                     #19
-st([0xB0])                      #20
+st([vTmpL+0])                   #20
 ld([X])                         #21 var.1
 st([Y,Xpp])                     #22
-st([0xB1])                      #23
+st([vTmpL+1])                   #23
 ld([X])                         #24 var.2
 st([Y,Xpp])                     #25
-st([0xB2])                      #26
+st([vTmpL+2])                   #26
 ld([X])                         #27 var.3
-st([0xB3])                      #28
+st([vTmpL+3])                   #28
 ld([vAC],X)                     #29
 ld([vAC+1],Y)                   #30
-ld([0xB0])                      #31
+ld([vTmpL+0])                   #31
 st([Y,Xpp])                     #32 poke [vAC], var.0
-ld([0xB1])                      #33
+ld([vTmpL+1])                   #33
 st([Y,Xpp])                     #34 poke [vAC], var.1
-ld([0xB2])                      #35
+ld([vTmpL+2])                   #35
 st([Y,Xpp])                     #36 poke [vAC], var.2
-ld([0xB3])                      #37
+ld([vTmpL+3])                   #37
 st([Y,X])                       #38 poke [vAC], var.3
 ld(hi('REENTER'),Y)             #39
 jmp(Y,'REENTER')                #40
