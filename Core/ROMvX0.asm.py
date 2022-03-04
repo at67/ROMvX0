@@ -10342,6 +10342,23 @@ ld(hi('xorlp#13'),Y)            #10
 jmp(Y,'xorlp#13')               #11
 ld([vTicks])                    #12
 
+# pc = 0x2429 Opcode = 0x29
+# Instruction CMPLPU (lb3361): compare vLAC and [vAC] unsigned. 22+72(max) cycles
+# On return vAC>0 (resp =0, <0) 
+label('CMPLPU')
+ld(hi('cmplpu#13'),Y)           #10
+jmp(Y,'cmplpu#13')              #11
+ld([vTicks])                    #12
+
+# pc = 0x242c Opcode = 0x2c
+# Instruction CMPLPS (lb3361): compare vLAC and [vAC] signed. 22+72(max) cycles
+# On return vAC>0 (resp =0, <0) 
+label('CMPLPS')
+ld(hi('cmplps#13'),Y)           #10
+jmp(Y,'cmplps#13')              #11
+ld([vTicks])                    #12
+
+
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
 ld(-28/2)                       #25
@@ -13700,6 +13717,129 @@ st([Y,X])                       #22
 ld(hi('REENTER'),Y)             #23
 jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
+
+
+# CMPLPU/CMPLPS implementation
+
+label('cmplp#16')
+ld(hi('PREFX1_PAGE'))           #16 restart
+st([vCpuSelect])                #17
+adda(1,Y)                       #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
+
+label('cmplp#lt')
+ld(0xff)                        #vTmp-7
+st([vAC])                       #vTmp-6
+st([vAC+1])                     #vTmp-5
+ld(hi('NEXTY'),Y)               #vTmp-4
+jmp(Y,'NEXTY')                  #vTmp-3
+ld([vTmp])                      #vTmp-2
+
+label('cmplp#gt')
+ld(1)                           #vTmp-8
+st([vAC])                       #vTmp-7
+ld(0)                           #vTmp-6
+st([vAC+1])                     #vTmp-5
+ld(hi('NEXTY'),Y)               #vTmp-4
+jmp(Y,'NEXTY')                  #vTmp-3
+ld([vTmp])                      #vTmp-2
+
+label('cmplpu#13')
+adda(min(0,maxTicks-72/2))      #13
+blt('cmplp#16')                 #14
+ld([vAC+1],Y)                   #15
+# byte3
+ld([vAC])                       #16
+adda(3,X)                       #17
+ld(-36/2)                       #18
+st([vTmp])                      #19
+ld([vLAC+3])                    #20
+xora([Y,X])                     #21
+blt(pc()+4)                     #22
+ld([vLAC+3])                    #23
+bra('cmplp#26')                 #24
+suba([Y,X])                     #25
+xora(0x80)                      #24
+ora(1)                          #25
+label('cmplp#26')
+bgt('cmplp#gt')                 #26
+blt('cmplp#lt')                 #27
+# byte2
+ld([vAC])                       #28
+adda(2,X)                       #29
+ld(-48/2)                       #30
+st([vTmp])                      #31
+ld([vLAC+2])                    #32
+xora([Y,X])                     #33
+blt(pc()+4)                     #34
+ld([vLAC+2])                    #35
+bra(pc()+4)                     #36
+suba([Y,X])                     #37
+xora(0x80)                      #36
+ora(1)                          #37
+bgt('cmplp#gt')                 #38
+blt('cmplp#lt')                 #39
+# byte1
+ld([vAC])                       #40
+adda(1,X)                       #41
+ld(-60/2)                       #42
+st([vTmp])                      #43
+ld([vLAC+1])                    #44
+xora([Y,X])                     #45
+blt(pc()+4)                     #46
+ld([vLAC+1])                    #47
+bra(pc()+4)                     #48
+suba([Y,X])                     #49
+xora(0x80)                      #48
+ora(1)                          #49
+bgt('cmplp#gt')                 #50
+blt('cmplp#lt')                 #51
+# byte0
+ld([vAC])                       #52
+adda(0,X)                       #53
+ld(-72/2)                       #54
+st([vTmp])                      #55
+ld([vLAC])                      #56
+xora([Y,X])                     #57
+blt(pc()+4)                     #58
+ld([vLAC])                      #59
+bra(pc()+4)                     #60
+suba([Y,X])                     #61
+xora(0x80)                      #60
+ora(1)                          #61
+bgt('cmplp#gt')                 #62
+blt('cmplp#lt')                 #63
+st([vAC+1])                     #64
+st([vAC])                       #65
+ld(hi('NEXTY'),Y)               #66
+jmp(Y,'NEXTY')                  #67
+ld(-70/2)                       #68
+
+label('cmplps#13')
+adda(min(0,maxTicks-72/2))      #13
+blt('cmplp#16')                 #14
+ld([vAC+1],Y)                   #15
+#byte3
+ld([vAC])                       #16
+adda(3,X)                       #17
+ld(-36/2)                       #18
+st([vTmp])                      #19
+ld([vLAC+3])                    #20
+xora([Y,X])                     #21
+blt(pc()+4)                     #22
+ld([vLAC+3])                    #23
+bra('cmplp#26')                 #24
+suba([Y,X])                     #25
+nop()                           #24
+ora(1)                          #25
+bgt('cmplp#gt')                 #26
+blt('cmplp#lt')                 #27
+nop()                           #28
+
+
+
+
 
 
 
