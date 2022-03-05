@@ -10237,16 +10237,30 @@ ld([vTicks])                    #12
 # pc = 0x23d0, Opcode = 0xd0
 # Instruction STLU (lb3361): store zero extended vAC into long var. 22+26 cycles
 label('STLU')
-ld(hi('stlu#13'),Y)
-jmp(Y,'stlu#13')
-ld(AC,X)
+ld(hi('stlu#13'),Y)             #10
+jmp(Y,'stlu#13')                #11
+ld(AC,X)                        #12
 
 # pc = 0x23d3, Opcode = 0xd3
 # Instruction STLS (lb3361): store sign extended vAC into long var. 22+28 cycles
 label('STLS')
-ld(hi('stls#13'),Y)
-jmp(Y,'stls#13')
-ld(AC,X)
+ld(hi('stls#13'),Y)             #10
+jmp(Y,'stls#13')                #11
+ld(AC,X)                        #12
+
+# pc = 0x23d6, Opcode = 0xd6
+# Instruction NOTL (lb3361): complement long var. 22+30 cycles
+label('NOTL')
+ld(hi('notl#13'),Y)             #10
+jmp(Y,'notl#13')                #11
+ld(AC,X)                        #12
+
+# pc = 0x23d9, Opcode = 0xd9
+# Instruction NEGL (lb3361): negate long var. 22+58(max) cycles
+label('NEGL')
+ld(hi('negl#13'),Y)             #10
+jmp(Y,'negl#13')                #11
+ld(AC,X)                        #12
 
 
 fillers(until=0xff)
@@ -12817,6 +12831,7 @@ adda([vTicks])                  #14
 blt('.incl#17')                 #15 not enough time left, so retry
 ld(0,Y)                         #16
 ld([X])                         #17
+label('incl#18')
 adda(1)                         #18
 beq('.incl#21')                 #19 if 0 byte is 0x00
 st([Y,Xpp])                     #20 inc 0 byte
@@ -12908,6 +12923,34 @@ st([vCpuSelect])                #19 restore PREFX2 instruction page
 adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
+
+
+# NEGL implementation (lb3361)
+# Complement then jumps into INCL
+label('negl#13')
+ld(0,Y)                         #13
+ld(min(0,maxTicks-(40+18)/2))   #14
+adda([vTicks])                  #15
+blt('.decl#18')                 #16 restart
+ld([Y,X])                       #17
+xora(0xff)                      #18
+st([Y,Xpp])                     #19
+ld([Y,X])                       #20
+xora(0xff)                      #21
+st([Y,Xpp])                     #22
+ld([Y,X])                       #23
+xora(0xff)                      #24
+st([Y,Xpp])                     #25
+ld([Y,X])                       #26
+xora(0xff)                      #27
+st([Y,Xpp])                     #28
+nop()                           #29
+ld([vTicks])                    #30
+adda(-18/2)                     #13=31-18
+st([vTicks])                    #14
+ld([sysArgs+7],X)               #15
+bra('incl#18')                  #16
+ld([X])                         #17
 
 
 
@@ -13835,12 +13878,27 @@ nop()                           #24
 ora(1)                          #25
 bgt('cmplp#gt')                 #26
 blt('cmplp#lt')                 #27
-nop()                           #28
+#dummy                          #28
 
+# NOTL implementation
 
-
-
-
+label('notl#13')
+ld(0,Y)                         #13
+ld([Y,X])                       #14
+xora(0xff)                      #15
+st([Y,Xpp])                     #16
+ld([Y,X])                       #17
+xora(0xff)                      #18
+st([Y,Xpp])                     #19
+ld([Y,X])                       #20
+xora(0xff)                      #21
+st([Y,Xpp])                     #22
+ld([Y,X])                       #23
+xora(0xff)                      #24
+st([Y,Xpp])                     #25
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
 
 
 fillers(until=0xff)
