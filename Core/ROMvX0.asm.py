@@ -3031,6 +3031,27 @@ ld(hi('REENTER'),Y)             #99
 jmp(Y,'REENTER')                #100
 ld(-104/2)                      #101
 
+#-----------------------------------------------------------------------
+#       vCPU NROR (lb3361)
+#-----------------------------------------------------------------------
+
+label('nror#35')
+ora([vAC])                      #35
+st([X])                         #36
+ld([sysArgs+7])                 #37
+xora([sysArgs+6])               #38
+bne('nror#41')                  #39
+ld(hi('NEXTY'),Y)               #40
+jmp(Y,'NEXTY')                  #41
+ld(-44/2)                       #42
+label('nror#41')
+ld(-30/2)                       #41
+adda([vTicks])                  #12=42-30
+ld(hi('nror#16'),Y)             #13=43-30
+jmp(Y,'nror#16')                #14=44-30
+st([vTicks])                    #15=45-30
+
+
 
 #-----------------------------------------------------------------------
 #
@@ -9995,6 +10016,25 @@ ld(hi('movf#13'),Y)             #10
 jmp(Y,'movf#13')                #11
 st([sysArgs+6])                 #12
 
+# pc = 0x22d3 Opcode = 0xd3
+# Instruction NROL (lb3361): Left rotate n bytes. 22+18+n*18
+# Shift vACsign<-bit(8n-1)<-...<-bit(0)<-vACsign. Destroys vAC
+# Encoding: [0xc7,v,0xd3,v+n]
+label('NROL')
+ld(hi('nrol#13'),Y)             #10
+jmp(Y,'nrol#13')                #11
+st([sysArgs+6])                 #12
+
+# pc = 0x22d6 Opcode = 0xd6
+# Instruction NROR (lb3361): Right rotate n bytes. 22+26+n*32
+# Shift vACsign->bit(8n-1)->...->bit(0)->vACsign. Destroys vAC
+# Encoding: [0xc7,v+n,0xd6,v]
+label('NROR')
+ld(hi('nror#13'),Y)             #10
+jmp(Y,'nror#13')                #11
+st([sysArgs+6])                 #12
+
+
 
 fillers(until=0xff)
 
@@ -13904,15 +13944,92 @@ ld(-30/2)                       #28
 fillers(until=0xff)
 align(0x100, size=0x100)
 
+# ----------------------
+
+# NROL implementation
+
+label('nrol#13')
+ld([sysArgs+7],X)               #13
+bra('nrol#16')                  #14
+ld([vTicks])                    #15
+
+label('nrol#14')
+adda([vTicks])                  #14
+st([vTicks])                    #15
+label('nrol#16')
+adda(min(0,maxTicks-(24+18)/2)) #16
+bge('nrol#19')                  #17 -> enough time
+ld(hi('PREFX3_PAGE'))           #18 restart
+st([vCpuSelect])                #19
+adda(1,Y)                       #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+label('nrol#19')
+ld([vAC+1])                     #19 enough time
+blt('nrol#22')                  #20
+ld([X])                         #21
+st([vAC+1])                     #22
+bra('nrol#25')                  #23
+adda(AC)                        #24 
+label('nrol#22')
+st([vAC+1])                     #22
+adda(AC)                        #23
+adda(1)                         #24
+label('nrol#25')
+st([X])                         #25
+ld(1)                           #26
+adda([sysArgs+7])               #27
+st([sysArgs+7],X)               #28
+xora([sysArgs+6])               #29
+bne('nrol#14')                  #30-18=12
+ld(-18/2)                       #31-18=13
+ld(hi('NEXTY'),Y)               #32
+jmp(Y,'NEXTY')                  #33
+ld(-36/2)                       #34
+
+# NROR implementation
+
+label('nror#20')
+ld(hi('PREFX3_PAGE'))           #20 restart
+st([vCpuSelect])                #21
+adda(1,Y)                       #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+
+label('nror#13')
+ld('nror#35')                   #13
+st([vTmp])                      #14
+ld([vTicks])                    #15
+label('nror#16')
+ld(hi('shiftTable'),Y)          #16
+adda(min(0,maxTicks-(26+30)/2)) #17
+blt('nror#20')                  #18
+ld([sysArgs+7])                 #19
+suba(1)                         #20
+st([sysArgs+7],X)               #21
+ld([vAC+1])                     #22
+anda(0x80)                      #23
+st([vAC])                       #24
+ld([X])                         #25
+anda(0xfe)                      #26
+suba([X])                       #27
+st([vAC+1])                     #28
+adda([X])                       #29
+jmp(Y,AC)                       #30  
+bra(255)                        #31 continues in page 0x600
+
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
 #-----------------------------------------------------------------------
 #
 #  Spare pages
 #
 #-----------------------------------------------------------------------
 
-
-fillers(until=0xff)
-align(0x100, size=0x100)
 
 fillers(until=0xff)
 align(0x100, size=0x100)
