@@ -73,7 +73,7 @@ ROMvX0.rom: Core/* Apps/*/* Makefile ROMvX0_interface.json
 		SYS_Racer_v1.py\
 		zippedRacerHorizon=Apps/Racer/Horizon-256x16.rgb\
 		Racer=Apps/Racer/Racer_v2.gcl\
-        SDCard=gbas/browser/Browser_SDCard_ROMv5a_v1.gt1\
+		SDCard=gbas/browser/Browser_SDCard_ROMv5a_v1.gt1\
 		Mandelbrot=Apps/Mandelbrot/Mandelbrot_v1.gcl\
 		Loader=Apps/Loader/Loader_v4.gcl\
 		Credits=Apps/Credits/Credits_v3.gcl\
@@ -88,7 +88,32 @@ ROMvX0.rom: Core/* Apps/*/* Makefile ROMvX0_interface.json
 		Boot=Apps/CardBoot/CardBoot.gt1\
 		Main=Apps/MainMenu/MainMenu_vX0.gcl\
 		Reset=Core/Reset_vX0.gcl
-        
+
+# New instructions and a 16bit stack pointer (vSP), 512k version
+ROMvX0_512K.rom: Core/* Apps/*/* Makefile ROMvX0_interface.json
+	python3 Core/ROMvX0.asm.py\
+		SYS_Loader_vX.py\
+		SYS_Racer_v1.py\
+		-DWITH_512K_BOARD=1\
+		-DWITH_SUFFIX=\"_512K\"\
+		zippedRacerHorizon=Apps/Racer/Horizon-256x16.rgb\
+		Racer=Apps/Racer/Racer_v2.gcl\
+	        SDCard=gbas/browser/Browser_SDCard_ROMv5a_v1.gt1\
+		Mandelbrot=Apps/Mandelbrot/Mandelbrot_v1.gcl\
+		Loader=Apps/Loader/Loader_v4.gcl\
+		Credits=Apps/Credits/Credits_v3.gcl\
+		Snake=Apps/Snake/Snake_v3.gcl\
+		TinyBASIC=Apps/TinyBASIC/TinyBASIC_v4.gcl\
+		TicTac=Apps/TicTac/LoadTicTac_v1.gcl\
+		TicTacGtb=Apps/TicTac/TicTac_v2.gtb\
+		WozMon=Apps/WozMon/WozMon_v2.gcl\
+		Apple1=Apps/Apple-1/Apple-1_v2.gt1\
+		MSBASIC=Apps/MSBASIC/MSBASIC_v1.gt1\
+		Egg=Apps/Horizon/Horizon_at67_v1.gt1\
+		Boot=Apps/CardBoot/CardBoot.gt1\
+		Main=Apps/MainMenu/MainMenu_vX0.gcl\
+		Reset=Core/Reset_vX0.gcl
+
 # Development towards "ROM v5"
 dev.rom: Core/* Apps/*/* Makefile interface.json
 	python3 Core/dev.asm.py\
