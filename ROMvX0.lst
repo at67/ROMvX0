@@ -51987,7 +51987,7 @@ Loader:       cc0e 0000  ld   $00
               cc0f 00a8  ld   $a8
               cc10 0015  ld   $15
               cc11 0011  ld   $11
-              cc12 0060  ld   $60
+              cc12 0080  ld   $80
               cc13 0030  ld   $30
               cc14 002b  ld   $2b
               cc15 0022  ld   $22
