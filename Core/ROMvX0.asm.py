@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 #----------------------------------------------------------------------- 
 #
+#  Original Author Marcel van Kervinck, (RIP 24-May-2020)
+#  ROMvX0 Author at67, LONG support and memory SYS calls lb3361
+#
+#-----------------------------------------------------------------------
+#
 #  Core video, sound and interpreter loop for Gigatron TTL microcomputer
 #
 #-----------------------------------------------------------------------
@@ -150,7 +155,23 @@
 #  XXX  Scroll out the top line of text, or generic vertical scroll SYS call
 #  XXX  SYS function for plotting a full character in one go
 #  XXX  Multitasking/threading/sleeping (start with date/time clock in GCL)
+#
 #-----------------------------------------------------------------------
+#
+#  ROM vX0: Author at67, LONG support and memory SYS calls added by lb3361
+#  DONE MaxTicks increased to 30
+#  DONE Stack pointer high/page byte added, stack instructions modified accordingly
+#  DONE Over 100 new instructions
+#  DONE Most vCPU instructions moved out of Page3 using an extra level of indirection
+#  DONE PREFIX instructions, (PREFX1, PREFX2, PREFX3), original idea lb3361, implementation at67
+#  DONE vCPU instruction restart ability
+#  DONE PREFIX instruction payload restart ability
+#  DONE vCPU and PREFIX instruction MaxTicks limit overcome 
+#  DONE SYS calls for math, array processing, sorting, true sprites, memory manipulation, etc
+#  DONE Backwards compatibility with all software and all previous ROM's
+#
+#-----------------------------------------------------------------------
+
 
 import importlib
 from sys import argv
