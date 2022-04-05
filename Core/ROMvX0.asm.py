@@ -10395,8 +10395,6 @@ ld(hi('peekv+#13'),Y)           #10 #12
 jmp(Y,'peekv+#13')              #11
 # dummy                         #12
 #
-
-
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
 ld(-28/2)                       #25
@@ -10549,14 +10547,11 @@ ld(hi('cmplps#13'),Y)           #10
 jmp(Y,'cmplps#13')              #11
 ld([vTicks])                    #12
 
-
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
 ld(-28/2)                       #25
 bra('NEXT')                     #26 Return from SYS calls
 ld([vPC+1],Y)                   #27
-
-
 
 
 fillers(until=0xff)
@@ -13102,7 +13097,7 @@ jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 
 
-# NEGL implementation (lb3361)
+# NEGL implementation, (lb3361)
 # Complement then jumps into INCL
 label('negl#13')
 ld(0,Y)                         #13
@@ -13138,7 +13133,7 @@ align(0x100, size=0x100)
 #  Implementation of SYS_CopyMemory[Ext], (0x2F00)
 #-----------------------------------------------------------------------
 #
-# SYS_CopyMemory_vX_80 implementation
+# SYS_CopyMemory_vX_80 implementation, (lb3361)
 label('sys_CopyMemory')
 ble('.sysCm#20')                     #18   goto burst6
 suba(6)                              #19
@@ -13242,7 +13237,7 @@ jmp(Y,'REENTER')                     #22
 ld(-26/2)                            #23
 
 
-# SYS_CopyMemoryExt_vX_100 implementation
+# SYS_CopyMemoryExt_vX_100 implementation, (lb3361)
 label('sys_CopyMemoryExt')
 adda(AC)                             #18
 adda(AC)                             #19
@@ -13355,7 +13350,7 @@ align(0x100, size=0x100)
 #  Implementation of SYS_ScanMemory[Ext], (0x3000)
 #-----------------------------------------------------------------------
 #
-# SYS_ScanMemory_vX_50 implementation
+# SYS_ScanMemory_vX_50 implementation, (lb3361)
 label('sys_ScanMemory')
 ld([sysArgs+0],X)                    #18
 ld([Y,X])                            #19
@@ -13404,7 +13399,7 @@ jmp(Y,'REENTER')                     #30
 ld(-34/2)                            #31
 
 
-# SYS_ScanMemoryExt_vX_50 implementation
+# SYS_ScanMemoryExt_vX_50 implementation, (lb3361)
 label('sys_ScanMemoryExt')
 ora(0x3c,X)                          #18
 ctrl(X)                              #19
@@ -13466,7 +13461,7 @@ jmp(Y,'NEXTY')                       #43
 ld(-46/2)                            #44
 
 
-fillers(until=0x60)
+fillers(until=0x80)
 
 # SYS_LoaderSerialIN
 # sysArgs[0]   (in), zero page address of odd videoY waits and first even videoY wait, 207 219 235 251 2
@@ -13645,13 +13640,10 @@ fillers(until=0xff)
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------
-#  lb3361 experiments - temporary location for experimental ops, (0x3200)
+#  More vCPU instruction implementations, (0x3200)
 #-----------------------------------------------------------------------
-
-#--------------------------------
-
-# MOVL implementation
-
+#
+# MOVL implementation, (lb3361)
 label('movl#13')
 adda(1, X)                      #13
 ld(min(0,maxTicks-40/2))        #14
@@ -13686,8 +13678,8 @@ adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 
-# MOVL implementation
 
+# MOVF implementation, (lb3361)
 label('movf#13')
 adda(1, X)                      #13
 ld(min(0,maxTicks-46/2))        #14
@@ -13722,8 +13714,8 @@ ld(hi('NEXTY'),Y)               #42
 jmp(Y,'NEXTY')                  #43
 ld(-46/2)                       #44
 
-# ADDLP implementation
 
+# ADDLP implementation, (lb3361)
 label('addlp#13')
 adda(min(0,maxTicks-66/2))      #13
 blt('addlp#16')                 #14
@@ -13797,8 +13789,8 @@ adda(1,Y)                       #18
 jmp(Y,'NEXTY')                  #19
 ld(-22/2)                       #20
 
-# SUBLP implementation
 
+# SUBLP implementation, (lb3361)
 label('sublp#13')
 adda(min(0,maxTicks-60/2))      #13
 blt('addlp#16')                 #14
@@ -13864,8 +13856,8 @@ ld(hi('NEXTY'),Y)               #56
 jmp(Y,'NEXTY')                  #57
 ld(-60/2)                       #58
 
-# ANDLP implementation
 
+# ANDLP implementation, (lb3361)
 label('andlp#13')
 adda(min(0,maxTicks-42/2))      #13
 blt('addlp#16')                 #14
@@ -13897,8 +13889,8 @@ ld(hi('NEXTY'),Y)               #38
 jmp(Y,'NEXTY')                  #39
 ld(-42/2)                       #40
 
-# ORLP implementation
 
+# ORLP implementation, (lb3361)
 label('orlp#13')
 adda(min(0,maxTicks-42/2))      #13
 blt('addlp#16')                 #14
@@ -13920,8 +13912,8 @@ ld([Y,X])                       #29
 bra('andlp#32')                 #30
 ora([vLAC+3])                   #31
 
-# XORLP implementation
 
+# XORLP implementation, (lb3361)
 label('xorlp#13')
 adda(min(0,maxTicks-42/2))      #13
 blt('addlp#16')                 #14
@@ -13947,10 +13939,11 @@ xora([vLAC+3])                  #31
 fillers(until=0xff)
 align(0x100, size=0x100)
 
-# ----------------------
-
-# NCOPY implementation
-
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3300)
+#-----------------------------------------------------------------------
+#
+# NCOPY implementation, (lb3361)
 label('ncopy#16')
 ld(hi('PREFX2_PAGE'))           #16 restart
 st([vCpuSelect])                #17
@@ -14076,8 +14069,8 @@ ld(-42/2)                       #52-42=10
 jmp(Y,'NEXTY')                  #53
 ld(-56/2)                       #54
 
-# STLU implementation
 
+# STLU implementation, (lb3361)
 label('stlu#13')
 ld(0,Y)                         #13
 ld([vAC])                       #14
@@ -14091,8 +14084,8 @@ ld(hi('REENTER'),Y)             #21
 jmp(Y,'REENTER')                #22
 ld(-26/2)                       #23
 
-# STLS implementation
 
+# STLS implementation, (lb3361)
 label('stls#13')
 ld(0,Y)                         #13
 ld([vAC])                       #14
@@ -14110,8 +14103,7 @@ jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
 
 
-# CMPLPU/CMPLPS implementation
-
+# CMPLPU/CMPLPS implementation, (lb3361)
 label('cmplp#16')
 ld(hi('PREFX1_PAGE'))           #16 restart
 st([vCpuSelect])                #17
@@ -14228,8 +14220,8 @@ bgt('cmplp#gt')                 #26
 blt('cmplp#lt')                 #27
 #dummy                          #28
 
-# NOTL implementation
 
+# NOTL implementation, (lb3361)
 label('notl#13')
 ld(0,Y)                         #13
 ld([Y,X])                       #14
@@ -14252,10 +14244,11 @@ ld(-30/2)                       #28
 fillers(until=0xff)
 align(0x100, size=0x100)
 
-# ----------------------
-
-# NROL implementation
-
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3400)
+#-----------------------------------------------------------------------
+#
+# NROL implementation, (lb3361)
 label('nrol#13')
 ld([sysArgs+7],X)               #13
 bra('nrol#16')                  #14
@@ -14296,8 +14289,8 @@ ld(hi('NEXTY'),Y)               #32
 jmp(Y,'NEXTY')                  #33
 ld(-36/2)                       #34
 
-# NROR implementation
 
+# NROR implementation, (lb3361)
 label('nror#20')
 ld(hi('PREFX3_PAGE'))           #20 restart
 st([vCpuSelect])                #21
@@ -14328,46 +14321,104 @@ jmp(Y,AC)                       #30
 bra(255)                        #31 continues in page 0x600
 
 
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3500)
+#-----------------------------------------------------------------------
+#
+
 
 fillers(until=0xff)
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------
-#
-#  Spare pages
-#
+#  More vCPU instruction implementations, (0x3600)
 #-----------------------------------------------------------------------
+#
 
 
 fillers(until=0xff)
 align(0x100, size=0x100)
 
-fillers(until=0xff)
-align(0x100, size=0x100)
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3700)
+#-----------------------------------------------------------------------
+#
+
 
 fillers(until=0xff)
 align(0x100, size=0x100)
 
-fillers(until=0xff)
-align(0x100, size=0x100)
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3800)
+#-----------------------------------------------------------------------
+#
+
 
 fillers(until=0xff)
 align(0x100, size=0x100)
 
-fillers(until=0xff)
-align(0x100, size=0x100)
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3900)
+#-----------------------------------------------------------------------
+#
+
 
 fillers(until=0xff)
 align(0x100, size=0x100)
 
-fillers(until=0xff)
-align(0x100, size=0x100)
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3A00)
+#-----------------------------------------------------------------------
+#
+
 
 fillers(until=0xff)
 align(0x100, size=0x100)
 
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3B00)
+#-----------------------------------------------------------------------
+#
+
+
 fillers(until=0xff)
 align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3C00)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3D00)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3E00)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3F00)
+#-----------------------------------------------------------------------
+#
+
 
 fillers(until=0xff) 
 align(0x100, size=0x100)
