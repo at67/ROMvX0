@@ -1,0 +1,16 @@
+%include ../include/gigatron.i
+
+loader              EQU     0xA8
+videoY              EQU     0xB8
+
+ 
+videoY              DB      207 219 235 251 2
+
+_startAddress_      EQU     loader
+
+
+loader              LDWI    SYS_LoadSerialIn_vX_58
+                    STW     giga_sysFn
+                    MOVQB   giga_sysArg0, videoY
+                    MOVQB   giga_sysArg1, giga_sysArg2
+                    SYS     58

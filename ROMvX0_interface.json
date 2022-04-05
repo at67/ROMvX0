@@ -158,6 +158,7 @@
  "SYS_ScrollVTableY_vX_38"      : "0x20c0",
  "SYS_RestoreSprite_vX_126"     : "0x2100",
  "SYS_ScrollRectVTableY_vX_44"  : "0x21a0",
+ "SYS_LoadSerialIn_vX_58"       : "0x3060",
  
  "SYS_Exec_88"                  : "0x00ad",
  "SYS_ScanMemoryExt_vX_50"      : "0x00e3",
@@ -192,10 +193,13 @@
  "SYS_ResetWaveforms_v4_50"     : "0x0b0f",
  "SYS_ShuffleNoise_v4_46"       : "0x0b12",
  "SYS_SpiExchangeBytes_v4_134"  : "0x0b15",
- "SYS_ReceiveSerial1"           : "0x0b18",
  "SYS_Sprite6_v3_64"            : "0x0c00",
  "SYS_Sprite6x_v3_64"           : "0x0c40",
  "SYS_Sprite6y_v3_64"           : "0x0c80",
  "SYS_Sprite6xy_v3_64"          : "0x0cc0",
- "SYS_Unpack_56"                : "0x1ad0"
+  
+ "SYS_LoaderNextByteIn_32"      : "0x1a6d",
+ "SYS_LoaderProcessInput_64"    : "0x1a83",
+ "SYS_LoaderPayloadCopy_34"     : "0x1ac1",
+ "SYS_Unpack_56"                : "0x1ad5"
 }

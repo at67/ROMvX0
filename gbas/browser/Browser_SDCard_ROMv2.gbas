@@ -1,6 +1,6 @@
-_runtimePath_ "../../runtime"
+_runtimePath_ "../runtime"
 _runtimeStart_ &h7FFF
-_codeRomType_ ROMv5a
+_codeRomType_ ROMv2
 
 
 const sysArg0 = &h24
@@ -62,23 +62,23 @@ repeat
     if &(execRtn) then goto &restart
 
     inc f.lo
-forever
+&forever
 end
 
 
 findLoader:
     romType = get("ROM_TYPE")
-    if romType     &&= &h20  'ROMv2
+    if romType     &= &h20  'ROMv2
         execAddr = &hE23E
-    elseif romType &&= &h28  'ROMv3
+    elseif romType &= &h28  'ROMv3
         execAddr = &hB4A8
-    elseif romType &&= &h38  'ROMv4
+    elseif romType &= &h38  'ROMv4
         execAddr = &hAD5A
-    elseif romType &>= &h40  'ROMv5 or higher
+    elseif romType &&>= &h40 'ROMv5 or higher
         repeat
             'create name string
             execAddr = get("ROM_READ_DIR", execAddr)
-            if (execAddr)
+            if &(execAddr)
                 poke @execName$, 6
                 for j=sysArg0 &to sysArg7
                     poke @execName$ + j - (sysArg0 - 1), peek(j)
@@ -86,7 +86,7 @@ findLoader:
 
                 if execName$ = "Loader" then return
             endif
-        until execAddr &= 0
+        until execAddr &&= 0
 
         print "Loader not found!"
         end
@@ -120,14 +120,14 @@ loadDir:
         LDW     _NextByteIn_32
         STW     giga_sysFn
 
-loadD0: LDWI    _buffer_array
+loadD0: LDWI    _buffer
         STW     giga_sysArg0            'buffer
 
         LDI     207
         ST      giga_sysArg3            'scanline 207
         SYS     32                      'isLast, (0 or 1)
         
-        LDWI    _buffer_array
+        LDWI    _buffer
         PEEK
         XORI    255
         BEQ     _loadD0                 'loop while idle
@@ -167,7 +167,7 @@ fillBrowser:
     bIdx = 2
 
     if length &&= 0 then return
-    if browserIdx &&= MAX_FILES then return
+    if browserIdx &= MAX_FILES then return
         
     repeat
         cIdx = 0
@@ -188,7 +188,7 @@ return
 printBrowser:
     startY = max(min(browserY, browserIdx-15), 0)
     endY = min(browserY+14, browserIdx-1)
-    for i=startY &to endY
+    for i=startY to endY
         strAddr = addr(browser(i, 0)) + 1
         strLen = peek(strAddr)
         isFile = peek(strAddr - 1)
@@ -245,15 +245,26 @@ return
 
 getRomType:
     romType = get("ROM_TYPE")
-    NextByteIn_32 = &h0b18  'Default to SYS_ReceiveSerial1
+    
+    NextByteIn_32 = &h02E9                           'ROMv1
     if romType &&= &h20 then NextByteIn_32 = &h0BB1  'ROMv2
     if romType &&= &h28 then NextByteIn_32 = &h0BDF  'ROMv3
     if romType &&= &h38 then NextByteIn_32 = &h8A31  'ROMv4
     if romType &&= &h40 then NextByteIn_32 = &h5907  'ROMv5a
     if romType &&= &hf0 then NextByteIn_32 = &h1300  'SDCARD
     if romType &&= &hf8                              'DEVROM
-       if execAddr.hi &&= &h5A then NextByteIn_32 = &h5907  '(DEVROM v5a+, initial)
-       if execAddr.hi &&= &h5C then NextByteIn_32 = &h5B07  '(DEVROM v5a+, last before SYS_ReceiveSerial1)
+       if execAddr.hi &&= &h5A
+            NextByteIn_32 = &h5907                   'DEVROM v5a+, initial
+       endif
+       if execAddr.hi &&= &h5C
+            NextByteIn_32 = &h5B07                   'DEVROM v5a+, last before interface.json
+       endif
+    endif
+    if romType &= &h80                               'ROMvX0
+        asm
+            LDWI    SYS_LoaderNextByteIn_32
+            STW     _NextByteIn_32
+        endasm
     endif
 return
 
@@ -262,7 +273,7 @@ openSDCard:
     poke @commsCmd, CmdSDOpen
     len = peek(@pathName$)
     commsSize = 1 + len + 1
-    if len &&> 0
+    if len &> 0
         for i=1 &to len + 1
             poke @commsCmd + i, peek(@pathName$ + i)
         next i
@@ -296,13 +307,13 @@ return
 'repeat delay and auto repeat
 handleInput:
     k = get("SERIAL_RAW")
-    if k &&<> kk
+    if k &<> kk
         f = 0
         kk = k
         gosub k
     endif
-    if f &> 20
-        if ((f LSR 1) AND 1)
+    if f &&> 20
+        if &((f LSR 1) AND 1)
             gosub k
         endif
     endif
@@ -337,7 +348,7 @@ return
 
 'up
 247:    dec cursorY
-        if cursorY &< 0 then cursorY = min(browserIdx - 1, 14)
+        if cursorY &&< 0 then cursorY = min(browserIdx - 1, 14)
         gosub updateBrowser
         return
 
@@ -345,17 +356,17 @@ return
 'execute files, list directories
 execOrList:
     entry = peek(runStrAddr - 1)
+    if entry &&= EntryDir
+        execRtn = 1
+        pathName$ = string$(runStrAddr)
+    endif
     if entry &&= EntryFile
         execRtn = 0
         gosub execApp
     endif
-    if entry &= EntryError
+    if entry &&= EntryError
         execRtn = 2
         pathName$ = ""
-    endif
-    if entry &&= EntryDir
-        execRtn = 1
-        pathName$ = string$(runStrAddr)
     endif
 return
 

@@ -8,17 +8,17 @@ PYTHON3=python3
 GTBASIC=${TOOLS}/gtbasic/gtbasic
 GTHEXDUMP=${PYTHON3} ${TOOLS}/python/gtHexDump.py
 
-all: Browser_SDCard_ROMv2_v1.gt1 Browser_SDCard_ROMv2_v1.h \
-     Browser_SDCard_ROMv5a_v1.gt1 Browser_SDCard_ROMv5a_v1.h
+all: Browser_SDCard_ROMv2.gt1 Browser_SDCard_ROMv2.h \
+     Browser_SDCard_ROMv5a.gt1 Browser_SDCard_ROMv5a.h
 ifdef HW
  ifdef OS
-	copy Browser_SDCard_ROMv2_v1.h ${HW}/SDCard_NO_ROM/BabelFish
-	copy Browser_SDCard_ROMv2_v1.gt1 ${HW}/SDCard_NO_ROM/BabelFish
-	copy Browser_SDCard_ROMv5a_v1.gt1  ${HW}/SDCard_ROM
+	copy Browser_SDCard_ROMv2.h ${HW}/SDCard_NO_ROM/BabelFish
+	copy Browser_SDCard_ROMv2.gt1 ${HW}/SDCard_NO_ROM/BabelFish
+	copy Browser_SDCard_ROMv5a.gt1  ${HW}/SDCard_ROM
  else
-	cp Browser_SDCard_ROMv2_v1.h ${HW}/SDCard_NO_ROM/BabelFish
-	cp Browser_SDCard_ROMv2_v1.gt1 ${HW}/SDCard_NO_ROM/BabelFish
-	cp Browser_SDCard_ROMv5a_v1.gt1  ${HW}/SDCard_ROM
+	cp Browser_SDCard_ROMv2.h ${HW}/SDCard_NO_ROM/BabelFish
+	cp Browser_SDCard_ROMv2.gt1 ${HW}/SDCard_NO_ROM/BabelFish
+	cp Browser_SDCard_ROMv5a.gt1  ${HW}/SDCard_ROM
  endif
 endif
 

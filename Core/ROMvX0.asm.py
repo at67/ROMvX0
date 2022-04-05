@@ -944,7 +944,7 @@ jmp(Y, 'sys_CopyMemoryExt')      # 16
 ld([vAC+1])                      # 17
 
 #-----------------------------------------------------------------------
-# Extension SYS_ReadRomDir_v5_80
+# Extension SYS_ReadRomDir_v5_80 
 #-----------------------------------------------------------------------
 
 # Get next entry from ROM file system. Use vAC=0 to get the first entry.
@@ -1860,14 +1860,14 @@ jmp(Y,'subba#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0379, Opcode = 0x79
-# Instruction INCW: Increment word var, 26 cycles
+# Instruction INCW: Increment word var, 24-26 cycles
 label('INCW')
 ld(hi('incw#13'),Y)             #10 #12
 jmp(Y,'incw#13')                #11
 # dummy                         #12 Overlap
 #
 # pc = 0x037b, Opcode = 0x7b
-# Instruction DECW: Decrement word var, 26 cycles
+# Instruction DECW: Decrement word var, 24-28 cycles
 label('DECW')
 ld(hi('decw#13'),Y)             #10 #12
 jmp(Y,'decw#13')                #11
@@ -1944,10 +1944,10 @@ jmp(Y,'inc#13')                 #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0395, Opcode = 0x95
-# Instruction SPARE1:
-label('SPARE1')
-ld(hi('SPARE1'),Y)              #10 #12
-jmp(Y,'SPARE1')                 #11
+# Instruction INCWA: Increment word var, vAC=var, 26-28 cycles
+label('INCWA')
+ld(hi('incwa#13'),Y)            #10 #12
+jmp(Y,'incwa#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0397, Opcode = 0x97
@@ -2193,10 +2193,10 @@ jmp(Y,'tle#13')                #11
 # dummy                        #12 Overlap
 #
 # pc = 0x03dd, Opcode = 0xdd
-# Instruction SPARE2:
-label('SPARE2')
-ld(hi('SPARE2'),Y)             #10 #12
-jmp(Y,'SPARE2')                #11
+# Instruction DECWA: Decrement word var, vAC=var, 28-30 cycles
+label('DECWA')
+ld(hi('decwa#13'),Y)           #10 #12
+jmp(Y,'decwa#13')              #11
 # dummy                        #12 Overlap
 #
 # pc = 0x03df, Opcode = 0xdf
@@ -3315,31 +3315,9 @@ ld(hi('sys_SpiExchangeBytes'),Y)#15
 jmp(Y,'sys_SpiExchangeBytes')   #16
 ld(hi(ctrlBits),Y)              #17 Control state as saved by SYS_ExpanderControl
 
-#-----------------------------------------------------------------------
-# Extension SYS_ReceiveSerial1_vX_32
-#-----------------------------------------------------------------------
-
-# SYS function for receiving one byte over the serial controller port.
-# This is a public version of SYS_NextByteIn from the loader private
-# extension.  A byte is read from IN when videoY reaches
-# sysArgs[3]. The byte is added to the checksum sysArgs[2] then stored
-# at address sysArgs[0:1] which gets incremented.
-#
-# The 65 bytes of a serial frame can be read for the following values
-# of videoY: 207 (protocol byte) 219 (length, 6 bits only) 235, 251
-# (address) then 2, 6, 10, .. 238 stepping by four, then 185.
-#
-# Variables:
-#     sysArgs[0:1] Address
-#     sysArgs[2]   Checksum
-#     sysArgs[3]   Wait value (videoY)
-
-label('SYS_ReceiveSerial1_vX_32')
-bra('sys_ReceiveSerial1')       #15
-ld([sysArgs+3])                 #16
 
 #-----------------------------------------------------------------------
-#  Implementations
+#  SYS Implementations
 #-----------------------------------------------------------------------
 
 # SYS_SetMemory_54 implementation
@@ -3516,37 +3494,25 @@ st([vAC+1])                     #41
 jmp(Y,'REENTER')                #42
 ld(-46/2)                       #43
 
-# SYS_ReceiveSerialByte implementation
-label('sys_ReceiveSerial1')
-xora([videoY])                  #17
-bne('.sysRsb#20')               #18
-ld([sysArgs+0],X)               #19
-ld([sysArgs+1],Y)               #20
-ld(IN)                          #21
-st([Y,X])                       #22
-adda([sysArgs+2])               #23
-st([sysArgs+2])                 #24
-ld([sysArgs+0])                 #25
-adda(1)                         #26
-st([sysArgs+0])                 #27
-ld(hi('NEXTY'),Y)               #28
-jmp(Y,'NEXTY')                  #29
-ld(-32/2)                       #30
-# Restart the instruction in the next timeslice
-label('.sysRsb#20')
-ld([vPC])                       #20
-suba(2)                         #21
-st([vPC])                       #22
-ld(hi('REENTER'),Y)             #23
-jmp(Y,'REENTER')                #24
-ld(-28/2)                       #25
 
-# -------------------------------------------------------------
-# vCPU instructions : POP PUSH
-# -------------------------------------------------------------
+#-----------------------------------------------------------------------
+#  vCPU Implementations
+#-----------------------------------------------------------------------
 
+# LDWI implementation
+label('ldwi#13')
+st([vAC])                       #13 Operand
+st([Y,Xpp])                     #14 Just X++
+ld([Y,X])                       #15 Fetch second operand
+st([vAC+1])                     #16
+ld([vPC])                       #17 Advance vPC one more
+adda(1)                         #18
+st([vPC])                       #19
+ld(hi('NEXTY'),Y)               #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
 
-# POP implementation (vCPU instruction)
+# POP implementation
 label('pop#13')
 ld([vSPH],Y)                    #13 vSP.hi
 ld([vSP],X)                     #14
@@ -3565,7 +3531,7 @@ ld(hi('NEXTY'),Y)               #26
 jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
 
-# PUSH implementation (vCPU instruction)
+# PUSH implementation
 label('push#13')
 ld([vSPH],Y)                    #13 vSP.hi
 ld([vSP])                       #14
@@ -3629,7 +3595,7 @@ ld(-28/2)                       #26
 #         1     1   |  vACH   vACH      no change needed
 #       ---------------------------
 
-# CMPHS implementation (vCPU instruction)
+# CMPHS implementation
 label('cmphs#13')
 ld(AC,X)                        #13
 ld([X])                         #14
@@ -3648,7 +3614,7 @@ ld(hi('REENTER'),Y)             #23
 jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
 
-# CMPHU implementation (vCPU instruction)
+# CMPHU implementation
 label('cmphu#13')
 ld(AC,X)                        #13
 ld([X])                         #14
@@ -3664,6 +3630,7 @@ label('.cmphu#18')
 ld(hi('NEXTY'),Y)               #18
 jmp(Y,'NEXTY')                  #19
 ld(-22/2)                       #20
+
 
 #-----------------------------------------------------------------------
 #
@@ -5787,7 +5754,7 @@ ld(hi('NEXTY'),Y)               #44,
 jmp(Y,'NEXTY')                  #45,
 ld(-48/2)                       #46,
 
-# leave some soom for updates
+# leave some room for updates
 fillers(until=0x40)
 
 
@@ -5817,7 +5784,7 @@ ld(hi('NEXTY'),Y)               #28,
 jmp(Y,'NEXTY')                  #29,
 ld(-32/2)                       #30,
 
-# leave some soom for updates
+# leave some room for updates
 fillers(until=0x60)
 
 
@@ -5847,7 +5814,7 @@ ld(hi('NEXTY'),Y)               #28,
 jmp(Y,'NEXTY')                  #29,
 ld(-32/2)                       #30,
 
-# leave some soom for updates
+# leave some room for updates
 fillers(until=0x80)
 
 
@@ -5882,7 +5849,7 @@ ld(hi('NEXTY'),Y)               #30,
 jmp(Y,'NEXTY')                  #31,
 ld(-34/2)                       #32,
 
-# leave some soom for updates
+# leave some room for updates
 fillers(until=0xa0)
 
 
@@ -6526,6 +6493,51 @@ ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
 
+# INCWA implementation
+label('incwa#13')
+ld(0,Y)                         #13
+ld(AC,X)                        #14 address of low byte to be added
+ld([X])                         #15
+adda(1)                         #16
+st([Y,Xpp])                     #17 inc low byte
+st([vAC])                       #18
+beq('.incwa#21')                #19 if low byte is 0x00
+ld([X])                         #20
+st([vAC+1])                     #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+label('.incwa#21')
+adda(1)                         #21
+st([X])                         #22 inc high byte
+st([vAC+1])                     #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
+# DECWA implementation
+label('decwa#13')
+ld(0,Y)                         #13
+ld(AC,X)                        #14 address of low byte to be added
+ld([X])                         #15
+suba(1)                         #16
+st([Y,Xpp])                     #17 dec low byte
+st([vAC])                       #18
+xora(0xff)                      #19 if low byte is 0xff
+beq('.decwa#22')                #20
+ld([X])                         #21
+st([vAC+1])                     #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+label('.decwa#22')
+suba(1)                         #22
+st([X])                         #23 dec high byte
+st([vAC+1])                     #24
+ld(hi('REENTER'),Y)             #25
+jmp(Y,'REENTER')                #26
+ld(-30/2)                       #27
+
 
 fillers(until=0xff)
 align(0x100, size=0x100)
@@ -6697,7 +6709,7 @@ st([vPC])                       #22 advance vPC by 1
 ld(hi('REENTER'),Y)             #23
 jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
-
+ 
 # MOVQW implementation
 label('movqw#13')
 st([vTmp])                      #13 immediate value
@@ -6858,20 +6870,7 @@ align(0x100, size=0x100)
 #       More vCPU instruction implementations, (0x1700)
 #-----------------------------------------------------------------------
 
-# LDWI implementation (vCPU instruction)
-label('ldwi#13')
-st([vAC])                       #13 Operand
-st([Y,Xpp])                     #14 Just X++
-ld([Y,X])                       #15 Fetch second operand
-st([vAC+1])                     #16
-ld([vPC])                       #17 Advance vPC one more
-adda(1)                         #18
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
-
-# CALLI implementation (vCPU instruction)
+# CALLI implementation
 label('calli#13')
 adda(3)                         #13
 st([vLR])                       #14
@@ -7994,18 +7993,149 @@ jmp(Y,'NEXTY')                  #37,
 ld(-40/2)                       #38,
 
 
-fillers(until=0xd0)
+# SYS_LoaderNextByteIn_32
+# sysArgs[0:1] Current address
+# sysArgs[2]   Checksum
+# sysArgs[3]   Wait value (videoY)
+label('SYS_LoaderNextByteIn_32')
+ld([videoY])                    #15
+xora([sysArgs+3])               #16
+bne('.sysNbi#19')               #17
+ld([sysArgs+0],X)               #18
+ld([sysArgs+1],Y)               #19
+ld(IN)                          #20
+st([Y,X])                       #21
+st([vAC])                       #22
+adda([sysArgs+2])               #23
+st([sysArgs+2])                 #24
+ld([sysArgs+0])                 #25
+adda(1)                         #26
+st([sysArgs+0])                 #27
+ld(hi('NEXTY'),Y)               #28
+jmp(Y,'NEXTY')                  #29
+ld(-32/2)                       #30
 
-#-----------------------------------------------------------------------
-# Extension SYS_Unpack_56
-#-----------------------------------------------------------------------
+# Restart the instruction in the next timeslice
+label('.sysNbi#19')
+ld([vPC])                       #19
+suba(2)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
 
+
+# SYS_LoaderProcessInput_64
+# sysArgs[0:1] Source address
+# sysArgs[2]   Checksum
+# sysArgs[4]   Copy count
+# sysArgs[5:6] Destination address
+label('SYS_LoaderProcessInput_64')
+ld([sysArgs+1],Y)               #15
+ld([sysArgs+2])                 #16
+bne('.sysPi#19')                #17
+ld([sysArgs+0])                 #18
+suba(65,X)                      #19 Point at first byte of buffer
+ld([Y,X])                       #20 Command byte
+st([Y,Xpp]);                    C('Just X++')#21
+xora(ord('L'))                  #22 This loader lumps everything under 'L'
+bne('.sysPi#25')                #23
+ld([Y,X]);                      C('Valid command')#24 Length byte
+st([Y,Xpp]);                    C('Just X++')#25
+anda(63)                        #26 Bit 6:7 are garbage
+st([sysArgs+4])                 #27 Copy count 0..60
+adda([Y,X])                     #28 One location past (+1) the last byte of fragment
+adda(1)                         #29 254+1 = $ff becomes 0, 255+1 = $00 becomes 1
+anda(0xfe)                      #30 Will be zero only when writing in top 2 bytes of page
+st([vTmp])                      #31 Remember as first condition
+ld([Y,X])                       #32 Low copy address
+st([Y,Xpp]);                    C('Just X++')#33
+st([sysArgs+5])                 #34
+ld([Y,X])                       #35 High copy address
+st([Y,Xpp]);                    C('Just X++')#36
+st([sysArgs+6])                 #37
+suba(1)                         #38 Check if writing into sound channel page (1..4)
+anda(0xfc)                      #39
+ora([vTmp])                     #40 Combine second condition with first
+st([vTmp])                      #41 Zero when overwriting one of oscL[1..4] or oscH[1..4]
+ld([sysArgs+4])                 #42 Check copy count
+bne('.sysPi#45')                #43
+# Execute code (don't care about checksum anymore)
+ld([sysArgs+5]);                C('Execute')#44 Low run address
+st([vLR])                       #45 https://forum.gigatron.io/viewtopic.php?p=29#p29
+suba(2)                         #46
+st([vPC])                       #47
+ld([sysArgs+6])                 #48 High run address
+st([vPC+1])                     #49
+st([vLR+1])                     #50
+ld(hi('REENTER'),Y)             #51
+jmp(Y,'REENTER')                #52
+ld(-56/2)                       #53
+
+# Invalid checksum
+label('.sysPi#19')
+wait(25-19);                    C('Invalid checksum')#19 Reset checksum
+
+# Unknown command
+label('.sysPi#25')
+ld(ord('g'));                   C('Unknown command')#25 Reset checksum
+st([sysArgs+2])                 #26
+ld(hi('REENTER'),Y)             #27
+jmp(Y,'REENTER')                #28
+ld(-32/2)                       #29
+
+# Loading data
+label('.sysPi#45')
+ld([vTmp]);                     C('Loading data')#45
+bne(pc()+3)                     #46
+bra(pc()+3)                     #47
+ld(0xfc);                       C('Unsafe')#48  Clear low channelMask bits so it becomes safe
+ld(0xff);                       C('Safe')#48(!) No change to channelMask because already safe
+anda([channelMask])             #49
+st([channelMask])               #50
+ld([sysArgs+0])                 #51 Continue checksum
+suba(1,X)                       #52 Point at last byte
+ld([Y,X])                       #53
+st([sysArgs+2])                 #54
+ld(hi('REENTER'),Y)             #55
+jmp(Y,'REENTER')                #56
+ld(-60/2)                       #57
+ 
+
+# SYS_LoaderPayloadCopy_34
+# sysArgs[0:1] Source address
+# sysArgs[4]   Copy count
+# sysArgs[5:6] Destination address
+label('SYS_LoaderPayloadCopy_34')
+ld([sysArgs+4])                 #15 Copy count
+beq('.sysCc#18')                #16
+suba(1)                         #17
+st([sysArgs+4])                 #18
+ld([sysArgs+0],X)               #19 Current pointer
+ld([sysArgs+1],Y)               #20
+ld([Y,X])                       #21
+ld([sysArgs+5],X)               #22 Target pointer
+ld([sysArgs+6],Y)               #23
+st([Y,X])                       #24
+ld([sysArgs+5])                 #25 Increment target
+adda(1)                         #26
+st([sysArgs+5])                 #27
+bra('.sysCc#30')                #28
+
+label('.sysCc#18')
+ld(hi('REENTER'),Y)             #18,29
+wait(30-19)                     #19
+label('.sysCc#30')
+jmp(Y,'REENTER')                #30
+ld(-34/2)                       #31
+
+
+# SYS_Unpack_56
 # Unpack 3 bytes into 4 pixels
 #
 # Variables:
 #       sysArgs[0:2]    Packed bytes (in)
 #       sysArgs[0:3]    Pixels (out)
-
 label('SYS_Unpack_56')
 ld(soundTable>>8,Y)             #15
 ld([sysArgs+2])                 #16 a[2]>>2
@@ -9932,11 +10062,11 @@ jmp(Y,'xorbi#13')               #11
 ld(AC,X)                        #12 address of var
 
 # pc = 0x2270, Opcode = 0x70
-# Instruction JMPI, (lb3361): Jump to immediate 16bit address, does not destroy vLR, 22 + 22 cycles
+# Instruction JMPI, (lb3361): Jump to immediate 16bit address, does not destroy vLR, 22 + 20 cycles
 label('JMPI')
 ld(hi('jmpi#13'),Y)             #10
 jmp(Y,'jmpi#13')                #11
-ld([vPC+1],Y)                   #12
+suba(2)                         #12
 
 
 # SYS calls and instruction implementations rely on these
@@ -10044,10 +10174,10 @@ jmp(Y,'freqa#13')               #11
 ld(AC,X)                        #12 var
 
 # pc = 0x2327, Opcode = 0x27
-# Instruction FREQZ: [(((imm & 3) + 1) <<8) | 0x00FC] = 0, imm = [0..3], 22 + 22 cycles
-label('FREQZ')
-ld(hi('freqz#13'),Y)            #10
-jmp(Y,'freqz#13')               #11
+# Instruction FREQZI: [(((imm & 3) + 1) <<8) | 0x00FC] = 0, imm = [0..3], 22 + 22 cycles
+label('FREQZI')
+ld(hi('freqzi#13'),Y)           #10
+jmp(Y,'freqzi#13')              #11
 anda(3)                         #12 channel
 
 # pc = 0x232a, Opcode = 0x2a
@@ -10072,10 +10202,10 @@ jmp(Y,'moda#13')                #11
 ld(AC,X)                        #12 chan + 1
 
 # pc = 0x2332, Opcode = 0x32
-# Instruction MODZ: [(((imm & 3) + 1) <<8) | 0x00FA] = 0x0200, imm = [0..3], 22 + 24 cycles
-label('MODZ')
-ld(hi('modz#13'),Y)             #10
-jmp(Y,'modz#13')                #11
+# Instruction MODZI: [(((imm & 3) + 1) <<8) | 0x00FA] = 0x0200, imm = [0..3], 22 + 24 cycles
+label('MODZI')
+ld(hi('modzi#13'),Y)            #10
+jmp(Y,'modzi#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x2234, Opcode = 0x34
@@ -10169,6 +10299,14 @@ ld(hi('decl#13'),Y)             #10 #12
 jmp(Y,'decl#13')                #11
 # dummy                         #12
 #
+# pc = 0x2353, Opcode = 0x53
+# Instruction PEEKV+: Peek byte at address contained in var, var += 1, 22 + 38-42 cycles, (can cross page boundaries)
+label('PEEKV+')
+ld(hi('peekv+#13'),Y)           #10 #12
+jmp(Y,'peekv+#13')              #11
+# dummy                         #12
+#
+
 
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
@@ -10639,7 +10777,7 @@ ld(hi('NEXTY'),Y)               #16
 jmp(Y,'NEXTY')                  #17
 ld(-20/2)                       #18
 
-# FREQM implementation
+# FREQM implementation, (frequency control for static data in the correct format, i.e. MIDI)
 label('freqm#13')
 ld(AC,X)                        #13 chan var, (operand from PREFX2)
 ld([X])                         #14
@@ -10669,8 +10807,8 @@ ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
 
-# FREQZ implementation
-label('freqz#13')
+# FREQZI implementation
+label('freqzi#13')
 adda(1,Y)                       #13
 ld(0xFC,X)                      #14
 ld(0)                           #15
@@ -10680,7 +10818,7 @@ ld(hi('NEXTY'),Y)               #18
 jmp(Y,'NEXTY')                  #19
 ld(-22/2)                       #20
 
-# VOLM implementation
+# VOLM implementation, (volume control for static data in the correct format, i.e. MIDI)
 label('volm#13')
 ld(AC,X)                        #13 chan var, (operand from PREFX2)
 ld([X])                         #14
@@ -10721,8 +10859,8 @@ ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 
-# MODZ implementation
-label('modz#13')
+# MODZI implementation
+label('modzi#13')
 anda(3)                         #13
 adda(1,Y)                       #14
 ld(0xFA,X)                      #15
@@ -10871,7 +11009,7 @@ align(0x100, size=0x100)
 #       PREFX1 implementation page, (0x2700)
 #-----------------------------------------------------------------------
 #
-# NOTE implementation: vAC = ROM:[NotesTable + vAC.lo*2], 22 + 30 cycles
+# NOTE implementation: vAC = ROM:[NotesTable + vAC.lo*2], 22 + 46 cycles
 label('note#13')
 st([vTmp])                      #13 low byte of low note return address
 ld(min(0,maxTicks-46/2))        #14
@@ -10902,7 +11040,7 @@ adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 
-# MIDI implementation: vAC = ROM:[NotesTable + (vAC.lo - 11)*2], 22 + 30 cycles
+# MIDI implementation: vAC = ROM:[NotesTable + (vAC.lo - 11)*2], 22 + 48 cycles
 label('midi#13')
 st([vTmp])                      #13 low byte of low midi return address
 ld(min(0,maxTicks-48/2))        #14
@@ -10953,14 +11091,12 @@ ld(-28/2)                       #26
 
 # JMPI implementation, (lb3361)
 label('jmpi#13')
-st([Y,Xpp])                     #13 Just X++
-suba(2)                         #14
-st([vPC])                       #15
-ld([Y,X])                       #16
-st([vPC+1])                     #17
-ld(hi('NEXTY'),Y)               #18
-jmp(Y,'NEXTY')                  #19
-ld(-22//2)                      #20
+st([vPC])                       #13
+ld([sysArgs+7])                 #14
+st([vPC+1])                     #15
+ld(hi('NEXTY'),Y)               #16
+jmp(Y,'NEXTY')                  #17
+ld(-20//2)                      #18
 
 
 fillers(until=0xff)
@@ -12791,9 +12927,8 @@ align(0x100, size=0x100)
 #-----------------------------------------------------------------------
 #  Implementation of SYS_CopyMemory[Ext], (0x2F00)
 #-----------------------------------------------------------------------
-
+#
 # SYS_CopyMemory_vX_80 implementation
-
 label('sys_CopyMemory')
 ble('.sysCm#20')                     #18   goto burst6
 suba(6)                              #19
@@ -12896,10 +13031,9 @@ ld(hi('REENTER'),Y)                  #21
 jmp(Y,'REENTER')                     #22
 ld(-26/2)                            #23
 
+
 # SYS_CopyMemoryExt_vX_100 implementation
-
 label('sys_CopyMemoryExt')
-
 adda(AC)                             #18
 adda(AC)                             #19
 ora(0x3c)                            #20
@@ -13010,9 +13144,8 @@ align(0x100, size=0x100)
 #-----------------------------------------------------------------------
 #  Implementation of SYS_ScanMemory[Ext], (0x3000)
 #-----------------------------------------------------------------------
-
+#
 # SYS_ScanMemory_vX_50 implementation
-
 label('sys_ScanMemory')
 ld([sysArgs+0],X)                    #18
 ld([Y,X])                            #19
@@ -13062,7 +13195,6 @@ ld(-34/2)                            #31
 
 
 # SYS_ScanMemoryExt_vX_50 implementation
-
 label('sys_ScanMemoryExt')
 ora(0x3c,X)                          #18
 ctrl(X)                              #19
@@ -13124,11 +13256,186 @@ jmp(Y,'NEXTY')                       #43
 ld(-46/2)                            #44
 
 
+fillers(until=0x60)
+
+# SYS_LoaderSerialIN
+# sysArgs[0]   (in), zero page address of odd videoY waits and first even videoY wait, 207 219 235 251 2
+# sysArgs[1]   (in), sysArgs2 address, buffer that receives protocol, packet length and packet address
+# sysArgs[2]   (out), protocol, filled in automatically by the Sys call
+# sysArgs[3]   (out), packet length, filled in automatically by the Sys call
+# sysArgs[4:5] (out), packet address, filled in automatically by the Sys call
+# No error checks are performed, (apart from checking protocol)
+# No checksums are performed
+label('SYS_LoadSerialIn_vX_58') 
+ld([sysArgs+0],X)                   #15
+ld([videoY])                        #16
+xora([X])                           #17
+bne('.sysLsi#20')                   #18 wrong videoY so restart
+ld([X])                             #19
+anda(1)                             #20
+beq('.sysLsi#23')                   #21 even videoY
+ld([sysArgs+0])                     #22
+adda(1)                             #23 odd videoY
+st([sysArgs+0])                     #24
+ld([sysArgs+1],X)                   #25 sysArgs address
+st(IN,[X])                          #26
+ld([sysArgs+1])                     #27
+adda(1)                             #28
+st([sysArgs+1])                     #29
+ld([vPC])                           #30 restart
+suba(2)                             #31
+st([vPC])                           #32
+ld(hi('REENTER'),Y)                 #33
+jmp(Y,'REENTER')                    #34
+ld(-38/2)                           #35
+
+# wrong videoY 
+label('.sysLsi#20')
+ld([vPC])                           #20 restart
+suba(2)                             #21
+st([vPC])                           #22
+ld(hi('REENTER'),Y)                 #23
+jmp(Y,'REENTER')                    #24
+ld(-28/2)                           #25
+
+# even videoY
+label('.sysLsi#23')
+ld([X])                             #23
+adda(4)                             #24
+st([X])                             #25
+ld([sysArgs+2])                     #26 protocol
+xora(ord('L'))                      #27 check valid load
+bne('.sysLsi#30')                   #28 invalid packet
+ld([sysArgs+3])                     #29 check length
+beq('.sysLsi#32')                   #30 execute
+suba(1)                             #31
+st([sysArgs+3])                     #32 length--
+ld([sysArgs+4],X)                   #33
+ld([sysArgs+5],Y)                   #34
+st(IN,[Y,X])                        #35
+ld([sysArgs+3])                     #36 check length
+beq('.sysLsi#39')                   #37 new packet
+ld([sysArgs+4])                     #38
+adda(1)                             #39
+st([sysArgs+4])                     #40
+ld([vPC])                           #41 restart
+suba(2)                             #42
+st([vPC])                           #43
+ld(hi('NEXTY'),Y)                   #44
+jmp(Y,'NEXTY')                      #45
+ld(-48/2)                           #46
+
+# invalid packet
+label('.sysLsi#30')
+ld(2)                               #30
+st([0xBC])                          #31 reset even videoY
+ld(0xB8)                            #32
+st([sysArgs+0])                     #33 reset videoY address
+ld(0x26)                            #34
+st([sysArgs+1])                     #35 reset sys args address
+ld([vPC])                           #36 restart
+suba(2)                             #37
+st([vPC])                           #38
+ld(0)                               #39
+ld(0x01,Y)                          #40
+st([Y,0x01])                        #41 reset screen vibration
+ld(hi('NEXTY'),Y)                   #42
+jmp(Y,'NEXTY')                      #43
+ld(-46/2)                           #44
+
+# new packet
+label('.sysLsi#39')
+ld(2)                               #39
+st([0xBC])                          #40 reset even videoY
+ld(0xB8)                            #41
+st([sysArgs+0])                     #42 reset videoY address
+ld(0x26)                            #43
+st([sysArgs+1])                     #44 reset sys args address
+ld([vPC])                           #45 restart
+suba(2)                             #46
+st([vPC])                           #47
+ld([sysArgs+5])                     #48 hi address
+anda(1)                             #49
+ld(0x01,Y)                          #50
+xora([Y,0x01])                      #51
+st([Y,0x01])                        #52 vibrate screen to show loading progress
+ld(hi('REENTER'),Y)                 #53
+jmp(Y,'REENTER')                    #54
+ld(-58/2)                           #55
+
+# execute
+label('.sysLsi#32')
+ld([sysArgs+4])                     #32 low execute address
+st([vLR])                           #33
+suba(2)                             #34
+st([vPC])                           #35
+ld([sysArgs+5])                     #36 high execute address
+st([vPC+1])                         #37
+st([vLR+1])                         #38
+ld(0)                               #39
+ld(0x01,Y)                          #40
+st([Y,0x01])                        #41 reset screen vibration
+ld(hi('NEXTY'),Y)                   #42
+jmp(Y,'NEXTY')                      #43
+ld(-46/2)                           #44
+
+ 
 fillers(until=0xff)
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------
-#  lb3361 experiments - temporary location for experimental ops, (0x3100)
+#       More vCPU instruction implementations, (0x3100)
+#-----------------------------------------------------------------------
+#
+# PEEKV+ implementation
+label('peekv+#13')
+ld(AC,X)                        #13 var
+ld(min(0,maxTicks-42/2))        #14
+adda([vTicks])                  #15
+blt('.peekv+#18')               #16 not enough time left, so retry
+ld(0,Y)                         #17
+ld([X])                         #18 low byte peek address
+st([Y,Xpp])                     #19 X++
+st([sysArgs+6])                 #20
+ld([X])                         #21 high byte peek address
+st([sysArgs+7])                 #22
+ld(AC,Y)                        #23
+ld([sysArgs+6],X)               #24
+ld([Y,X])                       #25 peek byte
+st([vAC])                       #26
+ld(0)                           #27
+st([vAC+1])                     #28
+ld([sysArgs+6],X)               #29 address of low byte to be added
+ld([X])                         #30
+adda(1)                         #31
+beq('.peekv+#34')               #32 if low byte is 0x00
+st([X])                         #33 inc low byte
+ld(hi('NEXTY'),Y)               #34
+jmp(Y,'NEXTY')                  #35
+ld(-38/2)                       #36
+
+label('.peekv+#34')
+ld([sysArgs+7],X)               #34 address of high byte to be added
+ld([X])                         #35
+adda(1)                         #36
+st([X])                         #37 inc high byte
+ld(hi('NEXTY'),Y)               #38
+jmp(Y,'NEXTY')                  #39
+ld(-42/2)                       #40
+
+label('.peekv+#18')
+ld(hi('PREFX2_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX2 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  lb3361 experiments - temporary location for experimental ops, (0x3200)
 #-----------------------------------------------------------------------
 
 #--------------------------------
@@ -13190,9 +13497,6 @@ align(0x100, size=0x100)
 #  Spare pages
 #
 #-----------------------------------------------------------------------
-
-fillers(until=0xff)
-align(0x100, size=0x100)
 
 fillers(until=0xff)
 align(0x100, size=0x100)
@@ -13372,7 +13676,7 @@ for application in argv[1:]:
     print('Load type .gt1 at $%04x' % pc())
     with open(application, 'rb') as f:
       raw = bytearray(f.read())
-    insertRomDir(name)
+    insertRomDir(name) 
     label(name)
     raw = raw[:-2] # Drop start address
     if raw[0] == 0 and raw[1] + raw[2] > 0xc0:
