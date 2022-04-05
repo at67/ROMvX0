@@ -83,7 +83,7 @@ ROMvX0.rom: Core/* Apps/*/* Makefile ROMvX0_interface.json
 		MSBASIC=Apps/MSBASIC/MSBASIC_v1.gt1\
 		Egg=Apps/Horizon/Horizon_at67_v1.gt1\
         SDCard=gbas/browser/Browser_SDCard_ROMvX0.gt1\
-        Loader=gasm/Loader/Loader_ROMvX0.gt1\
+        Loader=gasm/loader/Loader_ROMvX0.gt1\
 		Boot=Apps/CardBoot/CardBoot.gt1\
 		Main=Apps/MainMenu/MainMenu_vX0.gcl\
 		Reset=Core/Reset_vX0.gcl
