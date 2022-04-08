@@ -19,6 +19,9 @@ import sys
 _bytes = type(b'')
 _str = type(u'')
 
+# gtBASIC symbol table
+gtBasicSymbolsFile = open('gbas/SymbolTable.m', 'w')
+
 #------------------------------------------------------------------------
 #       Public interface
 #------------------------------------------------------------------------
@@ -102,6 +105,8 @@ def label(name):
   if address not in _labels:
     _labels[address] = [] # There can be more than one
   _labels[_romSize].append(name)
+  if name.isalnum():
+    gtBasicSymbolsFile.write('const ' + name + ' = &h' + hex(address)[2:] + '\n')
 
 def C(line, prefix=';'):
   """Insert comment to print in disassembly"""

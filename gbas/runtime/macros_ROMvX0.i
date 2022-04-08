@@ -36,14 +36,12 @@
 %ENDM
 
 %MACRO  ForNextIncZero _var _label
-        INCW    _var
-        LDW     _var
+        INCWA   _var
         JLE     _label
 %ENDM
 
 %MACRO  ForNextIncOne _var _label
-        INCW    _var
-        LDW     _var
+        INCWA   _var
         XORI    2
         JNE     _label
 %ENDM
@@ -59,14 +57,12 @@
 %ENDM
 
 %MACRO  ForNextDecOne _var _label
-        DECW    _var
-        LDW     _var
+        DECWA   _var
         JNE     _label
 %ENDM
 
 %MACRO  ForNextFarDecOne _var _label
-        DECW    _var
-        LDW     _var
+        DECWA   _var
         JNE     _label
 %ENDM
 
@@ -75,14 +71,12 @@
 %ENDM
 
 %MACRO  ForNextDecZero _var _label
-        DECW    _var
-        LDW     _var
+        DECWA   _var
         JGE     _label
 %ENDM
 
 %MACRO  ForNextFarDecZero _var _label
-        DECW    _var
-        LDW     _var
+        DECWA   _var
         JGE     _label
 %ENDM
 
@@ -99,15 +93,13 @@
 %ENDM
 
 %MACRO  ForNextVarInc _var _label _vEnd
-        INCW    _var
-        LDW     _var
+        INCWA   _var
         SUBW    _vEnd
         JLE     _label
 %ENDM
 
 %MACRO  ForNextVarDec _var _label _vEnd
-        DECW    _var
-        LDW     _var
+        DECWA   _var
         SUBW    _vEnd
         JGE     _label
 %ENDM

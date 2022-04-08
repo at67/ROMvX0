@@ -233,8 +233,7 @@ copyBytesFar        PEEKV   cpySrcAddr
                     POKE    cpyDstAddr
                     INCW    cpySrcAddr
                     INCW    cpyDstAddr
-                    DECW    cpyCount
-                    LDW     cpyCount
+                    DECWA   cpyCount
                     BNE     copyBytesFar
                     RET
 %ENDS
@@ -242,12 +241,9 @@ copyBytesFar        PEEKV   cpySrcAddr
 %SUB                copyWordsFar
 copyWordsFar        DEEKV   cpySrcAddr
                     DOKE    cpyDstAddr
-                    INCW    cpySrcAddr
-                    INCW    cpySrcAddr
-                    INCW    cpyDstAddr
-                    INCW    cpyDstAddr
-                    DECW    cpyCount
-                    LDW     cpyCount
+                    ADDVI   cpySrcAddr, 2
+                    ADDVI   cpyDstAddr, 2
+                    DECWA   cpyCount
                     BNE     copyWordsFar
                     RET
 %ENDS
@@ -255,18 +251,13 @@ copyWordsFar        DEEKV   cpySrcAddr
 %SUB                copyDWordsFar
 copyDWordsFar       DEEKV   cpySrcAddr
                     DOKE    cpyDstAddr
-                    INCW    cpySrcAddr
-                    INCW    cpySrcAddr
-                    INCW    cpyDstAddr
-                    INCW    cpyDstAddr
+                    ADDVI   cpySrcAddr, 2
+                    ADDVI   cpyDstAddr, 2
                     DEEKV   cpySrcAddr
                     DOKE    cpyDstAddr
-                    INCW    cpySrcAddr
-                    INCW    cpySrcAddr
-                    INCW    cpyDstAddr
-                    INCW    cpyDstAddr
-                    DECW    cpyCount
-                    LDW     cpyCount
+                    ADDVI   cpySrcAddr, 2
+                    ADDVI   cpyDstAddr, 2
+                    DECWA   cpyCount
                     BNE     copyDWordsFar
                     RET
 %ENDS

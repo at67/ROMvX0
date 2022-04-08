@@ -326,7 +326,9 @@ printHex            PUSH
 %SUB                printChar
                     ; prints char in textChr
 printChar           LD      textChr
-                    ANDI    0x7F                            ; char can't be bigger than 127
+                    SUBI    130                             ; char can't be bigger than 130
+                    BGT     printC_exit
+                    ADDI    130
                     SUBI    82
                     BGE     printC_text82
                     ADDI    50

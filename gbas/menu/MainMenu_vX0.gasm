@@ -1,0 +1,1125 @@
+_startAddress_                    EQU                               0x0200
+
+; Internal Variables
+serialRawPrev                     EQU                               0x0081
+frameCountPrev                    EQU                               0x00d6
+register0                         EQU                               0x0082
+register1                         EQU                               register0 + 0x02
+register2                         EQU                               register0 + 0x04
+register3                         EQU                               register0 + 0x06
+register4                         EQU                               register0 + 0x08
+register5                         EQU                               register0 + 0x0A
+register6                         EQU                               register0 + 0x0C
+register7                         EQU                               register0 + 0x0E
+register8                         EQU                               register0 + 0x10
+register9                         EQU                               register0 + 0x12
+register10                        EQU                               register0 + 0x14
+register11                        EQU                               register0 + 0x16
+register12                        EQU                               register0 + 0x18
+register13                        EQU                               register0 + 0x1A
+register14                        EQU                               register0 + 0x1C
+register15                        EQU                               register0 + 0x1E
+fgbgColour                        EQU                               register0 + 0x20
+cursorXY                          EQU                               register0 + 0x22
+midiStream                        EQU                               register0 + 0x24
+midiDelay                         EQU                               register0 + 0x26
+miscFlags                         EQU                               register0 + 0x28
+timerTick                         EQU                               register0 + 0x2A
+timerPrev                         EQU                               register0 + 0x2C
+
+; Internal Constants
+MISC_WAIT_VBLANK_BIT              EQU                               0x01
+MISC_ENABLE_SCROLL_BIT            EQU                               0x02
+MISC_ON_BOTTOM_ROW_BIT            EQU                               0x04
+MISC_DISABLE_CLIP_BIT             EQU                               0x08
+MISC_WAIT_VBLANK_MSK              EQU                               0xfe
+MISC_ENABLE_SCROLL_MSK            EQU                               0xfd
+MISC_ON_BOTTOM_ROW_MSK            EQU                               0xfb
+MISC_DISABLE_CLIP_MSK             EQU                               0xf7
+
+; Internal Buffers
+regsWorkArea                      EQU                               0x0000
+textWorkArea                      EQU                               0x7ea0
+
+; Includes
+%includePath                      "../runtime"
+%include                          util.i
+%include                          gigatron.i
+%include                          macros_ROMvX0.i
+
+; Labels
+_entryPoint_                      EQU                               0x0200
+_handleInput                      EQU                               0x0303
+_execApp                          EQU                               0x0349
+_calcIndex                        EQU                               0x036d
+_127                              EQU                               0x038e
+_10                               EQU                               0x0394
+_254                              EQU                               0x039a
+_253                              EQU                               0x03bd
+_251                              EQU                               0x03e0
+_247                              EQU                               0x043b
+_next_0x0244                      EQU                               0x023c
+_repeat_0x030c                    EQU                               0x02d9
+_page_0x0300                      EQU                               0x0300
+_endif_0x035f                     EQU                               0x0320
+_endif_0x0399                     EQU                               0x0347
+_else_0x03c2                      EQU                               0x0362
+_page_0x0400                      EQU                               0x0400
+_else_0x048c                      EQU                               0x040a
+_else_0x04b3                      EQU                               0x0423
+_else_0x04d2                      EQU                               0x0439
+_else_0x0502                      EQU                               0x045b
+_else_0x0529                      EQU                               0x0472
+_else_0x0548                      EQU                               0x0488
+
+; Constants
+_videoZ                           EQU                               0x0100
+_startVideo                       EQU                               0x0103
+_vBlankStart                      EQU                               0x0104
+_sound1                           EQU                               0x0166
+_vBlankNormal                     EQU                               0x019f
+_vBlankSample                     EQU                               0x01a6
+_videoA                           EQU                               0x0201
+_pixels                           EQU                               0x020a
+_sound3                           EQU                               0x02ae
+_sound2                           EQU                               0x02b1
+_videoB                           EQU                               0x02ca
+_videoC                           EQU                               0x02d3
+_videoD                           EQU                               0x02dc
+_videoE                           EQU                               0x02e9
+_videoF                           EQU                               0x02ec
+_nopixels                         EQU                               0x02f6
+_ENTER                            EQU                               0x02ff
+_NEXTY                            EQU                               0x0300
+_NEXT                             EQU                               0x0301
+_EXIT                             EQU                               0x030b
+_RESYNC                           EQU                               0x030c
+_LDWI                             EQU                               0x0311
+_DEC                              EQU                               0x0314
+_MOVQB                            EQU                               0x0316
+_LSRB                             EQU                               0x0318
+_LD                               EQU                               0x031a
+_LOKEQI                           EQU                               0x031c
+_CMPHS                            EQU                               0x031f
+_LDW                              EQU                               0x0321
+_POKEI                            EQU                               0x0325
+_LSLV                             EQU                               0x0327
+_ADDBA                            EQU                               0x0329
+_STW                              EQU                               0x032b
+_ADDBI                            EQU                               0x032d
+_PREFX2                           EQU                               0x032f
+_DBNE                             EQU                               0x0332
+_BCC                              EQU                               0x0335
+_DOKEI                            EQU                               0x0337
+_PEEKV                            EQU                               0x0339
+_DEEKV                            EQU                               0x033b
+_LOKEI                            EQU                               0x033d
+_ADDVI                            EQU                               0x0342
+_SUBVI                            EQU                               0x0344
+_NOTB                             EQU                               0x0348
+_DJGE                             EQU                               0x034a
+_LDI                              EQU                               0x0359
+_MOVQW                            EQU                               0x035b
+_ST                               EQU                               0x035e
+_POP                              EQU                               0x0363
+_MOV                              EQU                               0x0365
+_PEEKA                            EQU                               0x0367
+_POKEA                            EQU                               0x0369
+_TEQ                              EQU                               0x036b
+_TNE                              EQU                               0x036d
+_DEEKA                            EQU                               0x036f
+_PUSH                             EQU                               0x0375
+_SUBBA                            EQU                               0x0377
+_INCW                             EQU                               0x0379
+_DECW                             EQU                               0x037b
+_DOKEA                            EQU                               0x037d
+_LUP                              EQU                               0x037f
+_ANDI                             EQU                               0x0382
+_CALLI                            EQU                               0x0385
+_ORI                              EQU                               0x0388
+_XORI                             EQU                               0x038c
+_DBGE                             EQU                               0x038e
+_BRA                              EQU                               0x0390
+_INC                              EQU                               0x0393
+_INCWA                            EQU                               0x0395
+_CMPHU                            EQU                               0x0397
+_ADDW                             EQU                               0x0399
+_LDNI                             EQU                               0x039c
+_ANDBK                            EQU                               0x039e
+_ORBK                             EQU                               0x03a0
+_XORBK                            EQU                               0x03a2
+_DJNE                             EQU                               0x03a4
+_CMPI                             EQU                               0x03a7
+_ADDVW                            EQU                               0x03a9
+_SUBVW                            EQU                               0x03ab
+_PEEK                             EQU                               0x03ad
+_PREFX1                           EQU                               0x03b1
+_SYS                              EQU                               0x03b4
+_SUBW                             EQU                               0x03b8
+_JEQ                              EQU                               0x03bb
+_JNE                              EQU                               0x03bd
+_JLT                              EQU                               0x03bf
+_JGT                              EQU                               0x03c1
+_JLE                              EQU                               0x03c3
+_JGE                              EQU                               0x03c5
+_PREFX3                           EQU                               0x03c7
+_REENTER                          EQU                               0x03cb
+_DEF                              EQU                               0x03cd
+_CALL                             EQU                               0x03cf
+_LSRV                             EQU                               0x03d3
+_TGE                              EQU                               0x03d5
+_TLT                              EQU                               0x03d7
+_TGT                              EQU                               0x03d9
+_TLE                              EQU                               0x03db
+_DECWA                            EQU                               0x03dd
+_ALLOC                            EQU                               0x03df
+_SUBBI                            EQU                               0x03e1
+_ADDI                             EQU                               0x03e3
+_SUBI                             EQU                               0x03e6
+_LSLW                             EQU                               0x03e9
+_STLW                             EQU                               0x03ec
+_LDLW                             EQU                               0x03ee
+_POKE                             EQU                               0x03f0
+_DOKE                             EQU                               0x03f3
+_DEEK                             EQU                               0x03f6
+_ANDW                             EQU                               0x03f8
+_ORW                              EQU                               0x03fa
+_XORW                             EQU                               0x03fc
+_RET                              EQU                               0x03ff
+_shiftTable                       EQU                               0x0500
+_font32up                         EQU                               0x0700
+_font82up                         EQU                               0x0800
+_notesTable                       EQU                               0x0900
+_noteTrampoline                   EQU                               0x09c0
+_invTable                         EQU                               0x0a00
+_STB2                             EQU                               0x2211
+_STW2                             EQU                               0x2214
+_XCHGB                            EQU                               0x2217
+_MOVW                             EQU                               0x2219
+_ADDWI                            EQU                               0x221b
+_SUBWI                            EQU                               0x221d
+_ANDWI                            EQU                               0x221f
+_ORWI                             EQU                               0x2221
+_XORWI                            EQU                               0x2223
+_LDPX                             EQU                               0x2225
+_STPX                             EQU                               0x2228
+_CONDI                            EQU                               0x222b
+_CONDB                            EQU                               0x222d
+_CONDIB                           EQU                               0x2230
+_CONDBI                           EQU                               0x2233
+_XCHGW                            EQU                               0x2235
+_OSCPX                            EQU                               0x2238
+_SWAPB                            EQU                               0x223a
+_SWAPW                            EQU                               0x223d
+_NEEKA                            EQU                               0x2240
+_NOKEA                            EQU                               0x2243
+_ADDVL                            EQU                               0x2246
+_SUBVL                            EQU                               0x2249
+_ANDVL                            EQU                               0x224c
+_ORVL                             EQU                               0x224f
+_XORVL                            EQU                               0x2252
+_JEQL                             EQU                               0x2255
+_JNEL                             EQU                               0x2258
+_JLTL                             EQU                               0x225b
+_JGTL                             EQU                               0x225e
+_JLEL                             EQU                               0x2261
+_JGEL                             EQU                               0x2264
+_ANDBI                            EQU                               0x2267
+_ORBI                             EQU                               0x226a
+_XORBI                            EQU                               0x226d
+_JMPI                             EQU                               0x2270
+_MOVL                             EQU                               0x22cd
+_MOVF                             EQU                               0x22d0
+_NROL                             EQU                               0x22d3
+_NROR                             EQU                               0x22d6
+_LSLN                             EQU                               0x2311
+_SEXT                             EQU                               0x2313
+_NOTW                             EQU                               0x2315
+_NEGW                             EQU                               0x2317
+_ANDBA                            EQU                               0x2319
+_ORBA                             EQU                               0x231c
+_XORBA                            EQU                               0x231f
+_FREQM                            EQU                               0x2322
+_FREQA                            EQU                               0x2324
+_FREQZI                           EQU                               0x2327
+_VOLM                             EQU                               0x232a
+_VOLA                             EQU                               0x232c
+_MODA                             EQU                               0x232f
+_MODZI                            EQU                               0x2332
+_SMPCPY                           EQU                               0x2334
+_CMPWS                            EQU                               0x2337
+_CMPWU                            EQU                               0x2339
+_LEEKA                            EQU                               0x233b
+_LOKEA                            EQU                               0x233d
+_FEEKA                            EQU                               0x233f
+_FOKEA                            EQU                               0x2342
+_MEEKA                            EQU                               0x2344
+_MOKEA                            EQU                               0x2346
+_LSRVL                            EQU                               0x2348
+_LSLVL                            EQU                               0x234b
+_INCL                             EQU                               0x234e
+_DECL                             EQU                               0x2351
+_NCOPY                            EQU                               0x23cd
+_STLU                             EQU                               0x23d0
+_STLS                             EQU                               0x23d3
+_NOTL                             EQU                               0x23d6
+_NEGL                             EQU                               0x23d9
+_NOTE                             EQU                               0x2411
+_MIDI                             EQU                               0x2414
+_XLA                              EQU                               0x2417
+_ADDLP                            EQU                               0x241a
+_SUBLP                            EQU                               0x241d
+_ANDLP                            EQU                               0x2420
+_ORLP                             EQU                               0x2423
+_XORLP                            EQU                               0x2426
+_CMPLPU                           EQU                               0x2429
+_CMPLPS                           EQU                               0x242c
+_zippedRacerHorizon               EQU                               0x403f
+_Racer                            EQU                               0x4c89
+_Mandelbrot                       EQU                               0x53e3
+_Credits                          EQU                               0x58d8
+_Snake                            EQU                               0x5b3c
+_TinyBASIC                        EQU                               0x6274
+_TicTac                           EQU                               0x6f0e
+_TicTacGtb                        EQU                               0x6f31
+_WozMon                           EQU                               0x771b
+_Apple1                           EQU                               0x7984
+_MSBASIC                          EQU                               0x971e
+_Egg                              EQU                               0xbd3a
+_SDCard                           EQU                               0xc228
+_Loader                           EQU                               0xcc0e
+_Boot                             EQU                               0xcc36
+_Main                             EQU                               0xd7a9
+_Reset                            EQU                               0xdaea
+_NUM_APPS                         EQU                               0x000a
+_DIV_X                            EQU                               0x0002
+_DIV_Y0                           EQU                               0x0018
+_DIV_Y1                           EQU                               0x0050
+_LIST_X0                          EQU                               0x0014
+_LIST_X1                          EQU                               0x0062
+_LIST_Y                           EQU                               0x0020
+_LIST_DY                          EQU                               0x0008
+_CURS_DX                          EQU                               0x0009
+_CURS_X                           EQU                               0x000b
+_CURS_Y                           EQU                               0x0020
+
+; Global Variables
+_y                                EQU                               0x0030
+_i                                EQU                               0x0032
+_x                                EQU                               0x0034
+_f                                EQU                               0x0036
+_f0                               EQU                               0x0038
+_f1                               EQU                               0x003a
+_index                            EQU                               0x003c
+_kk                               EQU                               0x003e
+_k                                EQU                               0x0040
+_execAddr                         EQU                               0x0042
+_loadAddr                         EQU                               0x0044
+_im5                              EQU                               0x0046
+_ip5                              EQU                               0x0048
+
+; Local Variables
+
+; Arrays
+_execs                            EQU                               0x7cbe
+_execs                            DW                                0xc228 0x4c89 0x53e3 0x58d8 0xcc0e 0x5b3c 0x6f0e 0x6274 0x971e 0x7984 
+
+; Strings
+_apps$                            EQU                               0x7cd2
+_apps$                            DW                                0x7ddc 0x7dd5 0x7dc9 0x7dc0 0x7db8 0x7db1 0x7da6 0x7cf9 0x7cef 0x7ce6 
+_apps$_0x7ddc                     EQU                               0x7ddc
+_apps$_0x7ddc                     DB                                6 'SDCard' 0
+_apps$_0x7dd5                     EQU                               0x7dd5
+_apps$_0x7dd5                     DB                                5 'Racer' 0
+_apps$_0x7dc9                     EQU                               0x7dc9
+_apps$_0x7dc9                     DB                                10 'Mandelbrot' 0
+_apps$_0x7dc0                     EQU                               0x7dc0
+_apps$_0x7dc0                     DB                                7 'Credits' 0
+_apps$_0x7db8                     EQU                               0x7db8
+_apps$_0x7db8                     DB                                6 'Loader' 0
+_apps$_0x7db1                     EQU                               0x7db1
+_apps$_0x7db1                     DB                                5 'Snake' 0
+_apps$_0x7da6                     EQU                               0x7da6
+_apps$_0x7da6                     DB                                9 'TicTacToe' 0
+_apps$_0x7cf9                     EQU                               0x7cf9
+_apps$_0x7cf9                     DB                                5 'BASIC' 0
+_apps$_0x7cef                     EQU                               0x7cef
+_apps$_0x7cef                     DB                                8 'MS BASIC' 0
+_apps$_0x7ce6                     EQU                               0x7ce6
+_apps$_0x7ce6                     DB                                7 'Apple-1' 0
+
+; Constant Strings
+_str_0x7de4                       EQU                               0x7de4
+_str_0x7de4                       DB                                26 '--------------------------' 0
+_str_0x7ca6                       EQU                               0x7ca6
+_str_0x7ca6                       DB                                22 'Use [Arrows] to select' 0
+_str_0x7be4                       EQU                               0x7be4
+_str_0x7be4                       DB                                26 'Press [A] to start program' 0
+_str_0x7bcc                       EQU                               0x7bcc
+_str_0x7bcc                       DB                                22 'Hold [Start] for reset' 0
+_str_0x7da3                       EQU                               0x7da3
+_str_0x7da3                       DB                                1 ' ' 0
+
+; Data
+
+; Time
+
+; Define Bytes
+
+; Define Words
+
+; Define Images
+
+; Define Loader Image Chunks
+
+; Define Midis
+
+; Define Blits
+
+; Define Fonts
+
+; Define Sprites
+
+; Define Patterns
+
+; Lookup Tables
+_lut_numericLabs                  EQU                               0x7bbe
+_lut_numericLabs                  DW                                127 10 254 253 251 247 0x0000
+_lut_numericAddrs                 EQU                               0x7bb2
+_lut_numericAddrs                 DW                                0x038e 0x0394 0x039a 0x03bd 0x03e0 0x043b 
+
+; Lazy Constants
+
+; Code
+_entryPoint_                      LDI                               0x80
+                                  STW                               romUser
+                                  RomCheck                          
+                                  Initialise                                                    ; INIT
+
+                                  ANDBI                             miscFlags, 0xfd             ; tscroll off
+
+                                  MOVQB                             fgbgColour + 1, 42
+                                  MOVQB                             cursorXY, 2
+                                  MOVQB                             cursorXY + 1, 24
+                                  AtTextCursor                      
+                                  PrintString                       _str_0x7de4
+                                  NewLine                                                       ; set FG_COLOUR, 42 : at DIV_X, DIV_Y0 : print divider$
+
+                                  MOVQB                             fgbgColour + 1, 15          ; set FG_COLOUR, 15
+
+                                  MOVQW                             _y, 32                      ; y = LIST_Y
+
+                                  MOVQW                             _i, 0                       ; for i=0 to 4
+
+_next_0x0244                      MOVQB                             cursorXY, 20
+                                  MOVB                              _y, cursorXY + 1
+                                  AtTextCursor                      
+                                  LDWI                              0x7cd2
+                                  ADDW                              _i
+                                  ADDW                              _i
+                                  DEEK                              
+                                  PrintAcString                     
+                                  NewLine                                                       ; at LIST_X0, y : print apps$(i)
+
+                                  MOVQB                             cursorXY, 98
+                                  MOVB                              _y, cursorXY + 1
+                                  AtTextCursor                      
+                                  LDW                               _i
+                                  ADDI                              5
+                                  STW                               memIndex0
+                                  LDWI                              0x7cd2
+                                  ADDW                              memIndex0
+                                  ADDW                              memIndex0
+                                  DEEK                              
+                                  PrintAcString                     
+                                  NewLine                                                       ; at LIST_X1, y : print apps$(i + 5)
+
+                                  ADDVI                             _y, 8                       ; y = y + LIST_DY
+
+                                  ForNextInc                        _i _next_0x0244 4           ; next i
+
+                                  MOVQB                             fgbgColour + 1, 42
+                                  MOVQB                             cursorXY, 2
+                                  MOVQB                             cursorXY + 1, 80
+                                  AtTextCursor                      
+                                  PrintString                       _str_0x7de4
+                                  NewLine                                                       ; set FG_COLOUR, 42 : at DIV_X, DIV_Y1 : print divider$
+
+                                  MOVQB                             cursorXY, 2
+                                  MOVQB                             cursorXY + 1, 88
+                                  AtTextCursor                      
+                                  PrintString                       _str_0x7ca6
+                                  NewLine                                                       ; at 2, 88  : print "Use [Arrows] to select"
+
+                                  MOVQB                             cursorXY, 2
+                                  MOVQB                             cursorXY + 1, 96
+                                  AtTextCursor                      
+                                  PrintString                       _str_0x7be4
+                                  NewLine                                                       ; at 2, 96  : print "Press [A] to start program"
+
+                                  MOVQB                             cursorXY, 2
+                                  MOVQB                             cursorXY + 1, 112
+                                  AtTextCursor                      
+                                  PrintString                       _str_0x7bcc
+                                  NewLine                                                       ; at 2, 112 : print "Hold [Start] for reset"
+
+                                  MOVQW                             _x, 11
+                                  MOVQW                             _y, 32                      ; x = CURS_X : y = CURS_Y
+
+                                  LDI                               0
+                                  STW                               _f
+                                  STW                               _f0
+                                  STW                               _f1
+                                  STW                               _index                      ; f = 0 : f0 = f : f1 = f0 : index = f1
+
+                                  MOVQW                             _kk, 255                    ; kk = 255
+
+_repeat_0x030c                    WaitVBlank                                                    ; wait
+
+                                  MOVB                              giga_frameCount, fgbgColour + 1                                                                                             ; set FG_COLOUR, get("FRAME_COUNT")
+
+                                  MOVB                              _x, cursorXY
+                                  MOVB                              _y, cursorXY + 1
+                                  AtTextCursor                      
+                                  LDI                               130
+                                  PrintAcChr                        
+                                  NewLine                                                       ; at x, y : print chr$(130)
+
+                                  CALLI                             _handleInput                ; gosub handleInput
+
+                                  ADDVI                             _f, 1                       ; f = f + 1
+
+                                  CALLI                             _page_0x0300
+_page_0x0300                      CALLI                             _repeat_0x030c              ; forever
+
+_handleInput                      PUSH                              
+                                  LD                                giga_serialRaw
+                                  STW                               _k                          ; k = get("SERIAL_RAW")
+
+                                  LDW                               _k
+                                  XORW                              _kk
+                                  JEQ                               _endif_0x035f               ; if k <> kk
+
+                                  MOVQW                             _f, 0                       ; f = 0
+
+                                  LDW                               _k
+                                  STW                               _kk                         ; kk = k
+
+                                  LDW                               _k
+                                  STW                               numericLabel
+                                  MOVQW                             defaultLabel, 0
+                                  GosubNumeric                                                  ; gosub k
+
+_endif_0x035f                     LDW                               _f
+                                  SUBI                              30
+                                  JLE                               _endif_0x0399               ; if f > 30
+
+                                  LDW                               _f
+                                  STW                               mathShift
+                                  Lsr3bit                           giga_vAC
+                                  ANDI                              0x01
+                                  STW                               _f0                         ; f0 = (f LSR 3) AND 1
+
+                                  LDW                               _f0
+                                  XORW                              _f1
+                                  JEQ                               _endif_0x0399               ; if f0 <> f1
+
+                                  LDW                               _f0
+                                  STW                               _f1                         ; f1 = f0
+
+                                  LDW                               _k
+                                  STW                               numericLabel
+                                  MOVQW                             defaultLabel, 0
+                                  GosubNumeric                                                  ; gosub k
+
+_endif_0x0399                     Return                                                        ; return
+
+_execApp                          PUSH                              
+                                  LDWI                              512
+                                  STW                               _execAddr                   ; execAddr = &h0200
+
+                                  LDWI                              0x7cbe
+                                  ADDW                              _index
+                                  ADDW                              _index
+                                  DEEKA                             _loadAddr                   ; loadAddr = execs(index)
+
+                                  LDW                               _index
+                                  XORI                              4
+                                  JNE                               _else_0x03c2
+                                  MOVQW                             _execAddr, 168              ; if index = 4 then execAddr = &h00A8
+
+_else_0x03c2                      LDW                               _loadAddr
+                                  STW                               giga_sysArg0
+                                  LDW                               _execAddr
+                                  RomExec                                                       ; exec loadAddr, execAddr
+
+                                  Return                                                        ; return
+
+_calcIndex                        PUSH                              
+                                  LDW                               _index
+                                  SUBI                              5
+                                  STW                               _im5                        ; im5 = index - 5
+
+                                  LDW                               _index
+                                  ADDI                              5
+                                  STW                               _ip5                        ; ip5 = index + 5
+
+                                  MOVB                              _x, cursorXY
+                                  MOVB                              _y, cursorXY + 1
+                                  AtTextCursor                      
+                                  PrintString                       _str_0x7da3
+                                  NewLine                                                       ; at x, y : print " "
+
+                                  Return                                                        ; return
+
+_127                              PUSH                              
+                                  CALLI                             _execApp                    ; gosub execApp
+
+                                  Return                                                        ; return
+
+_10                               PUSH                              
+                                  CALLI                             _execApp                    ; gosub execApp
+
+                                  Return                                                        ; return
+
+_254                              PUSH                              
+                                  CALLI                             _calcIndex                  ; gosub calcIndex
+
+                                  LDW                               _x
+                                  XORI                              11
+                                  TEQ                               giga_vAC
+                                  IntCondvv                         _cond_0x040e _ip5 _im5
+                                  STW                               _index                      ; index = cond(x = LIST_X0 - CURS_DX, ip5, im5)
+
+                                  LDW                               _x
+                                  XORI                              11
+                                  TEQ                               giga_vAC
+                                  CONDI                             89, 11
+                                  STW                               _x                          ; x = cond(x = LIST_X0 - CURS_DX, LIST_X1 - CURS_DX, LIST_X0 - CURS_DX)
+
+                                  Return                                                        ; return
+
+_253                              PUSH                              
+                                  CALLI                             _calcIndex                  ; gosub calcIndex
+
+                                  LDW                               _x
+                                  XORI                              89
+                                  TEQ                               giga_vAC
+                                  IntCondvv                         _cond_0x043d _im5 _ip5
+                                  STW                               _index                      ; index = cond(x = LIST_X1 - CURS_DX, im5, ip5)
+
+                                  LDW                               _x
+                                  XORI                              89
+                                  TEQ                               giga_vAC
+                                  CONDI                             11, 89
+                                  STW                               _x                          ; x = cond(x = LIST_X1 - CURS_DX, LIST_X0 - CURS_DX, LIST_X1 - CURS_DX)
+
+                                  Return                                                        ; return
+
+_251                              PUSH                              
+                                  MOVB                              _x, cursorXY
+                                  MOVB                              _y, cursorXY + 1
+                                  AtTextCursor                      
+                                  PrintString                       _str_0x7da3
+                                  NewLine                                                       ; at x, y : print " "
+
+                                  ADDVI                             _y, 8                       ; y = y + LIST_DY
+
+                                  CALLI                             _page_0x0400
+_page_0x0400                      LDW                               _y
+                                  SUBI                              64
+                                  JLE                               _else_0x048c
+                                  MOVQW                             _y, 32                      ; if y > (LIST_Y + 4*LIST_DY) then y = LIST_Y
+
+_else_0x048c                      ADDVI                             _index, 1                   ; index = index + 1
+
+                                  LDW                               _x
+                                  XORI                              11
+                                  TEQ                               giga_vAC
+                                  STW                               0xe8
+                                  LDW                               _index
+                                  SUBI                              4
+                                  TGT                               giga_vAC
+                                  ANDW                              0xe8
+                                  JumpFalse                         _else_0x04b3
+                                  MOVQW                             _index, 0                   ; if (x = LIST_X0 - CURS_DX) AND index > 4 then index = 0
+
+_else_0x04b3                      LDW                               _x
+                                  XORI                              89
+                                  TEQ                               giga_vAC
+                                  STW                               0xe8
+                                  LDW                               _index
+                                  SUBI                              9
+                                  TGT                               giga_vAC
+                                  ANDW                              0xe8
+                                  JumpFalse                         _else_0x04d2
+                                  MOVQW                             _index, 5                   ; if (x = LIST_X1 - CURS_DX) AND index > 9 then index = 5
+
+_else_0x04d2                      Return                                                        ; return
+
+_247                              PUSH                              
+                                  MOVB                              _x, cursorXY
+                                  MOVB                              _y, cursorXY + 1
+                                  AtTextCursor                      
+                                  PrintString                       _str_0x7da3
+                                  NewLine                                                       ; at x, y : print " "
+
+                                  SUBVI                             _y, 8                       ; y = y - LIST_DY
+
+                                  LDW                               _y
+                                  SUBI                              32
+                                  JGE                               _else_0x0502
+                                  MOVQW                             _y, 64                      ; if y < LIST_Y then y = (LIST_Y + 4*LIST_DY)
+
+_else_0x0502                      SUBVI                             _index, 1                   ; index = index - 1
+
+                                  LDW                               _x
+                                  XORI                              11
+                                  TEQ                               giga_vAC
+                                  STW                               0xe8
+                                  LDW                               _index
+                                  TLT                               giga_vAC
+                                  ANDW                              0xe8
+                                  JumpFalse                         _else_0x0529
+                                  MOVQW                             _index, 4                   ; if (x = LIST_X0 - CURS_DX) AND index < 0 then index = 4
+
+_else_0x0529                      LDW                               _x
+                                  XORI                              89
+                                  TEQ                               giga_vAC
+                                  STW                               0xe8
+                                  LDW                               _index
+                                  SUBI                              5
+                                  TLT                               giga_vAC
+                                  ANDW                              0xe8
+                                  JumpFalse                         _else_0x0548
+                                  MOVQW                             _index, 9                   ; if (x = LIST_X1 - CURS_DX) AND index < 5 then index = 9
+
+_else_0x0548                      Return                                                        ; return
+
+                                  HALT                                                          ; END
+
+
+
+;****************************************************************************************************************************************
+;****************************************************************************************************************************************
+;* Internal runtime, DO NOT MODIFY PAST THIS POINT, modifications must be made in the original include files                            *
+;****************************************************************************************************************************************
+;****************************************************************************************************************************************
+
+romCheck                          EQU     0x78a5
+romExec                           EQU     0x77a0
+lsr3bit                           EQU     0x76f5
+gosubNumericLabel                 EQU     0x78cf
+waitVBlank                        EQU     0x7ba2
+resetVideoFlags                   EQU     0x76ed
+clearCursorRow                    EQU     0x77dc
+printInit                         EQU     0x77c8
+printText                         EQU     0x77b4
+printChr                          EQU     0x77a7
+printChar                         EQU     0x7ab7
+printClip                         EQU     0x7aa2
+atTextCursor                      EQU     0x79a5
+newLineScroll                     EQU     0x79c1
+
+
+; do *NOT* use register4 to register7 during time slicing
+realTimeAddr        EQU     register0
+realTimeProc0       EQU     register1
+realTimeProc1       EQU     register2
+realTimeProc2       EQU     register3
+numericLabel        EQU     register0
+defaultLabel        EQU     register1
+lutLabs             EQU     register2
+lutAddrs            EQU     register3
+lutIndex            EQU     register8
+romUser             EQU     register0                           ; user requested romType
+romType             EQU     register1                           ; actual romType
+romReadAddr         EQU     register0               
+romErrAddr          EQU     0x7E                                ; loader happy constant address
+vramErrAddr         EQU     0x4450
+
+romErrAddr          DW      vramErrAddr
+ 
+
+; can't use any new instructions in romCheck
+romCheck            LD      giga_romType
+                    ANDI    0xFC
+                    STW     romType
+                    SUBW    romUser
+                    BEQ     romC_return                         ; romType = romUser, so ok
+                    LDW     romUser
+                    SUBI    0x80                                ; experimental ROM's must match exactly
+                    BNE     romC_check
+                    LDW     romType
+                    SUBW    romUser
+                    BEQ     romC_return                         ; romType = romUser, so ok
+                    BRA     romC_fail
+                    
+romC_check          LDW     romType                             ; non experimental ROM
+                    SUBW    romUser
+                    BGT     romC_return                         ; romType > romUser, so ok
+                    
+                    ; gprintf's are only shown in the emulator and always attached to the next instruction
+                    gprintf("Wrong ROM version, you asked for 0x%2X, you have 0x%2X", *romUser, *romType)
+romC_fail           LSLW                                        ; dummy instruction that gprintf can attach to
+
+romC_f0             LD      giga_frameCount
+                    POKE    romErrAddr
+                    BRA     romC_f0                             ; flash center pixel indicating rom error
+                    
+romC_return         RET
+
+
+romExec             STW     giga_vLR
+                    MOVQW   giga_sysFn, SYS_Exec_88             ; address < 0x0100 so use MOVQW
+                    SYS     88                                  ; doesn't return from here!
+
+
+; do *NOT* use register4 to register7 during time slicing
+mathX               EQU     register8
+mathY               EQU     register9
+mathSum             EQU     register12
+mathRem             EQU     register12
+mathMask            EQU     register13
+mathSign            EQU     register14
+mathQuot            EQU     register15
+mathShift           EQU     register15
+mathBase            EQU     register10
+mathPow             EQU     register11
+mathResult          EQU     register14
+
+
+lsr3bit             LDWI    SYS_LSRW3_52
+                    STW     giga_sysFn
+                    LDW     mathShift
+                    SYS     52
+                    RET
+
+
+                    ; find numeric label and call it, (it had better return or welcome to lala land)
+gosubNumericLabel   PUSH
+                    LDWI    _lut_numericLabs
+                    STW     lutLabs
+                    STW     lutIndex
+                    LDWI    _lut_numericAddrs
+                    STW     lutAddrs
+                    
+gosubNL_loop        DEEKV   lutIndex
+                    BNE     gosubNL_cont                        ; check for 0
+                    LDW     defaultLabel
+                    BEQ     gosubNL_exit
+                    CALL    defaultLabel                        ; fetch default address and call
+                    
+gosubNL_exit        POP
+                    RET
+                    
+gosubNL_cont        SUBW    numericLabel
+                    BEQ     gosubNL_found
+                    ADDBI   lutIndex, 2
+                    BRA     gosubNL_loop                        ; loop through lut until found or 0
+                    
+gosubNL_found       LDW     lutIndex
+                    SUBW    lutLabs
+                    ADDW    lutAddrs
+                    DEEK
+                    CALL    giga_vAC                            ; fetch label address and call
+                    POP
+                    RET
+
+
+; do *NOT* use register4 to register7 during time slicing
+graphicsMode        EQU     register0
+waitVBlankNum       EQU     register0
+waitVBlankTmp       EQU     register1
+
+drawHLine_x1        EQU     register0
+drawHLine_y1        EQU     register1
+drawHLine_x2        EQU     register2
+
+drawVLine_x1        EQU     register0
+drawVLine_y1        EQU     register1
+drawVLine_y2        EQU     register2
+
+drawLine_x1         EQU     register0
+drawLine_y1         EQU     register1
+drawLine_x2         EQU     register2
+drawLine_y2         EQU     register3
+drawLine_xy1        EQU     register0
+drawLine_xy2        EQU     register1
+drawLine_dxy1       EQU     register2
+drawLine_dxy2       EQU     register3
+drawLine_dx1        EQU     register8
+drawLine_dy1        EQU     register9
+drawLine_dx2        EQU     register10
+drawLine_dy2        EQU     register11
+drawLine_sx         EQU     register12
+drawLine_sy         EQU     register13
+drawLine_h          EQU     register14
+drawLine_num        EQU     register15
+drawLine_count      EQU     register14
+drawLine_dx         EQU     register2
+drawLine_dy         EQU     register3
+drawLine_u          EQU     register8
+drawLine_v          EQU     register9
+drawLine_addr       EQU     register10
+drawLine_ddx        EQU     register11
+drawLine_cnt        EQU     register12
+drawLine_swp        EQU     register13
+
+drawPixel_xy        EQU     giga_sysArg6
+readPixel_xy        EQU     giga_sysArg6
+
+drawCircle_cx       EQU     register0
+drawCircle_cy       EQU     register1
+drawCircle_r        EQU     register2
+drawCircle_a        EQU     register3
+drawCircle_d        EQU     register8
+drawCircle_x        EQU     register9
+drawCircle_y        EQU     register10
+drawCircle_ch0      EQU     register11
+drawCircle_ch1      EQU     register12
+drawCircle_ch2      EQU     register13
+drawCircle_ch3      EQU     register14
+
+drawCircleF_x1      EQU     register0
+drawCircleF_y1      EQU     register1
+drawCircleF_x2      EQU     register2
+drawCircleF_cnt     EQU     register3
+drawCircleF_cx      EQU     register15
+drawCircleF_cy      EQU     register10
+drawCircleF_r       EQU     register11
+drawCircleF_v       EQU     register8
+drawCircleF_w       EQU     register9
+
+drawRect_x1         EQU     register8
+drawRect_y1         EQU     register9
+drawRect_x2         EQU     register10
+drawRect_y2         EQU     register11
+
+drawRectF_x1        EQU     register0
+drawRectF_y1        EQU     register1
+drawRectF_x2        EQU     register2
+drawRectF_y2        EQU     register3
+drawRectF_xcnt      EQU     register8
+drawRectF_ycnt      EQU     register9
+
+drawPoly_mode       EQU     register14
+drawPoly_addr       EQU     giga_sysArg4                        ; TODO: find a better spot for this
+
+    
+%if VBLANK_INTERRUPT
+waitVBlank          LD      timerPrev                           ; can't use giga_frameCount for VBlanks
+%else
+waitVBlank          LD      giga_frameCount
+%endif
+                    XORW    frameCountPrev
+                    BEQ     waitVBlank
+%if VBLANK_INTERRUPT
+                    MOVB    timerPrev, frameCountPrev           ; can't use giga_frameCount for VBlanks
+%else
+                    MOVB    giga_frameCount, frameCountPrev
+%endif
+                    RET
+
+
+; do *NOT* use register4 to register7 during time slicing
+xreset              EQU     register0
+xcount              EQU     register1
+ycount              EQU     register2
+treset              EQU     register3
+breset              EQU     register8
+top                 EQU     register9
+bot                 EQU     register10
+vtbLines            EQU     register10
+vramAddr            EQU     register11
+evenAddr            EQU     register12
+clsAddress          EQU     register13
+clsLines            EQU     register14
+varAddress          EQU     register13
+varCount            EQU     register14
+clrAddress          EQU     register13
+clrLines            EQU     register14
+clrWidth            EQU     register15
+
+
+resetVideoFlags     MOVQW   cursorXY, giga_CursorX              ; starting cursor position
+                    ANDBI   miscFlags, MISC_ON_BOTTOM_ROW_MSK   ; reset on bottom row flag
+                    RET
+
+
+
+; do *NOT* use register4 to register7 during time slicing
+textStr             EQU     register0
+textNum             EQU     register0
+textBak             EQU     register0
+textHex             EQU     register1
+textSpc             EQU     register1
+textLen             EQU     register2
+textOfs             EQU     register3
+textChr             EQU     register8
+textFont            EQU     register9
+textSlice           EQU     register10
+scanLine            EQU     register11
+digitMult           EQU     register12
+digitIndex          EQU     register13
+clearLoop           EQU     register14
+    
+    
+printInit           LDWI    SYS_VDrawBits_134
+                    STW     giga_sysFn
+                    LDW     fgbgColour
+                    STW     giga_sysArg0
+                    LD      cursorXY + 1                        ; xy = peek(256+2*y)*256 + x
+                    LSLW
+                    INC     giga_vAC + 1
+                    PEEKA   giga_sysArg4 + 1
+                    MOVB    cursorXY, giga_sysArg4              ; xy position
+                    RET
+
+
+
+                    ; prints text string pointed to by the accumulator
+printText           PUSH
+                    STW     textStr
+                    CALLI   printInit
+                    INC     textStr                             ; skip length
+
+printT_char         PEEK+   textStr             
+                    BEQ     printT_exit                         ; check for terminating zero
+                    CALLI   printChar
+                    BRA     printT_char
+                    
+printT_exit         POP
+                    RET
+
+
+                    ; prints char in textChr for standalone calls
+printChr            PUSH
+                    ST      textChr
+                    CALLI   printInit
+                    LD      textChr
+                    CALLI   printChar
+                    POP
+                    RET
+
+
+
+                    ; prints char in textChr
+printChar           SUBI    130                                 ; char can't be bigger than 130
+                    BGT     printC_exit
+                    ADDI    130
+                    SUBI    82
+                    BGE     printC_text82
+                    ADDI    50
+                    BLT     printC_exit                         ; char<32 exit
+                    STW     textChr                             ; char-32
+                    LDWI    giga_text32                         ; text font slice base address for chars 32-81
+                    BRA     printC_font
+                    
+printC_text82       STW     textChr                             ; char-82
+                    LDWI    giga_text82                         ; text font slice base address for chars 82+
+                    
+printC_font         STW     textFont
+                    LD      textChr
+                    LSLW    
+                    LSLW    
+                    ADDW    textChr
+                    ADDW    textFont
+                    STW     textFont                            ; char*5 + textFont
+                    MOVQB   textSlice, 0x05
+
+printC_slice        LDW     textFont                            ; text font slice base address
+                    LUP     0x00                                ; get ROM slice
+                    ST      giga_sysArg2
+                    SYS     134                                 ; draw vertical slice, SYS_VDrawBits_134, 270 - 134/2 = 0xCB
+                    INC     textFont                            ; next vertical slice
+                    INC     giga_sysArg4                        ; next x
+                    DBNE    textSlice, printC_slice
+                    
+                    MOVQB   giga_sysArg2, 0
+                    SYS     134                                 ; draw last blank slice
+                    INC     giga_sysArg4                        ; using sysArg4 as a temporary cursor address for multiple char prints
+                    
+                    PUSH
+                    CALLI   printClip
+                    POP
+                    
+printC_exit         RET
+
+
+printClip           ADDBI   cursorXY, giga_xfont
+                    CMPI    cursorXY, giga_xres - giga_xfont    ; last possible char on line
+                    BLE     printCl_exit
+                    ANDBK   miscFlags, MISC_DISABLE_CLIP_BIT
+                    BNE     printCl_exit                        ; is text clipping disabled?
+                    PUSH
+                    CALLI   newLineScroll                       ; next row, scroll at bottom
+                    POP
+                    
+printCl_exit        RET
+
+
+atTextCursor        CMPI    cursorXY, giga_xres - giga_xfont
+                    BLE     atTC_checkY
+                    MOVQB   cursorXY, 0
+                    
+atTC_checkY         CMPI    cursorXY + 1, giga_yres - giga_yfont
+                    BLT     atTC_resbot
+                    MOVQB   cursorXY + 1, giga_yres - giga_yfont
+                    ORBI    miscFlags, MISC_ON_BOTTOM_ROW_BIT   ; set on bottom row flag
+                    RET
+                    
+atTC_resbot         ANDBI   miscFlags, MISC_ON_BOTTOM_ROW_MSK   ; reset on bottom row flag
+                    RET
+
+
+
+                    ; clears the top giga_yfont lines of pixels in preparation of text scrolling
+clearCursorRow      PUSH
+                    LDWI    SYS_SetMemory_v2_54
+                    STW     giga_sysFn                          ; setup fill memory SYS routine
+                    MOVB    fgbgColour, giga_sysArg1            ; fill value
+                    LDWI    giga_videoTable
+                    PEEKA   giga_sysArg3                        ; row0 high byte address
+                    MOVQW   clearLoop, giga_yfont
+
+clearCR_loopy       MOVQB   giga_sysArg0, giga_xres
+                    MOVQB   giga_sysArg2, 0                     ; low start address
+                    SYS     54                                  ; fill memory
+                    INC     giga_sysArg3                        ; next line
+                    DBNE    clearLoop, clearCR_loopy
+                    CALLI   printInit                           ; re-initialise the SYS registers
+                    POP
+                    RET
+
+
+                    ; print from top row to bottom row, then start scrolling 
+newLineScroll       LDI     giga_CursorX                        ; cursor x start
+                    ST      cursorXY
+                    ST      giga_sysArg4
+                    ANDBK   miscFlags, MISC_ENABLE_SCROLL_BIT
+                    BNE     newLS_cont0                         ; is scroll on or off?
+                    RET
+                    
+newLS_cont0         PUSH
+                    ANDBK   miscFlags, MISC_ON_BOTTOM_ROW_BIT
+                    BNE     newLS_cont1                         ; is on bottom row flag?
+                    ADDBI   cursorXY + 1, giga_yfont
+                    CMPI    cursorXY + 1, giga_yres
+                    BLT     newLS_exit
+                    MOVQB   cursorXY + 1, giga_yres - giga_yfont
+                    
+newLS_cont1         CALLI   clearCursorRow
+                    LDWI    giga_videoTable
+                    STW     giga_sysArg2                        ; VTable
+                    MOVQB   giga_sysArg0, giga_yfont            ; scroll offset
+                    MOVQB   giga_sysArg1, giga_yres             ; scanline count
+                    LDWI    SYS_ScrollVTableY_vX_38
+                    STW     giga_sysFn
+                    SYS     38
+                    ORBI    miscFlags, MISC_ON_BOTTOM_ROW_BIT   ; set on bottom row flag
+                    
+newLS_exit          CALLI   printInit                           ; re-initialise the SYS registers
+                    POP
+                    RET
+

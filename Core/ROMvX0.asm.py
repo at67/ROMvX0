@@ -167,7 +167,8 @@
 #  DONE vCPU instruction restart ability
 #  DONE PREFIX instruction payload restart ability
 #  DONE vCPU and PREFIX instruction MaxTicks limit overcome 
-#  DONE SYS calls for math, array processing, sorting, true sprites, memory manipulation, etc
+#  DONE SYS calls for math, array processing and memory manipulation
+#  DONE SYS calls for vCPU callbacks/events, sorting and true sprites
 #  DONE Backwards compatibility with all software and all previous ROM's
 #
 #-----------------------------------------------------------------------
@@ -193,6 +194,8 @@ enableListing()
 loadBindings('ROMvX0_interface.json')
 loadBindings('Core/interface-dev.json') # Provisional values for DEVROM
 
+
+ 
 # Gigatron clock
 cpuClock = 6.250e+06
 
@@ -599,15 +602,15 @@ label('.countMem1')
 # "[...] 16 switches exhibited an average 1557 usec of bouncing, with,
 #  as I said, a max of 6200 usec" (From: http://www.ganssle.com/debouncing.htm)
 # Relevant for the breadboard version, as the kit doesn't have a reset switch.
-
-ld(255)                         # Debounce reset button
-label('.debounce')
-st([0])
-bne(pc())
-suba(1)                         # Branch delay slot
-ld([0])
-bne('.debounce')
-suba(1)                         # Branch delay slot
+ 
+#ld(255)                         # Debounce reset button
+#label('.debounce')
+#st([0])
+#bne(pc())
+#suba(1)                         # Branch delay slot
+#ld([0])
+#bne('.debounce')
+#suba(1)                         # Branch delay slot
 
 # Update LEDs (memory is present and counted, reset is stable)
 ld(0b0001)                      # LEDs |*OOO|
@@ -9184,29 +9187,29 @@ ld(hi('videoTop_v5'),Y)         #22
 st([Y,lo('videoTop_v5')])       #23 Show all 120 pixel lines
 st([Y,vIRQ_v5])                 #24 Disable vIRQ dispatch
 st([Y,vIRQ_v5+1])               #25
-st([soundTimer])                #26 soundTimer
+#st([soundTimer])                #26 soundTimer
 assert userCode&255 == 0
-st([vLR])                       #27 vLR
-ld(userCode>>8)                 #28
-st([vLR+1])                     #29
-ld('nopixels')                  #30 Video mode 3 (fast)
-st([videoModeB])                #31
-st([videoModeC])                #32
-st([videoModeD])                #33
-ld('SYS_Exec_88')               #34 SYS_Exec_88
-st([sysFn])                     #35 High byte (remains) 0
-ld('Reset')                     #36 Reset.gt1 from EPROM
-st([sysArgs+0])                 #37
-ld(hi('Reset'))                 #38
-st([sysArgs+1])                 #39
-ld([vPC])                       #40 Force second SYS call
-suba(2)                         #41
-st([vPC])                       #42
-ctrl(0b01111111)                #43 Expansion board: (1) reset signal.
-ctrl(0b01111100)                #44 (2) disable SPI slaves, enable RAM bank 1
-ld(hi('REENTER'),Y)             #45
-jmp(Y,'REENTER')                #46
-ld(-50/2)                       #47
+st([vLR])                       #26 vLR
+ld(userCode>>8)                 #27
+st([vLR+1])                     #28
+ld('nopixels')                  #29 Video mode 3 (fast)
+st([videoModeB])                #30
+st([videoModeC])                #31
+st([videoModeD])                #32
+ld('SYS_Exec_88')               #33 SYS_Exec_88
+st([sysFn])                     #34 High byte (remains) 0
+ld('Reset')                     #35 Reset.gt1 from EPROM
+st([sysArgs+0])                 #36
+ld(hi('Reset'))                 #37
+st([sysArgs+1])                 #38
+ld([vPC])                       #39 Force second SYS call
+suba(2)                         #40
+st([vPC])                       #41
+ctrl(0b01111111)                #42 Expansion board: (1) reset signal.
+ctrl(0b01111100)                #43 (2) disable SPI slaves, enable RAM bank 1
+ld(hi('NEXTY'),Y)               #44
+jmp(Y,'NEXTY')                  #45
+ld(-48/2)                       #46
 
 
 #-----------------------------------------------------------------------
@@ -11324,40 +11327,27 @@ adda([vAC])                     #28
 st([vAC])                       #29 Store low result
 bmi('.addvi#32')                #30 Now figure out if there was a carry
 suba([sysArgs+6])               #31 Gets back the initial value of vAC
-ora([sysArgs+6])                #32 Carry in bit 7
-anda(0x80,X)                    #33 Move carry to bit 0
-ld([X])                         #34
-adda([vAC+1])                   #35 Add the high bytes with carry
-st([vAC+1])                     #36 Store high result
-ld([sysArgs+7],X)               #37
-ld([vAC])                       #38
-st([Y,Xpp])                     #39
-ld([vAC+1])                     #40
-st([X])                         #41
-ld([vPC])                       #42
-adda(1)                         #43
-st([vPC])                       #44
-ld(hi('REENTER'),Y)             #45
-jmp(Y,'REENTER')                #46
-ld(-50/2)                       #47
-
+bra('.addvi#34')                #32
+ora([sysArgs+6])                #33 Carry in bit 7
 label('.addvi#32')
 anda([sysArgs+6])               #32 Carry in bit 7
-anda(0x80,X)                    #33 Move carry to bit 0
-ld([X])                         #34
-adda([vAC+1])                   #35 Add the high bytes with carry
-st([vAC+1])                     #36 Store high result
-ld([sysArgs+7],X)               #37
-ld([vAC])                       #38
-st([Y,Xpp])                     #39
-ld([vAC+1])                     #40
-st([X])                         #41
-ld([vPC])                       #42
-adda(1)                         #43
-st([vPC])                       #44
-ld(hi('REENTER'),Y)             #45
-jmp(Y,'REENTER')                #46
-ld(-50/2)                       #47
+nop()                           #33
+label('.addvi#34')
+anda(0x80,X)                    #34 Move carry to bit 0
+ld([X])                         #35
+adda([vAC+1])                   #36 Add the high bytes with carry
+st([vAC+1])                     #37 Store high result
+ld([sysArgs+7],X)               #38
+ld([vAC])                       #39
+st([Y,Xpp])                     #40
+ld([vAC+1])                     #41
+st([X])                         #42
+ld([vPC])                       #43
+adda(1)                         #44
+st([vPC])                       #45
+ld(hi('NEXTY'),Y)               #46
+jmp(Y,'NEXTY')                  #47
+ld(-50/2)                       #48
 
 label('.addvi#20')
 ld([vPC])                       #20 retry instruction
@@ -11389,41 +11379,28 @@ ld([X])                         #28
 bmi('.subvi#31')                #29
 suba([sysArgs+6])               #30
 st([vAC])                       #31 store low result
-ora([sysArgs+6])                #32 carry in bit 7
-anda(0x80,X)                    #33 move carry to bit 0
-ld([vAC+1])                     #34
-suba([X])                       #35
-st([vAC+1])                     #36 store high result
-ld([sysArgs+7],X)               #37
-ld([vAC])                       #38
-st([Y,Xpp])                     #39
-ld([vAC+1])                     #40
-st([X])                         #41
-ld([vPC])                       #42
-adda(1)                         #43
-st([vPC])                       #44
-ld(hi('REENTER'),Y)             #45
-jmp(Y,'REENTER')                #46
-ld(-50/2)                       #47
-
+bra('.subvi#34')                #32
+ora([sysArgs+6])                #33 carry in bit 7
 label('.subvi#31')
 st([vAC])                       #31 store low result
 anda([sysArgs+6])               #32 carry in bit 7
-anda(0x80,X)                    #33 move carry to bit 0
-ld([vAC+1])                     #34
-suba([X])                       #35
-st([vAC+1])                     #36 store high result
-ld([sysArgs+7],X)               #37
-ld([vAC])                       #38
-st([Y,Xpp])                     #39
-ld([vAC+1])                     #40
-st([X])                         #41
-ld([vPC])                       #42
-adda(1)                         #43
-st([vPC])                       #44
-ld(hi('REENTER'),Y)             #45
-jmp(Y,'REENTER')                #46
-ld(-50/2)                       #47
+nop()                           #33
+label('.subvi#34')
+anda(0x80,X)                    #34 move carry to bit 0
+ld([vAC+1])                     #35
+suba([X])                       #36
+st([vAC+1])                     #37 store high result
+ld([sysArgs+7],X)               #38
+ld([vAC])                       #39
+st([Y,Xpp])                     #40
+ld([vAC+1])                     #41
+st([X])                         #42
+ld([vPC])                       #43
+adda(1)                         #44
+st([vPC])                       #45
+ld(hi('NEXTY'),Y)               #46
+jmp(Y,'NEXTY')                  #47
+ld(-50/2)                       #48
 
 label('.subvi#20')
 ld([vPC])                       #20 retry instruction
@@ -14752,7 +14729,7 @@ label('.sysDir#39')
 ld(hi('REENTER'),Y)             #39 Return
 jmp(Y,'REENTER')                #40
 ld(-44/2)                       #41
-
+ 
 print()
 
 #-----------------------------------------------------------------------
@@ -14767,3 +14744,4 @@ if pc()&255 > 0:
 #-----------------------------------------------------------------------
 end()
 writeRomFiles(argv[0])
+gtBasicSymbolsFile.close()     # opened in asm.py

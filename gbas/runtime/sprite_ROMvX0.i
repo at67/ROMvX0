@@ -94,7 +94,7 @@ drawSpr_loop        MOVQB    spritesAdrHt, _SH
 %SUB                drawSpritesH
 drawSpritesH        LDWI    SYS_DrawSpriteH_vX_140
                     STW     giga_sysFn
-                    LDWI    _vtX_array
+                    LDWI    _vtX
                     STW     giga_sysArg0
                     LDWI    _spritesTmpLut_
                     STW     spritesLut

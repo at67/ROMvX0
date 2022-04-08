@@ -1,0 +1,126 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+
+module "../SymbolTable.m"
+
+const NUM_APPS = 10
+const DIV_X    =  2
+const DIV_Y0   = 24
+const DIV_Y1   = 80
+const LIST_X0  = 20
+const LIST_X1  = 98
+const LIST_Y   = 32
+const LIST_DY  =  8
+const CURS_DX  =  9
+const CURS_X   = LIST_X0 - CURS_DX
+const CURS_Y   = 32
+
+const divider$ = "--------------------------"
+
+const dim apps$(NUM_APPS-1) = {"SDCard", "Racer", "Mandelbrot", "Credits", "Loader",
+                               "Snake", "TicTacToe", "BASIC", "MS BASIC", "Apple-1"}
+
+dim execs(NUM_APPS-1) = {SDCard, Racer, Mandelbrot, Credits, Loader,
+                         Snake, TicTac, TinyBASIC, MSBASIC, Apple1}
+
+tscroll off
+
+set FG_COLOUR, 42 : at DIV_X, DIV_Y0 : print divider$
+
+set FG_COLOUR, 15
+y = LIST_Y
+for i=0 to 4
+    at LIST_X0, y : print apps$(i)
+    at LIST_X1, y : print apps$(i + 5)
+    y = y + LIST_DY
+next i
+
+set FG_COLOUR, 42 : at DIV_X, DIV_Y1 : print divider$
+
+at 2, 88  : print "Use [Arrows] to select"
+at 2, 96  : print "Press [A] to start program"
+at 2, 112 : print "Hold [Start] for reset"
+
+x = CURS_X : y = CURS_Y
+f = 0 : f0 = f : f1 = f0 : index = f1
+kk = 255
+
+repeat
+    wait
+    set FG_COLOUR, get("FRAME_COUNT")
+    at x, y : print chr$(130)
+    gosub handleInput
+    f = f + 1
+forever
+
+
+handleInput:
+    k = get("SERIAL_RAW")
+    if k <> kk
+        f = 0
+        kk = k
+        gosub k
+    endif
+    if f > 30
+        f0 = (f LSR 3) AND 1
+        if f0 <> f1
+            f1 = f0
+            gosub k
+        endif
+    endif
+return
+
+
+execApp:
+    execAddr = &h0200
+    loadAddr = execs(index)
+    if index = 4 then execAddr = &h00A8
+    exec loadAddr, execAddr
+return
+
+
+calcIndex:
+    im5 = index - 5
+    ip5 = index + 5
+    at x, y : print " "
+return
+
+
+'button A
+127:    gosub execApp
+        return
+
+'enter
+10:     gosub execApp
+        return
+
+'right
+254:    gosub calcIndex
+        index = cond(x = LIST_X0 - CURS_DX, ip5, im5)
+        x = cond(x = LIST_X0 - CURS_DX, LIST_X1 - CURS_DX, LIST_X0 - CURS_DX)
+        return
+
+'left
+253:    gosub calcIndex
+        index = cond(x = LIST_X1 - CURS_DX, im5, ip5)
+        x = cond(x = LIST_X1 - CURS_DX, LIST_X0 - CURS_DX, LIST_X1 - CURS_DX)
+        return
+     
+'down     
+251:    at x, y : print " "
+        y = y + LIST_DY
+        if y > (LIST_Y + 4*LIST_DY) then y = LIST_Y
+        index = index + 1
+        if (x = LIST_X0 - CURS_DX) AND index > 4 then index = 0
+        if (x = LIST_X1 - CURS_DX) AND index > 9 then index = 5
+        return
+
+'up
+247:    at x, y : print " "
+        y = y - LIST_DY
+        if y < LIST_Y then y = (LIST_Y + 4*LIST_DY)
+        index = index - 1
+        if (x = LIST_X0 - CURS_DX) AND index < 0 then index = 4
+        if (x = LIST_X1 - CURS_DX) AND index < 5 then index = 9
+        return

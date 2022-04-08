@@ -12,7 +12,7 @@ romUser             EQU     register0                       ; user requested rom
 romType             EQU     register1                       ; actual romType
 romReadAddr         EQU     register0
 romErrAddr          EQU     0x7E                            ; loader happy constant address
-vramErrAddr         EQU     giga_vram + giga_yres/2*256 + giga_xres/2
+vramErrAddr         EQU     0x4450
 
 romErrAddr          DW      vramErrAddr
 
@@ -38,9 +38,11 @@ romC_check          LDW     romType                         ; non experimental R
                     
                     ; gprintf's are only shown in the emulator and always attached to the next instruction
                     gprintf("Wrong ROM version, you asked for 0x%2X, you have 0x%2X", *romUser, *romType)
-romC_fail           LD      giga_frameCount
+romC_fail           LSLW                                    ; dummy instruction that gprintf can attach to
+
+romC_f0             LD      giga_frameCount
                     POKE    romErrAddr
-                    BRA     romC_fail                       ; flash center pixel indicating rom error
+                    BRA     romC_f0                         ; flash center pixel indicating rom error
                     
 romC_return         RET
 %ENDS

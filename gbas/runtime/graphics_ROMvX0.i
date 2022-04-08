@@ -89,8 +89,7 @@ scanlineMode        LDWI    SYS_SetMode_v2_80
 %SUB                waitVBlanks
 waitVBlanks         PUSH
 
-waitVB_loop0        DECW    waitVBlankNum
-                    LDW     waitVBlankNum
+waitVB_loop0        DECWA   waitVBlankNum
                     BGE     waitVB_vblank
                     POP
                     RET
@@ -225,7 +224,7 @@ drawLineExt         MOVB    drawLine_x1, drawLine_xy1
                     SUBW    drawLine_sx
                     BLE     drawL_num
                     MOVQW   drawLine_dx2, 0                     ; if(sx < sy) dx2 = 0
-                    XCHGB    drawLine_sx, drawLine_sy            ; swap sx and sy, high bytes are always 0
+                    XCHGB   drawLine_sx, drawLine_sy            ; swap sx and sy, high bytes are always 0
                     LDW     drawLine_h
                     BLE     drawL_num
                     MOVQW   drawLine_dy2, 1                     ; if(h > 0) dy2 = 1
@@ -384,7 +383,7 @@ drawVTLineExt       MOVB    drawLine_x1, drawLine_xy1
                     BLE     drawVTL_num
                     MOVQW   drawLine_dx2, 0                     ; if(sx < sy) dx2 = 0
                     LDI     drawLine_sx
-                    XCHGB    drawLine_sy                         ; swap sx with sy
+                    XCHGB   drawLine_sx, drawLine_sy            ; swap sx and sy, high bytes are always 0
                     LDW     drawLine_h
                     BLE     drawVTL_num
                     MOVQW   drawLine_dy2, 1                     ; if(h > 0) dy2 = 1
@@ -466,8 +465,7 @@ drawC_skip          LDW     drawCircle_x
                     STW     drawCircle_d
                     DECW    drawCircle_y
 
-drawC_cont          INC     drawCircle_x
-                    LDW     drawCircle_x
+drawC_cont          INCWA   drawCircle_x
                     SUBW    drawCircle_y
                     BLE     drawC_loop
 

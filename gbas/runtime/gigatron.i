@@ -144,7 +144,7 @@ SYS_LoaderNextByteIn_32         EQU     0x1a6d
 SYS_LoaderProcessInput_64       EQU     0x1a82
 SYS_LoaderPayloadCopy_34        EQU     0x1ac0
 SYS_Unpack_56                   EQU     0x1ad4
-
+ 
 giga_Black                      EQU     0x00
 giga_DarkRed                    EQU     0x01
 giga_Red                        EQU     0x02

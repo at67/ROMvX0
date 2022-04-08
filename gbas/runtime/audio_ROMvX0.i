@@ -16,14 +16,14 @@ musicPtr            EQU     register11
 
 
 %SUB                resetAudio
-resetAudio          FREQZ   0                                   ; turn off channel 0
-                    FREQZ   1                                   ; turn off channel 1
-                    FREQZ   2                                   ; turn off channel 2
-                    FREQZ   3                                   ; turn off channel 3
-                    MODZ    0                                   ; vol = 0, wav = 2 for channel 0
-                    MODZ    1                                   ; vol = 0, wav = 2 for channel 1
-                    MODZ    2                                   ; vol = 0, wav = 2 for channel 2
-                    MODZ    3                                   ; vol = 0, wav = 2 for channel 3
+resetAudio          FREQZI  0                                   ; turn off channel 0
+                    FREQZI  1                                   ; turn off channel 1
+                    FREQZI  2                                   ; turn off channel 2
+                    FREQZI  3                                   ; turn off channel 3
+                    MODZI   0                                   ; vol = 0, wav = 2 for channel 0
+                    MODZI   1                                   ; vol = 0, wav = 2 for channel 1
+                    MODZI   2                                   ; vol = 0, wav = 2 for channel 2
+                    MODZI   3                                   ; vol = 0, wav = 2 for channel 3
                     RET
 %ENDS
 
@@ -54,8 +54,7 @@ setMidiStream       LDWI    _midisLut_
 playMidi            LDW     midiStream
                     BEQ     playM_exit0                         ; 0x0000 = stop
                     MOVQB   giga_soundTimer, 5                  ; keep pumping soundTimer
-                    DECW    midiDelay
-                    LDW     midiDelay
+                    DECWA   midiDelay
                     BLE     playM_start
                     
 playM_exit0         RET
@@ -68,7 +67,7 @@ playM_process       PEEKV   midiStream                          ; get midi strea
                     ANDI    0xF0                    
                     XORI    0x90                                ; check for start note
                     BNE     playM_endnote
-    
+
                     CALLI   midiStartNote                       ; start note
                     BRA     playM_process
                     
@@ -79,7 +78,7 @@ playM_endnote       XORI    0x10                                ; check for end 
 
 playM_segment       XORI    0x50                                ; check for new segment
                     BNE     playM_delay
-    
+
                     DEEKV   midiStream                          ; midi score
                     STW     midiStream                          ; 0xD0 new midi segment address
                     BEQ     playM_exit1                         ; 0x0000 = stop
@@ -96,8 +95,7 @@ playM_exit1         POP
 playMidiVol         LDW     midiStream
                     BEQ     playMV_exit0                        ; 0x0000 = stop
                     MOVQB   giga_soundTimer, 5                  ; keep pumping soundTimer
-                    DECW    midiDelay
-                    LDW     midiDelay
+                    DECWA   midiDelay
                     BLE     playMV_start
 
 playMV_exit0        RET
@@ -110,7 +108,7 @@ playMV_process      PEEKV   midiStream                          ; get midi strea
                     ANDI    0xF0
                     XORI    0x90                                ; check for start note
                     BNE     playMV_endnote
-    
+                    
                     CALLI   midiStartNote                       ; start note
                     CALLI   midiSetVolume                       ; set note volume
                     BRA     playMV_process
@@ -122,7 +120,7 @@ playMV_endnote      XORI    0x10                                ; check for end 
 
 playMV_segment      XORI    0x50                                ; check for new segment
                     BNE     playMV_delay
-    
+
                     DEEKV   midiStream                          ; midi score
                     STW     midiStream                          ; 0xD0 new midi segment address
                     BEQ     playMV_exit1                        ; 0x0000 = stop
@@ -145,10 +143,6 @@ midiStartNote       PEEKV   midiStream                          ; midi note
 midiSetVolume       PEEKV   midiStream
                     VOLM    midiCommand                         ; wavA address 0x01FA <-> 0x04FA
                     INCW    midiStream                          ; midiStream++
-                    RET
-                    
-midiEndNote         LDI     0                                   ; freq address 0x01FC <-> 0x04FC
-                    FREQM   midiCommand                         ; end note
                     RET
 %ENDS
 
@@ -204,10 +198,10 @@ musicPlayNote       FREQM   musicCommand                        ; set channel fr
 %ENDS
 
 %SUB                soundAllOff
-soundAllOff         FREQZ   0                                   ; turn off channel 0
-                    FREQZ   1                                   ; turn off channel 1
-                    FREQZ   2                                   ; turn off channel 2
-                    FREQZ   3                                   ; turn off channel 3
+soundAllOff         FREQZI  0                                   ; turn off channel 0
+                    FREQZI  1                                   ; turn off channel 1
+                    FREQZI  2                                   ; turn off channel 2
+                    FREQZI  3                                   ; turn off channel 3
                     RET
 %ENDS
 
