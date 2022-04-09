@@ -7,4 +7,4 @@ Gigatron TTL ROMvX0 firmware, associated tools and examples.
 
 
 ## PRIVATE
-This ia PRIVATE REPO, please do NOT share any aspect of it with anyone until it is finally released!
+This is PRIVATE REPO, please do NOT share any aspect of it with anyone until it is finally released!
