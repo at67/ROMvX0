@@ -13,7 +13,7 @@ romType             EQU     register1                       ; actual romType
 romExec_vLR         EQU     register0
 romReadAddr         EQU     register0
 romErrAddr          EQU     0x7E                            ; loader happy constant address
-vramErrAddr         EQU     0x4450
+vramErrAddr         EQU     0x0101
 
 romErrAddr          DW      vramErrAddr
 
@@ -41,9 +41,9 @@ romC_check          LDW     romType                         ; non experimental R
                     gprintf("Wrong ROM version, you asked for 0x%2X, you have 0x%2X", *romUser, *romType)
 romC_fail           LSLW                                    ; dummy instruction that gprintf can attach to
 
-romC_f0             LD      giga_frameCount
-                    POKE    romErrAddr
-                    BRA     romC_f0                         ; flash center pixel indicating rom error
+romC_f0             LD      giga_rand0
+                    POKE    romErrAddr                      ; random horizontal scroll
+                    BRA     romC_f0
                     
 romC_return         RET
 %ENDS
