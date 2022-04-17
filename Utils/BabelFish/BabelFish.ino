@@ -1082,6 +1082,7 @@ void doSDFileTransfer(char *filename, bool serialEnabled)
     //    Serial.println(F(":Sending from SD card"));
 #endif
 #if sdChipSelectPin >= 0
+    SD.begin(sdChipSelectPin);
     File dataFile = SD.open(filename);
     if(!dataFile)
     {
@@ -1214,7 +1215,7 @@ void doSDDirPayload()
 void doPrintSDFiles()
 {
 #if hasSerial and sdChipSelectPin >= 0
-    Serial.println(F(":Files:"));
+    SD.begin(sdChipSelectPin);
     File root = SD.open("/");
     File current;
     while(current = root.openNextFile())
@@ -1222,6 +1223,11 @@ void doPrintSDFiles()
         if(!current.isDirectory())
         {
             Serial.print(F(": File: "));
+            Serial.println(current.name());
+        }
+        else
+        {
+            Serial.print(F(": Dir: "));
             Serial.println(current.name());
         }
         current.close();
