@@ -527,7 +527,7 @@ void loop()
                         cmdSDCard = CmdSDEnd;
 
                         // Need to delay to make sure Gigatron's ROM loader is active
-                        delay(150); 
+                        //delay(250); 
 
                         // Terminate string and reset pointer
                         *namePtr = 0;
@@ -535,8 +535,8 @@ void loop()
 
                         // Files in root and sub dirs are treated differently
                         String pathFile = (dirDepthSD == 0) ? pathSD + filename : pathSD + "/" + filename;
-                        //Serial.println(pathFile);
-                        doSDFileTransfer((char*)pathFile.c_str(), false);
+                        Serial.println(pathFile);
+                        doSDFileTransfer((char*)pathFile.c_str(), true, false);
                     }
                 }
                 break;
@@ -814,27 +814,27 @@ void doCommand(char line[])
     int arg = line[0] ? atoi(&line[1]) : 0;
     switch(toupper(line[0]))
     {
-        case 'V': doVersion();                              break;
-        case 'H': doHelp();                                 break;
-        case 'R': doReset(arg);                             break;
-        case 'L': doLoader();                               break;
-        case 'M': doMapping();                              break;
-        case 'P': doProgmemFileTransfer(arg);               break;
-        case 'U': doTransfer(readNextSerial, askSerial);    break;
-        case 'K': doSDFileTransfer(&line[1], true);         break;
-        case 'J': doPrintSDFiles();                         break;
-        case '.': doLine(&line[1]);                         break;
-        case 'C': doEcho(!echo);                            break;
-        case 'T': doTerminal();                             break;
-        case 'W': sendController(~buttonUp, 2);             break;
-        case 'A': sendController(~buttonLeft, 2);           break;
-        case 'S': sendController(~buttonDown, 2);           break;
-        case 'D': sendController(~buttonRight, 2);          break;
-        case 'Z': sendController(~buttonA & 255, 2);        break;
-        case 'X': sendController(~buttonB, 2);              break;
-        case 'Q': sendController(~buttonSelect, 2);         break;
-        case 'E': sendController(~buttonStart, 2);          break;
-        case 0: /* Empty line */                            break;
+        case 'V': doVersion();                            break;
+        case 'H': doHelp();                               break;
+        case 'R': doReset(arg);                           break;
+        case 'L': doLoader();                             break;
+        case 'M': doMapping();                            break;
+        case 'P': doProgmemFileTransfer(arg);             break;
+        case 'U': doTransfer(readNextSerial, askSerial);  break;
+        case 'K': doSDFileTransfer(&line[1], true, true); break;
+        case 'J': doPrintSDFiles(&line[1]);               break;
+        case '.': doLine(&line[1]);                       break;
+        case 'C': doEcho(!echo);                          break;
+        case 'T': doTerminal();                           break;
+        case 'W': sendController(~buttonUp, 2);           break;
+        case 'A': sendController(~buttonLeft, 2);         break;
+        case 'S': sendController(~buttonDown, 2);         break;
+        case 'D': sendController(~buttonRight, 2);        break;
+        case 'Z': sendController(~buttonA & 255, 2);      break;
+        case 'X': sendController(~buttonB, 2);            break;
+        case 'Q': sendController(~buttonSelect, 2);       break;
+        case 'E': sendController(~buttonStart, 2);        break;
+        case 0: /* Empty line */                          break;
 
         default:
 #if hasSerial
@@ -946,10 +946,10 @@ void doReset(int n)
     Serial.println(F(":Resetting Gigatron"));
     Serial.flush();
 #endif
-    sendController(~buttonStart, n ? n : 160);
+    sendController(~buttonStart, n ? n : 175);
 
     // Wait for main menu to be ready
-    delay(1500);
+    delay(2500);
 }
 
 void doLoader()
@@ -960,11 +960,8 @@ void doLoader()
     Serial.flush();
 #endif
 
-    for(byte i = 0; i < 10; i++)
-    {
-        sendController(~buttonDown, 2);
-        delay(50);
-    }
+    sendController(~buttonRight, 2);
+    delay(150);
 
     // Start 'Loader' application on Gigatron
     sendController(~buttonA & 255, 2);
@@ -1075,23 +1072,40 @@ void doProgmemFileTransfer(int arg)
     }
 }
 
-void doSDFileTransfer(char *filename, bool serialEnabled)
+void doSDFileTransfer(char *filename, bool initGiga, bool serialEnabled)
 {
-#if hasSerial
-    //if(serialEnabled)
-    //    Serial.println(F(":Sending from SD card"));
-#endif
 #if sdChipSelectPin >= 0
     SD.begin(sdChipSelectPin);
-    File dataFile = SD.open(filename);
+    String file = filename;
+    file.trim();
+    File dataFile = SD.open(file);
     if(!dataFile)
     {
 #if hasSerial
-    //    if(serialEnabled)
-    //        Serial.println(F("!Not on SD"));
+        if(serialEnabled)
+        {
+            Serial.print(F(":Error : "));
+            Serial.print(file);
+            Serial.println(F(" : not on SD"));
+        }
 #endif
         return;
     }
+
+    if(initGiga)
+    {
+        doReset(0);
+        doLoader();
+    }
+
+#if hasSerial
+    if(serialEnabled)
+    {
+        Serial.print(F(":Reading : "));
+        Serial.print(file);
+        Serial.println(F(" : from SD"));
+    }
+#endif
     transferFileSD = dataFile;
     doTransfer(readNextSD, NULL);
     dataFile.close();
@@ -1212,22 +1226,31 @@ void doSDDirPayload()
     nonCritical();
 }
 
-void doPrintSDFiles()
+void doPrintSDFiles(char *filepath)
 {
 #if hasSerial and sdChipSelectPin >= 0
     SD.begin(sdChipSelectPin);
-    File root = SD.open("/");
+    if(filepath == NULL  ||  *filepath == 0) filepath = "/";
+    String path = filepath;
+    path.trim();
+    File root = SD.open(path);
     File current;
+    if(path[0] != '/') path = '/' + path;
+    Serial.print(F(": Path: "));
+    Serial.println(path);
+    if(path[path.length()-1] != '/') path = path + '/';
     while(current = root.openNextFile())
     {
         if(!current.isDirectory())
         {
             Serial.print(F(": File: "));
+            Serial.print(path);
             Serial.println(current.name());
         }
         else
         {
             Serial.print(F(": Dir: "));
+            Serial.print(path);
             Serial.println(current.name());
         }
         current.close();
@@ -1352,7 +1375,7 @@ void doTransfer(int(*readNext)(), void(*ask)(int))
     }
 #endif
 
-    if(ask)ask(3);
+    if(ask) ask(3);
 
     nextByte = readNext();
     word address = nextByte;
@@ -1365,7 +1388,7 @@ void doTransfer(int(*readNext)(), void(*ask)(int))
         nextByte = readNext();
         int len = nextByte ? nextByte : 256;
 
-        if(ask)ask(len);
+        if(ask) ask(len);
 
         // Copy data into send buffer
         for(int i = 0; i < len; i++)
@@ -1394,7 +1417,7 @@ void doTransfer(int(*readNext)(), void(*ask)(int))
         sendGt1Segment(address, len);
 
         // Signal that we're ready to receive more
-        if(ask)ask(3);
+        if(ask) ask(3);
         nextByte = readNext();
         address = nextByte;
 
