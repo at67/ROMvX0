@@ -16,6 +16,8 @@ varCount            EQU     register14
 clrAddress          EQU     register13
 clrLines            EQU     register14
 clrWidth            EQU     register15
+ramAddr             EQU     register14
+ramCount            EQU     register15
 
 
 %SUB                resetVars
@@ -25,8 +27,14 @@ resetVars           LDI     giga_One
                     LSRB    varCount                            ; (0x0080 - varAddress)/2
                     LDI     0
                     
-resetV_loop         DOKE+   varAddress
+resetV_loop         DOKEV+  varAddress
                     DBNE    varCount, resetV_loop
+                    RET
+%ENDS
+
+%SUB                resetMem
+resetMem            POKEV+  ramAddr
+                    DJNE    ramCount, resetMem
                     RET
 %ENDS
 
@@ -45,7 +53,7 @@ resetVideoTable     PUSH
                     MOVQB   vtbLines, 120
     
 resetVT_loop        LDW     vramAddr
-                    DOKE+   evenAddr
+                    DOKEV+  evenAddr
                     INC     vramAddr
                     DBNE    vtbLines, resetVT_loop
                     CALLI   resetVideoFlags

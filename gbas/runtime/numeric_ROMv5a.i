@@ -65,7 +65,8 @@ integerCl_A1        LDW     intSrcA
 
 %SUB                integerStr
                     ; converts a string to a +/- integer, assumes string pointer is pointing to first char and not the string length, (no overflow or underflow checks)
-integerStr          LDI     0
+integerStr          STW     intSrcAddr
+                    LDI     0
                     ST      intNegative
                     STW     intResult
                     LDW     intSrcAddr

@@ -4,8 +4,6 @@ _codeRomType_ ROMvX0
 mode 3
 cls
 
-init time
-
 set FGBG_COLOUR, &h0000
 const colours = &h0600
 def byte(colours) = &h00, &h10, &h20, &h30, &h34, &h38, &h3c, &h0c, &h0d, &h0e, &h0f, &h0b, &h07, &h03, &h02, &h01
@@ -61,6 +59,8 @@ break:
     next px
     cy = cy + dy
 next py
-ticks = get("TIMER")
+jiffies = get("JIFFIES")
+seconds = get("TIMER")
+
 set FGBG_COLOUR, &h3F00
-at 50, 56 : print ticks/60;" ";ticks % 60;"/60"
+at 50, 56 : print seconds;" ";jiffies;"/60"

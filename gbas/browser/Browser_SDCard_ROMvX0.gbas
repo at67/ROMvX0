@@ -2,6 +2,7 @@ _runtimePath_ "../runtime"
 _runtimeStart_ &h7FFF
 _codeRomType_ ROMvX0
 
+module "../SymbolTable.m"
 
 const sysArg0 = &h24
 const sysArg7 = &h2B
@@ -12,6 +13,7 @@ const MAX_FILES     = 100
 const PAYLOAD_SIZE  = 63
 const PROTOCOL_SIZE = 1 + 1 + PAYLOAD_SIZE
 const PACKET_SIZE   = 1 + 1 + 12 + 1
+const MAX_LINES     = 20
 
 const CmdSDList  = 1
 const CmdSDExec  = 2
@@ -24,7 +26,8 @@ const EntryFile  = 1
 const EntryDir   = 2
 const EntryError = 3
 
-def execAddr, commsAddr, commsSize, commsRetn, browserIdx, browserY, cursorY, cursOldY, isLast, length, runStrAddr, execRtn, waitRtn
+
+def commsAddr, commsSize, commsRetn, browserIdx, browserY, cursorY, cursOldY, isLast, length, runStrAddr, execRtn, waitRtn
 
 runName$ = ""
 execName$ = ""
@@ -35,8 +38,6 @@ dim buffer%(PROTOCOL_SIZE-1) = 0
 dim browser%(MAX_FILES-1, PACKET_SIZE-1)
 
 
-gosub findLoader
-    
 restart:
 
 gosub initialise
@@ -48,7 +49,7 @@ repeat
     gosub listSDCard
     gosub loadDir
     gosub fillBrowser
-until &(isLast)
+until isLast
 
 gosub closeSDCard
 gosub printBrowser
@@ -59,30 +60,11 @@ repeat
     wait
 
     gosub handleInput
-    if &(execRtn) then goto &restart
+    if execRtn then goto &restart
 
     inc f.lo
 &forever
 end
-
-
-findLoader:
-    execAddr = 0
-    repeat
-        'create name string
-        execAddr = get("ROM_READ_DIR", execAddr)
-        if (execAddr)
-            poke @execName$, 6
-            for j=sysArg0 &to sysArg7
-                poke @execName$ + j - (sysArg0 - 1), peek(j)
-            next j
-            if left$(execName$, 6) = "Loader" then return
-        endif
-    until execAddr = 0
-
-    print "Loader not found!"
-    end
-return
 
 
 sendCommsCmd:
@@ -170,8 +152,8 @@ return
 
 
 printBrowser:
-    startY = max(min(browserY, browserIdx-15), 0)
-    endY = min(browserY+14, browserIdx-1)
+    startY = max(min(browserY, browserIdx-MAX_LINES), 0)
+    endY = min(browserY+(MAX_LINES-1), browserIdx-1)
     for i=startY &to endY
         strAddr = addr(browser(i, 0)) + 1
         strLen = peek(strAddr)
@@ -190,8 +172,14 @@ printBrowser:
                 set FGBG_COLOUR, &h2A20
             endif
         endif
-        if (i - browserY) >= 0
-            at 2, (i - browserY) LSL 3
+        ii = i - browserY 'multiply by 6 to get to correct row for font4x6
+        if ii >= 0
+            asm
+                LD  _ii
+                MULB6
+                ST  cursorXY + 1
+            endasm
+            at 2
             print string$(strAddr);spc$(12 - strLen);
         endif
     next i
@@ -199,7 +187,7 @@ return
 
 
 updateBrowser:
-    startY = max(min(browserY, browserIdx-15), 0)
+    startY = max(min(browserY, browserIdx-MAX_LINES), 0)
 
     prevY = startY + cursOldY
     prevAddr = addr(browser(prevY, 0)) + 1
@@ -209,8 +197,14 @@ updateBrowser:
         set FGBG_COLOUR, &h3F20
     else
         set FGBG_COLOUR, &h2A20
-    endif        
-    at 2, (prevY - startY) LSL 3
+    endif
+    yy = prevY - startY 'multiply by 6 to get to correct row for font4x6
+    asm
+        LD  _yy
+        MULB6
+        ST  cursorXY + 1
+    endasm
+    at 2
     print string$(prevAddr);spc$(12 - prevLen);
     cursOldY = cursorY
 
@@ -222,8 +216,14 @@ updateBrowser:
         set FGBG_COLOUR, &h203F
     else
         set FGBG_COLOUR, &h202A
-    endif        
-    at 2, (currY - startY) LSL 3
+    endif 
+    yy = currY - startY 'multiply by 6 to get to correct row for font4x6
+    asm
+        LD  _yy
+        MULB6
+        ST  cursorXY + 1
+    endasm
+    at 2
     print string$(currAddr);spc$(12 - currLen);
     runStrAddr = currAddr
 return
@@ -266,11 +266,11 @@ execApp:
     for i=1 &to len + 1
         poke @commsCmd + i, peek(@runName$ + i)
     next i
-    set FGBG_COLOUR, &h0F20 : cls INIT : cls
-    print "Loading..."
+    'print "Loading..."
+    set FGBG_COLOUR, &hFF00 : cls INIT : cls : tfnt4x6 off
     commsSize = 1 + len + 1
     gosub sendCommsCmd
-    exec execAddr, &h00A8
+    'exec Loader, &h00A8
 return
 
 
@@ -299,26 +299,26 @@ return
         return
 
 'right
-254:    browserY = browserY + 15
-        browserY = max(min(browserY, browserIdx-15), 0)
+254:    browserY = browserY + MAX_LINES
+        browserY = max(min(browserY, browserIdx-MAX_LINES), 0)
         gosub printBrowser
         return
 
 'left
-253:    browserY = browserY - 15
+253:    browserY = browserY - MAX_LINES
         browserY = max(browserY, 0)
         gosub printBrowser
         return
      
 'down     
 251:    inc cursorY.lo
-        if cursorY > min(browserIdx - 1, 14) then cursorY = 0
+        if cursorY > min(browserIdx - 1, (MAX_LINES-1)) then cursorY = 0
         gosub updateBrowser
         return
 
 'up
 247:    dec cursorY
-        if cursorY < 0 then cursorY = min(browserIdx - 1, 14)
+        if cursorY < 0 then cursorY = min(browserIdx - 1, (MAX_LINES-1))
         gosub updateBrowser
         return
 
@@ -393,9 +393,9 @@ return
 
 
 initialise:
-    init vars @commsSize
+    clear vars, @commsSize
     gosub getLoaderNextByte
     commsAddr = @commsCmd
 
-    mode 2 : set FGBG_COLOUR, &h3F20 : cls INIT : cls
+    mode 2 : set FGBG_COLOUR, &h3F20 : cls INIT : cls : tfnt4x6 on
 return

@@ -15,18 +15,14 @@
 %ENDM
 
 %MACRO  LutPeek _lut _index
-        LDWI    _lut
-        DEEK
+        LDWM    _lut
         ADDW    _index
         PEEK
 %ENDM
 
 %MACRO  LutDeek _lut _index _scratch
-        LDWI    _lut
-        DEEK
-        ADDW    _index
-        ADDW    _index
-        DEEK
+        LDWM    _lut
+        DEEKR   _index
 %ENDM
 
 %MACRO  ForNextInc _var _label _end
@@ -56,28 +52,32 @@
         DBNE    _var, _label
 %ENDM
 
+%MACRO  ForNextDJNE _var _label
+        DJNE    _var, _label
+%ENDM
+
 %MACRO  ForNextDecOne _var _label
-        DECWA   _var
-        JNE     _label
+        DBNE    _var, _label
 %ENDM
 
 %MACRO  ForNextFarDecOne _var _label
-        DECWA   _var
-        JNE     _label
+        DJNE    _var, _label
 %ENDM
 
 %MACRO  ForNextDBGE _var _label
         DBGE    _var, _label
 %ENDM
 
+%MACRO  ForNextDJGE _var _label
+        DJGE    _var, _label
+%ENDM
+
 %MACRO  ForNextDecZero _var _label
-        DECWA   _var
-        JGE     _label
+        DBGE    _var, _label
 %ENDM
 
 %MACRO  ForNextFarDecZero _var _label
-        DECWA   _var
-        JGE     _label
+        DJGE    _var, _label
 %ENDM
 
 %MACRO  ForNextFarInc _var _label _end
@@ -197,6 +197,11 @@
 
 %MACRO  AtTextCursor
         CALLI   atTextCursor
+%ENDM
+
+%MACRO  TextWidth
+        STW     textLen
+        CALLI   textWidth
 %ENDM
 
 %MACRO  Input
@@ -345,13 +350,12 @@
         CALLI   integerStr
 %ENDM
 
-%MACRO  Absolute id
-        BGE     _id_ + 3
-_id_    NEGW    giga_vAC
+%MACRO  Absolute
+        ABSW
 %ENDM
 
 %MACRO  Sign
-        CALLI   sign
+        SGNW
 %ENDM
 
 %MACRO  IntMin
@@ -395,7 +399,7 @@ _id_    LDW     v1
 %ENDM
 
 %MACRO  Rand
-        CALLI   rand16bit
+        RANDW
 %ENDM
 
 %MACRO  RandMod
@@ -517,13 +521,11 @@ _id_    LDW     v1
 %ENDM
 
 %MACRO  ReadPixel
-        MOVQW   giga_sysFn, SYS_ReadPixel_vX_32
-        SYS     32
+        LDPX
 %ENDM
 
-%MACRO  DrawPixel
-        MOVQW   giga_sysFn, SYS_DrawPixel_vX_30
-        SYS     30
+%MACRO  DrawPixel colour
+        STPX    colour
 %ENDM
 
 %MACRO  DrawLine
@@ -727,27 +729,31 @@ _id_    LDW     v1
         JEQ     _label
 %ENDM
 
-%MACRO  JumpEQ _label
+%MACRO  JumpTrue _label
         JNE     _label
 %ENDM
 
-%MACRO  JumpNE _label
+%MACRO  JumpEQ _label                                   ; inverted logic
+        JNE     _label
+%ENDM
+
+%MACRO  JumpNE _label                                   ; inverted logic
         JEQ     _label
 %ENDM
 
-%MACRO  JumpLE _label
+%MACRO  JumpLE _label                                   ; inverted logic
         JGT     _label
 %ENDM
 
-%MACRO  JumpGE _label
+%MACRO  JumpGE _label                                   ; inverted logic
         JLT     _label
 %ENDM
 
-%MACRO  JumpLT _label
+%MACRO  JumpLT _label                                   ; inverted logic
         JGE     _label
 %ENDM
 
-%MACRO  JumpGT _label
+%MACRO  JumpGT _label                                   ; inverted logic
         JLE     _label
 %ENDM
 
@@ -791,10 +797,20 @@ _id_    LDW     v1
         CALLI   copyDWordsFar
 %ENDM
 
-%MACRO  ResetVars
+%MACRO  ResetVars _addr
+        MOVQW   varAddress, _addr
         CALLI   resetVars
 %ENDM
 
+%MACRO  ResetMem _memAddr _memCount
+        LDWI    _memAddr
+        STW     ramAddr
+        LDWI    _memCount
+        STW     ramCount
+        LDI     0
+        CALLI   resetMem
+%ENDM
+        
 %MACRO  ScrollV
         CALLI   scrollV
 %ENDM
@@ -822,9 +838,14 @@ _id_    LDW     v1
         LDWI    0x0F20
         STW     fgbgColour                          ; yellow on blue
 
+        ORBI    giga_channelMask, 0x03              ; enable 4 channel audio by default
+        
         MOVQW   miscFlags, MISC_ENABLE_SCROLL_BIT   ; reset flags
         MOVQW   frameCountPrev, 0                   ; reset frameCount shadow var
         MOVQW   midiStream, 0                       ; reset MIDI
         
+        MOVQB   giga_jiffiesTick, 0                 ; reset Jiffies
+        MOVQW   giga_secondsTickLo, 0               ; reset Seconds
+
         CALLI   resetVideoFlags
 %ENDM

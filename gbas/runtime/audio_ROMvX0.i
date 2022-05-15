@@ -16,14 +16,20 @@ musicPtr            EQU     register11
 
 
 %SUB                resetAudio
-resetAudio          FREQZI  0                                   ; turn off channel 0
-                    FREQZI  1                                   ; turn off channel 1
-                    FREQZI  2                                   ; turn off channel 2
-                    FREQZI  3                                   ; turn off channel 3
-                    MODZI   0                                   ; vol = 0, wav = 2 for channel 0
-                    MODZI   1                                   ; vol = 0, wav = 2 for channel 1
-                    MODZI   2                                   ; vol = 0, wav = 2 for channel 2
-                    MODZI   3                                   ; vol = 0, wav = 2 for channel 3
+resetAudio          LDI     0
+                    FREQI   0                                   ; zero freq 0
+                    FREQI   1                                   ; zero freq 1
+                    FREQI   2                                   ; zero freq 2
+                    FREQI   3                                   ; zero freq 3
+                    OSCZ    0                                   ; turn off osc 0, (suppresses audio glitches)
+                    OSCZ    1                                   ; turn off osc 1, (suppresses audio glitches)
+                    OSCZ    2                                   ; turn off osc 2, (suppresses audio glitches)
+                    OSCZ    3                                   ; turn off osc 3, (suppresses audio glitches)
+                    LD      waveType + 1
+                    MODI   0                                    ; vol = 0, wav = <wavType + 1> for channel 0
+                    MODI   1                                    ; vol = 0, wav = <wavType + 1> for channel 1
+                    MODI   2                                    ; vol = 0, wav = <wavType + 1> for channel 2
+                    MODI   3                                    ; vol = 0, wav = <wavType + 1> for channel 3
                     RET
 %ENDS
 
@@ -43,9 +49,7 @@ resetMusic          PUSH
 %ENDS
 
 %SUB                setMidiStream
-setMidiStream       LDWI    _midisLut_
-                    ADDW    midiId
-                    ADDW    midiId
+setMidiStream       ARRVW   midiId, _midisLut_
                     DEEK
                     RET
 %ENDS
@@ -61,8 +65,7 @@ playM_exit0         RET
 
 playM_start         PUSH
 
-playM_process       PEEKV   midiStream                          ; get midi stream byte
-                    INCW    midiStream                          ; midiStream++
+playM_process       PEEKV+  midiStream                          ; get midi stream byte
                     ST      midiCommand
                     ANDI    0xF0                    
                     XORI    0x90                                ; check for start note
@@ -102,8 +105,7 @@ playMV_exit0        RET
 
 playMV_start        PUSH
 
-playMV_process      PEEKV   midiStream                          ; get midi stream byte
-                    INCW    midiStream                          ; midiStream++
+playMV_process      PEEKV+  midiStream                          ; get midi stream byte
                     ST      midiCommand
                     ANDI    0xF0
                     XORI    0x90                                ; check for start note
@@ -134,15 +136,13 @@ playMV_exit1        POP
 %ENDS
 
 %SUB                midiStartNote
-midiStartNote       PEEKV   midiStream                          ; midi note
+midiStartNote       PEEKV+  midiStream                          ; midi note
                     MIDI                                        ; ROM note
                     FREQM   midiCommand                         ; freq address 0x01FC <-> 0x04FC
-                    INCW    midiStream                          ; midiStream++
                     RET
 
-midiSetVolume       PEEKV   midiStream
+midiSetVolume       PEEKV+  midiStream
                     VOLM    midiCommand                         ; wavA address 0x01FA <-> 0x04FA
-                    INCW    midiStream                          ; midiStream++
                     RET
 %ENDS
 
@@ -156,12 +156,12 @@ midiGetNote         LD      musicNote
 %SUB                playMusic
 playMusic           PUSH
                     
-playN_process       PEEK+   musicStream                         ; get music stream byte
+playN_process       PEEKV+  musicStream                         ; get music stream byte
                     ST      musicCommand
                     ANDI    0xF0
                     XORI    0x90                                ; check for start note
                     BNE     playN_endnote
-                    PEEK+   musicStream                         ; get music note
+                    PEEKV+  musicStream                         ; get music note
                     MIDI                                        ; get midi note from ROM
                     FREQM   musicCommand
                     BRA     playN_process
@@ -198,10 +198,11 @@ musicPlayNote       FREQM   musicCommand                        ; set channel fr
 %ENDS
 
 %SUB                soundAllOff
-soundAllOff         FREQZI  0                                   ; turn off channel 0
-                    FREQZI  1                                   ; turn off channel 1
-                    FREQZI  2                                   ; turn off channel 2
-                    FREQZI  3                                   ; turn off channel 3
+soundAllOff         LDI     0
+                    FREQI   0                                   ; turn off channel 0
+                    FREQI   1                                   ; turn off channel 1
+                    FREQI   2                                   ; turn off channel 2
+                    FREQI   3                                   ; turn off channel 3
                     RET
 %ENDS
 

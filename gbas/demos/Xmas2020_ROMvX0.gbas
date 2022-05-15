@@ -9,8 +9,8 @@ _blitStripeChunks_ 15, &h3EA0, &h7FFF, descending
 free STRINGWORKAREA
 
 
-const numPixels = 32 'yxDelay, yxPixel and yxPos addresses need to be adjusted accordingly
-const yxDelay = &h05C0 'need space for at least numPixels * sizeof(byte)
+const numPixels = 48 'yxDelay, yxPixel and yxPos addresses need to be adjusted accordingly
+const yxDelay = &h05A0 'need space for at least numPixels * sizeof(byte)
 const yxPixel = &h0600 'need space for at least numPixels * sizeof(word)
 const yxPos   = &h0680 'need space for at least numPixels * sizeof(word)
 const yTop    = 23
@@ -41,18 +41,18 @@ load blit, ../../res/image/Xmas2020/Rudolph5.tga, 5
 
 'scrolling has to happen immediately after vertical blank or glitches ensue, so attach scroll sub before midi player
 init scrollSanta, MIDI
-
-def frame, cont, yxd, anim0, anim1, scrollTmp
+    
+def flip, frame, f, cont, yxd, anim0, anim1, scrollTmp
 
 gosub initialise
     
 
 loop:
-    flip = frame AND 1
+    flip.lo = frame.lo AND 1
     
     for i=0 &to (numPixels-1)*2 step 2
         gosub delayPixel
-        if &(cont) then continue
+        if cont then continue
         
         yx = deek(yxPos + i)
         update = yx.hi AND &h80
@@ -60,16 +60,16 @@ loop:
         yx.lo = (yx.lo AND &hFE) + ((yx.hi AND 4) LSR 2) 'jitter position
         
         poke yxPixel + i + flip, peek(yx)
-        if &(update)
-            f = flip XOR 1
+        if update
+            f.lo = flip.lo XOR 1
             gosub jitterPixel
         endif
         poke yx, &h3F
         
         inc yx.hi
         update = &h8000
-        if yx.hi &&= yEnd + 8
-            f = flip
+        if yx.hi = yEnd + 8
+            f.lo = flip.lo
             gosub jitterPixel
             gosub resetPixel
         endif
@@ -84,8 +84,8 @@ continue:
     'animate the dodgey rudolph's
     inc anim0.lo
     inc anim1.lo
-    if anim0 &&= 12 then anim0 = 0
-    if anim1 &&= 12 then anim1 = 0
+    if anim0 = 12 then anim0 = 0
+    if anim1 = 12 then anim1 = 0
     a0 = anim0.lo LSR 1
     a1 = anim1.lo LSR 1
     blit noFlip, a0, 193, 0
@@ -127,7 +127,7 @@ delayPixel:
     i2 = i LSR 1
     yxd = yxDelay + i2
     d = peek(yxd)
-    if &(d)
+    if d
         cont = 1
         dec d
         poke yxd, d
@@ -137,11 +137,8 @@ return
 initialise:
     mode 2
     
-    frame = 0 : cont = frame : yxd = cont : anim0 = yxd
+    clear vars, &h36
     anim1 = 6
 
-    'audio fix for ROMv5a
-    poke &h21, peek(&h21) OR 3
-    
     play MIDI, &h20A0, 3
 return

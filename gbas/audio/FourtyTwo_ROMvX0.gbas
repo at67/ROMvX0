@@ -2,7 +2,7 @@
 '*NOTE* the timing is off and it doesn't sound exactly the same as the original
 'http://countercomplex.blogspot.com/2011/10/some-deep-analysis-of-one-line-music.html
 
-_runtimePath_ "../../runtime"
+_runtimePath_ "../runtime"
 _runtimeStart_ &h7FFF
 _codeRomType_ ROMvX0
 _enable8BitAudioEmu_ ON 'experimental
@@ -40,7 +40,7 @@ repeat
         poke &h0702 + (i LSL 2), s 'modify waveform 2
         asm
             LD      _s
-            POKE+   _smpsAddr
+            POKEV+  _smpsAddr
         endasm
         s = s + (tr9 AND 42) 
     next i

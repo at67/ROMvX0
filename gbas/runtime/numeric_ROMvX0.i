@@ -50,8 +50,7 @@ integerClamp        STW     intSrcB
                     BGE     integerCl_X
                     BRA     integerCl_A0
 
-integerCl_X         LDW     intSrcX
-                    STW     intSrcA
+integerCl_X         MOVWA   intSrcX, intSrcA
 
 integerCl_A0        LDW     intSrcA
                     SUBW    intSrcB
@@ -65,7 +64,8 @@ integerCl_A1        LDW     intSrcA
 
 %SUB                integerStr
                     ; converts a string to a +/- integer, assumes string pointer is pointing to first char and not the string length, (no overflow or underflow checks)
-integerStr          LDI     0
+integerStr          STW     intSrcAddr
+                    LDI     0
                     ST      intNegative
                     STW     intResult
                     PEEKV   intSrcAddr
@@ -105,7 +105,7 @@ bcdAdd              ST      bcdLength
                     
 bcdA_loop           PEEKV   bcdDstAddr                          ; expects unpacked byte values 0 to 9
                     STW     bcdDstData
-                    PEEKV   bcdSrcAddr                          ; expects unpacked byte values 0 to 9
+                    PEEKV+  bcdSrcAddr                          ; expects unpacked byte values 0 to 9
                     ADDW    bcdDstData
                     ADDW    bcdCarry
                     STW     bcdDstData
@@ -120,9 +120,7 @@ bcdA_nc             LDI     0
 bcdA_cont           STW     bcdCarry
           
                     LDW     bcdDstData
-                    POKE    bcdDstAddr                          ; modifies dst bcd value
-                    INC     bcdDstAddr
-                    INC     bcdSrcAddr
+                    POKEV+  bcdDstAddr                          ; modifies dst bcd value
                     DBNE    bcdLength, bcdA_loop
                     RET
 %ENDS
@@ -132,7 +130,7 @@ bcdA_cont           STW     bcdCarry
 bcdSub              ST      bcdLength
                     MOVQW   bcdBorrow, 0
                     
-bcdS_loop           PEEKV   bcdSrcAddr                          ; expects unpacked byte values 0 to 9
+bcdS_loop           PEEKV+  bcdSrcAddr                          ; expects unpacked byte values 0 to 9
                     STW     bcdSrcData
                     PEEKV   bcdDstAddr                          ; expects unpacked byte values 0 to 9
                     SUBW    bcdSrcData
@@ -149,9 +147,7 @@ bcdS_nb             LDI     0
 bcdS_cont           STW     bcdBorrow
           
                     LDW     bcdDstData
-                    POKE    bcdDstAddr                          ; modifies dst bcd value
-                    INC     bcdDstAddr
-                    INC     bcdSrcAddr
+                    POKEV+  bcdDstAddr                          ; modifies dst bcd value
                     DBNE    bcdLength, bcdS_loop                ; expects src and dst lengths to be equal
                     RET
 %ENDS
@@ -166,12 +162,11 @@ bcdD_index          SUBW    bcdMult
                     INC     bcdDigit                            ; calculate digit
                     BRA     bcdD_index
     
-bcdD_cont           LD      bcdDigit
-                    POKE    bcdDstAddr                          ; store digit
-                    DECW    bcdDstAddr
+bcdD_cont           LDW     bcdDstAddr
+                    POKEA   bcdDigit                            ; store digit
+                    DECWA   bcdDstAddr
                     MOVQB   bcdDigit, 0                         ; reset digit
-                    
-bcdD_exit           RET
+                    RET                                         ; returns bcdDstAddr
 %ENDS
 
 %SUB                bcdInt
@@ -189,9 +184,8 @@ bcdInt              STW     bcdValue
                     LDI     100
                     CALLI   bcdDigits
                     LDI     10
-                    CALLI   bcdDigits
-                    LD      bcdValue
-                    POKE    bcdDstAddr
+                    CALLI   bcdDigits                           ; returns bcdDstAddr in vAC
+                    POKEA   bcdValue
                     POP
                     RET
 %ENDS
@@ -223,8 +217,8 @@ bcdC_lt             LDNI    1
 %SUB                bcdCpy
 bcdCpy              ST      bcdLength
 
-bcdCpy_loop         PEEK+   bcdSrcAddr
-                    POKE+   bcdDstAddr
+bcdCpy_loop         PEEKV+  bcdSrcAddr
+                    POKEV+  bcdDstAddr
                     DBNE    bcdLength, bcdCpy_loop              ; expects src and dst lengths to be equal
                     RET
 %ENDS

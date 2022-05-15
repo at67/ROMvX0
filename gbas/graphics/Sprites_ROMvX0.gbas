@@ -60,6 +60,7 @@ frame = 0 : anim = frame
 gosub initSprites
 
 repeat
+    poke &hB4, 0
     sprites draw, SH
 
     gosub updateSprites
@@ -78,7 +79,7 @@ convertVTableX:
     asm
         LDWI    SYS_ConvertVTableX_66
         STW     giga_sysFn
-        LDWI    _vtX_array
+        LDWI    _vtX
         STW     giga_sysArg0
         MOVQW   giga_sysArg2, 1         'sys_Args2=1, sys_Args3=0
         MOVQB   giga_sysArg4, 40        'sys call process 3 entries per loop, 120/3=40
@@ -116,13 +117,15 @@ updateSprites:
     if y.lo > 120-SH then y = 120-SH
     sprite move, 0, x, y
     
+    'skip player, (start index = 1)
     vec8 add, @xs, xAddr, NUM_SPRITES-1, 1
     vec8 chk, xAddr, onCheckBoundsX, 0, 161-SW, NUM_SPRITES-1, 1
     
+    'skip player, (start index = 1)
     vec8 add, @ys, yAddr, NUM_SPRITES-1, 1
     vec8 chk, yAddr, onCheckBoundsY, 10, 121-SH, NUM_SPRITES-1, 1
     
-    if frame.lo &= 16
+    if frame.lo = 16
         frame.lo = 0
         inc anim.lo
         anim.lo = anim.lo AND 15
@@ -139,8 +142,7 @@ toggleSprites:
     k = get("PS2_KEYBD")
     if (kk = 255) AND (k < 255)
         if (k >= 48) AND (k <= 55) '0 - 9
-            sh = k - 48
-            show(sh) = NOT show(sh)
+            sh = k - 48 : show(sh) = NOT show(sh)
             sprite show, sh, show(sh)
         endif
     endif

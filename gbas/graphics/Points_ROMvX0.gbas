@@ -7,11 +7,11 @@ gosub init
 
 loop:
     x = rnd(160) : y = rnd(60)
-    c = point(x, y) : if(c AND 0x80) &&= 0x80 then goto &loop
-    
+    c = point(x, y) : if (c AND 0x80) then goto loop
+
     pset 159-x, 119-y, c
     pset x, y, &h80
-goto &loop
+goto loop
 
 
 init:
@@ -24,7 +24,7 @@ init:
     print "_________________________"
     print
     set fg_colour, &h0C
-    print "  Random Pixel Flipping  "
+    print "  Random Pixel Flipping1 "
     set fg_colour, &h0F
     print "_________________________"
     print

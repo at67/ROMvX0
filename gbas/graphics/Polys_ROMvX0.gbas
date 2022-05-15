@@ -7,7 +7,8 @@ cls
 const POLYSIZE = 10
 dim poly%(POLYSIZE) = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255
 
-loop: 
+set TIMER, 0
+for j=100 &downto 0
     set FG_COLOUR, rnd(0) AND &h3F
 
     ox = rnd(160) : oy = rnd(120)
@@ -21,11 +22,10 @@ loop:
     poke @poly + 9, oy
     
     poly @poly
-    
-'key:    
-'    k = get("BUTTON_STATE") : if k = 255 then goto key
-'    set BUTTON_STATE, 255
-    
-    goto &loop
+next j
+jiffies = get("JIFFIES")
+seconds = get("TIMER")
 
+set FG_COLOUR, &h3F
+print : print seconds;" ";jiffies;"/60"
 end

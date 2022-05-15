@@ -84,9 +84,7 @@ setArrayByte        LDW     memAddr
 %SUB                getArrayInt16
                     ; get 16bit value from array
 getArrayInt16       LDW     memAddr
-                    ADDW    memIndex0
-                    ADDW    memIndex0
-                    DEEK
+                    DEEKR   memIndex0
                     RET
 %ENDS
 
@@ -138,40 +136,28 @@ setArrayInt16High   LDW     memAddr
 %ENDS
 
 %SUB                convert8Arr2d
-convert8Arr2d       ADDW    memIndex0
-                    ADDW    memIndex0
-                    DEEK
+convert8Arr2d       DEEKR   memIndex0
                     ADDW    memIndex1
                     RET
 %ENDS
 
 %SUB                convert8Arr3d
-convert8Arr3d       ADDW    memIndex0
-                    ADDW    memIndex0
-                    DEEK
-                    ADDW    memIndex1
-                    ADDW    memIndex1
-                    DEEK
+convert8Arr3d       DEEKR   memIndex0
+                    DEEKR   memIndex1
                     ADDW    memIndex2
                     RET
 %ENDS
 
 %SUB                convert16Arr2d
-convert16Arr2d      ADDW    memIndex0
-                    ADDW    memIndex0
-                    DEEK
+convert16Arr2d      DEEKR   memIndex0
                     ADDW    memIndex1
                     ADDW    memIndex1
                     RET
 %ENDS
 
 %SUB                convert16Arr3d
-convert16Arr3d      ADDW    memIndex0
-                    ADDW    memIndex0
-                    DEEK
-                    ADDW    memIndex1
-                    ADDW    memIndex1
-                    DEEK
+convert16Arr3d      DEEKR   memIndex0
+                    DEEKR   memIndex1
                     ADDW    memIndex2
                     ADDW    memIndex2
                     RET
@@ -184,10 +170,7 @@ readIntVar          LDWI    _dataIndex_
                     STW     memIndex0
                     ADDI    1
                     DOKE    memAddr
-                    LDWI    _data_
-                    ADDW    memIndex0
-                    ADDW    memIndex0
-                    DEEK
+                    LDARRW  memIndex0, _data_
                     RET
 %ENDS
 
@@ -229,34 +212,26 @@ copyDWords          MOVQW   giga_sysFn, SYS_MemCopyDWord_vX_58
 %ENDS
         
 %SUB                copyBytesFar
-copyBytesFar        PEEKV   cpySrcAddr
-                    POKE    cpyDstAddr
-                    INCW    cpySrcAddr
-                    INCW    cpyDstAddr
+copyBytesFar        PEEKV+  cpySrcAddr
+                    POKEV+  cpyDstAddr
                     DECWA   cpyCount
                     BNE     copyBytesFar
                     RET
 %ENDS
 
 %SUB                copyWordsFar
-copyWordsFar        DEEKV   cpySrcAddr
-                    DOKE    cpyDstAddr
-                    ADDVI   cpySrcAddr, 2
-                    ADDVI   cpyDstAddr, 2
+copyWordsFar        DEEKV+  cpySrcAddr
+                    DOKEV+  cpyDstAddr
                     DECWA   cpyCount
                     BNE     copyWordsFar
                     RET
 %ENDS
 
 %SUB                copyDWordsFar
-copyDWordsFar       DEEKV   cpySrcAddr
-                    DOKE    cpyDstAddr
-                    ADDVI   cpySrcAddr, 2
-                    ADDVI   cpyDstAddr, 2
-                    DEEKV   cpySrcAddr
-                    DOKE    cpyDstAddr
-                    ADDVI   cpySrcAddr, 2
-                    ADDVI   cpyDstAddr, 2
+copyDWordsFar       DEEKV+  cpySrcAddr
+                    DOKEV+  cpyDstAddr
+                    DEEKV+  cpySrcAddr
+                    DOKEV+  cpyDstAddr
                     DECWA   cpyCount
                     BNE     copyDWordsFar
                     RET
@@ -268,14 +243,14 @@ copyLoaderImages    PUSH
                     LDWI    _loader_image_chunksLut
                     STW     cpyLoaderLut
                     
-copyLI_loop         DEEK+   cpyLoaderLut
+copyLI_loop         DEEKV+  cpyLoaderLut
                     BEQ     copyLI_exit
                     STW     giga_sysArg0
-                    DEEK+   cpyLoaderLut
+                    DEEKV+  cpyLoaderLut
                     STW     giga_sysArg2
                     LDWI    0x0101                              ; src step = 1, dst step = 1
                     STW     giga_sysArg4
-                    PEEK+   cpyLoaderLut
+                    PEEKV+  cpyLoaderLut
                     SYS     40
                     BRA     copyLI_loop
 

@@ -425,7 +425,7 @@ return
 
 
 initialise:
-    init vars @commsSize
+    clear vars, @commsSize
     gosub getRomType
     commsAddr = @commsCmd
 

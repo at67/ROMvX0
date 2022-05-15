@@ -6,22 +6,23 @@ timeArrayInt        EQU     register4                           ; reg4 is used w
 
 
 %SUB                tickTime
-tickTime            LDW     timerTick
-                    ADDI    1
-                    STW     timerTick                           ; 1/60 user timer, (max time = 546.116 seconds)
-%if VBLANK_INTERRUPT                                            ; timerPrev ticked in VBlank
+%if VBLANK_INTERRUPT                                            ; timerJiff ticked in VBlank
+tickTime            LD      timerJiff
 %else
-                    INC     timerPrev                           ; 1/60 internal counter
+tickTime            INC     timerJiff                           ; 1/60 jiffies counter
+                    LD      timerJiff
 %endif
-                    LD      timerPrev
                     XORI    60
                     BNE     tickT_exit
-                    LDI     0
-                    ST      timerPrev
+                    STW     timerJiff                           ; reset jiffies
+                    LDW     timerTick
+                    ADDI    1
+                    STW     timerTick                           ; 1 second user timer, (max time = 65535 seconds)
+%if TIME_HANDLER
                     PUSH
                     CALLI   handleTime                          ; handle time every second
                     POP
-
+%endif
 tickT_exit          RET                    
 %ENDS
 
@@ -51,12 +52,12 @@ handleTime          LDWI    _timeArray_
                     PEEK
                     ADDI    1
                     POKE    timeArrayInt                        ; hours
-handleT_mode        XORI    24                                  ; [handleT_mode + 1] = 12 hour/24 hour
-                    BNE     handleT_exit
+handleT_mode        SUBI    24                                  ; [handleT_mode + 1] = 12 hour/24 hour
+                    BLT     handleT_exit
 handleT_epoch       LDI     0                                   ; [handleT_epoch + 1] = start hour
                     POKE    timeArrayInt                        ; reset hours
 
-handleT_exit        RET                    
+handleT_exit        RET
 %ENDS
 
 %SUB                timeDigits
@@ -104,6 +105,32 @@ timeString          PUSH
                     LDW     timeArrayExt
                     PEEK                                        ; seconds
                     CALLI   timeDigits
+                    POP
+                    RET
+%ENDS
+
+%SUB                initCursorTimer
+initCursorTimer     PUSH
+                    CALLI   isRomTypeX
+                    BNE     initCT_exit
+                    LDWI    0x0900              ; 0x09 = tempo, 0x00 = enable
+                    STW     giga_ledState       ; enable LED's and cursor flash, (ROMv2+)
+
+initCT_exit         POP
+                    RET
+%ENDS
+
+%SUB                getCursorFlash
+getCursorFlash      PUSH
+                    CALLI   isRomTypeX
+                    BNE     getCF_romX
+                    LD      giga_ledState
+                    ANDI    2
+                    POP
+                    RET
+
+getCF_romX          LD      giga_jiffiesTick
+                    ANDI    32
                     POP
                     RET
 %ENDS

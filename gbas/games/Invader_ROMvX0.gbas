@@ -1,4 +1,4 @@
-_runtimePath_ "../../runtime"
+_runtimePath_ "../runtime"
 _runtimeStart_ &h7FFF
 _arraysStart_ &h7FFF
 _codeRomType_ ROMvX0
@@ -974,7 +974,7 @@ endproc
 
 proc initVars
     'initialises all variables, (to zero), starting at @timeTicks
-    init vars @timeTicks
+    clear vars, @timeTicks
 endproc
 
 proc startLevel
@@ -1015,9 +1015,6 @@ proc resetLevel
 endproc
 
 proc initSystem
-    'audio fix for ROMv5a
-    poke &h21, peek(&h21) OR 3
-
     mode 2
     set FGBG_COLOUR, 0
 endproc

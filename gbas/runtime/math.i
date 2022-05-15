@@ -5,7 +5,6 @@ mathSum             EQU     register12
 mathRem             EQU     register12
 mathMask            EQU     register13
 mathSign            EQU     register14
-mathQuot            EQU     register15
 mathShift           EQU     register15
 mathBase            EQU     register10
 mathPow             EQU     register11
@@ -136,34 +135,6 @@ multiply16_exit     LDW     mathSum
                     RET
 %ENDS   
     
-%SUB                multiply16bit_1
-                    ; accumulator = mathX * mathY, (result 16bit)
-multiply16bit_1     LDI     0
-                    STW     mathSum
-                    LDI     1
-    
-multiply161_loop    STW     mathMask
-                    ANDW    mathY
-                    BEQ     multiply161_skip
-                    LDW     mathSum
-                    ADDW    mathX
-                    STW     mathSum
-                    
-multiply161_skip    LDW     mathX
-                    ADDW    mathX
-                    STW     mathX
-                    LDW     mathMask
-                    ADDW    mathMask
-                    BNE     multiply161_loop
-%if TIME_SLICING
-                    PUSH
-                    CALL    realTimeStubAddr
-                    POP
-%endif
-                    LDW     mathSum
-                    RET
-%ENDS   
-
 %SUB                divide16bit
                     ; accumulator:mathRem = mathX / mathY, (results 16bit)
 divide16bit         LDW     mathX
@@ -219,70 +190,6 @@ divide16_incx       LDW     mathMask
 divide16_exit       LDW     mathX
                     RET
 %ENDS   
-
-%SUB                divide16bit_1
-                    ; accumulator:mathRem = mathX / mathY, (results 16bit)
-divide16bit_1       LDI     0
-                    STW     mathQuot
-                    STW     mathRem
-                    LDWI    SYS_LSRW1_48
-                    STW     giga_sysFn
-                    
-                    LDW     mathX
-                    XORW    mathY
-                    STW     mathSign
-                    LDW     mathX
-                    BGE     divide161_pos0
-                    LDI     0
-                    SUBW    mathX
-                    STW     mathX
-                    
-divide161_pos0      LDW     mathY
-                    BGE     divide161_pos1
-                    LDI     0
-                    SUBW    mathY
-                    STW     mathY
-                    
-divide161_pos1      LDWI    0x8000
-                    
-divide161_loop      STW     mathMask
-                    BEQ     divide161_exit
-                    LDW     mathRem
-                    LSLW
-                    STW     mathRem
-                    LDW     mathX
-                    ANDW    mathMask
-                    BEQ     divide161_skip1
-                    INC     mathRem
-                    
-divide161_skip1     LDW     mathRem
-                    SUBW    mathY
-                    BLT     divide161_skip2
-                    STW     mathRem
-                    LDW     mathQuot
-                    ORW     mathMask
-                    STW     mathQuot
-                    
-divide161_skip2     LDW     mathMask
-                    SYS     48
-                    BRA     divide161_loop
-
-%if TIME_SLICING
-divide161_exit      PUSH
-                    CALL    realTimeStubAddr
-                    POP
-                    LDW     mathSign
-%else
-divide161_exit      LDW     mathSign
-%endif
-                    BLT     divide161_sgn
-                    LDW     mathQuot
-                    RET
-                    
-divide161_sgn       LDI     0
-                    SUBW    mathQuot
-                    RET
-%ENDS
 
 %SUB                rand16bit
 rand16bit           LDWI    SYS_Random_34

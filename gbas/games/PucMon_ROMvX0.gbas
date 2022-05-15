@@ -1,4 +1,4 @@
-_runtimePath_ "../../runtime"
+_runtimePath_ "../runtime"
 _runtimeStart_ &h7FFF
 _arraysStart_ &h7FFF
 _codeRomType_ ROMvX0
@@ -782,7 +782,7 @@ proc initVars
     local i, corner
     
     'initialises all variables, (to zero), starting at @timeTicks
-    init vars @timeTicks
+    clear vars, @timeTicks
     
     px = (63+ORIGIN_X)
     py = (86+ORIGIN_Y)
@@ -835,9 +835,6 @@ resetLevel:
 return
 
 initSystem:
-    'audio fix for ROMv5a
-    poke &h21, peek(&h21) OR 3
-
     px = (63+ORIGIN_X) : py = (86+ORIGIN_Y)
     
     'scanline 0 and 1 are replaced with scanline 2, (hide scanlines 0 and 1)

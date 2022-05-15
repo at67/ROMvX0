@@ -2,7 +2,7 @@
 '*NOTE* the timing is off and it doesn't sound exactly the same as the original
 'http://canonical.org/~kragen/bytebeat/
 
-_runtimePath_ "../../runtime"
+_runtimePath_ "../runtime"
 _runtimeStart_ &h7FFF
 _codeRomType_ ROMvX0
 _enable8BitAudioEmu_ ON 'experimental
@@ -43,7 +43,7 @@ repeat
         tr15 = tt.hi LSR 7
         s = (tl1 XOR (tl1 + tr7 AND tr12)) OR (tr4 - (tr15 AND 6)) OR tr7 
         asm
-            POKE+   _smpsAddr
+            POKEV+  _smpsAddr
         endasm
         poke &h0702 + (i LSL 2), s 'modify waveform 2
     next i
@@ -62,7 +62,7 @@ repeat
 
     'draw waveform buffer A
     set FG_COLOUR, &h1D
-    for i=SAMPLES-1 &downto 0
+    for i=SAMPLES-1 downto 0
         asm
             LDWI    _OSC_A
             OSCPX   _samplesAddr, _i

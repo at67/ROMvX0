@@ -6,19 +6,19 @@ timeArrayInt        EQU     register4                           ; reg4 is used w
 
 
 %SUB                tickTime
-tickTime            INCW    timerTick                           ; 1/60 user timer, (max time = 546.116 seconds)
-%if VBLANK_INTERRUPT                                            ; timerPrev ticked in VBlank
-%else
-                    INC     timerPrev                           ; 1/60 internal counter
-%endif
-                    CMPI    timerPrev, 60
+%if TIME_HANDLER
+tickTime            LD      giga_jiffiesTick
                     BNE     tickT_exit
-                    MOVQB   timerPrev, 0
+
                     PUSH
                     CALLI   handleTime                          ; handle time every second
                     POP
+                    
+tickT_exit          RET
+%else
+tickTime            RET
+%endif
 
-tickT_exit          RET                    
 %ENDS
 
 %SUB                handleTime
@@ -30,7 +30,7 @@ handleTime          LDWI    _timeArray_
                     XORI    60
                     BNE     handleT_exit
                     LDI     0
-                    POKE+   timeArrayInt                        ; reset seconds
+                    POKEV+  timeArrayInt                        ; reset seconds
                     
                     PEEKV   timeArrayInt
                     ADDI    1
@@ -38,17 +38,17 @@ handleTime          LDWI    _timeArray_
                     XORI    60
                     BNE     handleT_exit
                     LDI     0
-                    POKE+   timeArrayInt                        ; reset minutes
+                    POKEV+  timeArrayInt                        ; reset minutes
                     
                     PEEKV   timeArrayInt
                     ADDI    1
                     POKE    timeArrayInt                        ; hours
-handleT_mode        XORI    24                                  ; [handleT_mode + 1] = 12 hour/24 hour
-                    BNE     handleT_exit
+handleT_mode        SUBI    24                                  ; [handleT_mode + 1] = 12 hour/24 hour
+                    BLT     handleT_exit
 handleT_epoch       LDI     0                                   ; [handleT_epoch + 1] = start hour
                     POKE    timeArrayInt                        ; reset hours
 
-handleT_exit        RET                    
+handleT_exit        RET
 %ENDS
 
 %SUB                timeDigits
@@ -61,9 +61,9 @@ timeD_index         SUBI    10
                     BRA     timeD_index
     
 timeD_cont          ORBK    timeDigit, 0x30
-                    POKE+   timeStrAddr                         ; store 10's digit
+                    POKEV+  timeStrAddr                         ; store 10's digit
                     ORBK    timeByte, 0x30
-                    POKE+   timeStrAddr                         ; store 1's digit
+                    POKEV+  timeStrAddr                         ; store 1's digit
                     INC     timeStrAddr                         ; skip colon, next 10's digit
                     MOVQB   timeDigit, 0x30                     ; reset 10's digit
                     RET
@@ -90,4 +90,14 @@ timeString          PUSH
                     CALLI   timeDigits
                     POP
                     RET
+%ENDS
+
+%SUB                initCursorTimer
+                    ; dummy that's never called or loaded, keeps the linker happy
+initCursorTimer     RET
+%ENDS
+
+%SUB                getCursorFlash
+                    ; dummy that's never called or loaded, keeps the linker happy
+getCursorFlash      RET
 %ENDS

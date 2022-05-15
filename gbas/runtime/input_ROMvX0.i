@@ -11,17 +11,16 @@ inpPrnXYBak         EQU     register11
 inpCursXYBak        EQU     register12
 inpCursXYOfs        EQU     register13
 inpTextEnd          EQU     register14
+inpSndChan          EQU     register15
 
     
 %SUB                input
                     ; inputs numerics and text into vars
 input               PUSH
                     STW     inpLutAddr
-                    DEEK+   inpLutAddr
+                    DEEKV+  inpLutAddr
                     STW     inpVarsAddr                         ; vars LUT address
-                    LDWI    0x0900                              ; 0x09 = tempo, 0x00 = enable
-                    STW     giga_ledState                       ; enable LED's and cursor flash, (ROMv2+)
-                    DEEK+   inpLutAddr
+                    DEEKV+  inpLutAddr
                     STW     inpStrsAddr                         ; strings LUT address
                     DEEKV   inpLutAddr
                     STW     inpTypesAddr                        ; types LUT address
@@ -32,7 +31,7 @@ input               PUSH
 
 %SUB                inputExt1
                     ; input extended 1
-inputExt1           DEEK+   inpTypesAddr
+inputExt1           DEEKV+  inpTypesAddr
                     BEQ     inputE1_exit                        ; exit on LUT delimiter
                     STW     inpTypeData                         ; high byte is max string length, 8th and 7th bits of low byte are newlines, last 6 bits of low byte is type
                     ANDI    0x40
@@ -40,7 +39,7 @@ inputExt1           DEEK+   inpTypesAddr
                     CALLI   inputNewline                        ; registers don't need to be saved yet
                     
 inputE1_print       CALLI   saveRegs8_15
-                    DEEK+   inpStrsAddr
+                    DEEKV+  inpStrsAddr
                     CALLI   printText                           ; print strings LUT
                     CALLI   loadRegs8_15
                     ANDBK   inpTypeData, 0x80
@@ -56,8 +55,7 @@ inputE1_skip        LDWI    textWorkArea + 1
                     ADDW    inpTextEnd
                     STW     inpTextEnd                          ; text max = textWorkArea + (highByte(inpTypeData) >> 8)
                     
-                    LDW     cursorXY
-                    STW     inpCursXYBak
+                    MOVWA   cursorXY, inpCursXYBak
                     STW     inpPrnXYBak
                     CALLI   inputExt2                           ; doesn't return to here
 
@@ -84,16 +82,24 @@ inputExt2           CALLI   saveRegs8_15
 inputCursor         PUSH
                     XORI    127
                     BNE     inputC_skip                         ; don't flash cursor if char != 127
-                    ANDBK   giga_ledState, 2
-                    BNE     inputC_skip                         ; use ledState as a hack timer
+                    ANDBK   giga_jiffiesTick, 32
+                    BNE     inputC_skip
                     MOVQW   textChr, 32                         ; alternate between 32 and 127
 
-inputC_skip         LDW     inpCursXYBak
-                    STW     cursorXY                            ; restore cursor position after the printChr
+inputC_skip         MOVWA   inpCursXYBak, cursorXY              ; restore cursor position after the printChr
                     LDW     textChr
                     CALLI   printChr
                     POP
                     RET
+
+inputBeep           CMPI    inpKeyBak, 0xFF
+                    BEQ     inputB_exit
+                    LDWI    8200
+                    LSRB    giga_vAC
+                    FREQI   0
+                    MOVQB   giga_soundTimer, 2
+                    
+inputB_exit         RET
 %ENDS
 
 %SUB                inputKeys
@@ -103,6 +109,7 @@ inputKeys           PUSH
                     LD      serialRawPrev
                     SUBBA   inpKeyBak
                     BEQ     inputK_exit                         ; if keystroke hasn't changed exit
+                    CALLI   inputBeep
                     MOVB    inpKeyBak, serialRawPrev            ; save as previous keystroke
                     CMPI    inpKeyBak, 127
                     BGT     inputK_exit
@@ -119,16 +126,17 @@ inputK_char         LDW     inpTextEnd
                     CMPI    inpKeyBak, 32
                     BLT     inputK_exit
                     LD      inpKeyBak
-                    POKE+   inpTextAddr                         ; set char
-                    LDI     0
-                    POKE    inpTextAddr                         ; set new end of text string
+                    POKEV+  inpTextAddr                         ; set char
+                    LDW     inpTextAddr
+                    POKEI   0                                   ; set new end of text string
                     CMPI    inpCursXYBak, giga_xres - 11
                     BLT     inputK_advance                      ; cursor max bounds
                     INC     inpTextOfs
                     LDI     0
                     BRA     inputK_print
                     
-inputK_advance      LDI     6
+inputK_advance      ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
+                    CONDII  4, 6                                ; is fnt4x6 enabled flag?
                     
 inputK_print        STW     inpCursXYOfs                        ; advance cursor
                     CALLI   inputPrint                          ; doesn't return to here
@@ -142,8 +150,9 @@ inputK_exit         LDI     0                                   ; keep looping o
 inputIntVar         PUSH
                     LDWI    textWorkArea + 1
                     STW     intSrcAddr                          ; src str address, (skip length)
-                    DEEK+   inpVarsAddr
+                    DEEKV+  inpVarsAddr
                     STW     register12                          ; dst int address
+                    LDW     intSrcAddr
                     CALLI   integerStr
                     DOKE    register12                          ; convert string to integer
                     POP
@@ -153,11 +162,11 @@ inputIntVar         PUSH
 %SUB                inputStrVar
 inputStrVar         LDWI    textWorkArea
                     STW     register11                          ; src str address
-                    DEEK+   inpVarsAddr
+                    DEEKV+  inpVarsAddr
                     STW     register12                          ; dst var address
 
-inputS_copy         PEEK+   register11
-                    POKE+   register12
+inputS_copy         PEEKV+  register11
+                    POKEV+  register12
                     BNE     inputS_copy                         ; copy char until terminating char
                     RET
 %ENDS                    
@@ -195,25 +204,30 @@ inputDelete         LD      inpTextOfs
                     SUBI    1
                     STW     inpTextOfs                          ; decrement print text offset
                     MOVQW   inpCursXYOfs, 0                     ; stationary cursor
-                    LDI     0
-                    POKE    inpTextAddr                         ; delimiter
-                    DECW    inpTextAddr                         ; decrement text pointer
-                    LDI     32                  
-                    POKE    inpTextAddr                         ; delete char
+                    LDW     inpTextAddr
+                    POKEI   0                                   ; delimiter
+                    DECWA   inpTextAddr                         ; decrement text pointer
+                    POKEI   32                                  ; delete char
                     BRA     inputD_print
 
 inputD_bounds       LDW     inpPrnXYBak
                     SUBW    inpCursXYBak
                     BGE     inputD_exit                         ; cursor min bounds
+                    ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
+                    BNE     inputD_4x8
                     LDNI    6
-                    STW     inpCursXYOfs                        ; retreat cursor
+                    BRA     inputD_skip
+
+inputD_4x8          LDNI    4
+
+inputD_skip         STW     inpCursXYOfs                        ; retreat cursor
                     LDI     32                  
-                    POKE+   inpTextAddr                         ; delete cursor
-                    LDI     0
-                    POKE    inpTextAddr                         ; delimiter
+                    POKEV+  inpTextAddr                         ; delete cursor
+                    LDW     inpTextAddr
+                    POKEI   0                                   ; delimiter
                     SUBBI   inpTextAddr, 2                      ; decrement text pointer
-                    LDI     32                  
-                    POKE    inpTextAddr                         ; delete char
+                    LDW     inpTextAddr                 
+                    POKEI   32                                  ; delete char
                     
 inputD_print        CALLI   inputPrint                          ; doesn't return to here
                     
@@ -223,8 +237,7 @@ inputD_exit         LDI     0                                   ; keep looping o
 %ENDS
 
 %SUB                inputPrint
-inputPrint          LDW     inpPrnXYBak
-                    STW     cursorXY                            ; restore cursor position after the printText
+inputPrint          MOVWA   inpPrnXYBak, cursorXY               ; restore cursor position after the printText
                     CALLI   saveRegs8_15
                     LDWI    textWorkArea
                     ADDW    inpTextOfs

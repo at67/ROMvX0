@@ -27,13 +27,10 @@ def word(F_LUT, y, 0.0, 360.0, F_SIZ) = sin(y)*200.0 + 1000.0
 
 module "BoingData64k_ROMvX0.m"
 
-'audio fix for ROMv5a
-poke &h21, peek(&h21) OR 3
-sound off
-
 mode 3
 set FGBG_COLOUR, &h0000
 cls
+sound off
 
 set FG_COLOUR, 0
 rectf 0, 74, 159 + 96, 96 'clear text scrolling onscreen and offscreen area
@@ -148,7 +145,7 @@ scrollText:
         inc count.lo
         vtable = vtable + 4         ' skip every second scanline for efficiency
     until vtable >= &h01F1        ' video indirection table ends at &h01EF, but we are incrementing by 4
-    if &(scrl.lo AND 1) then inc phase.lo ' phase moves the ripples up the screen
+    if (scrl.lo AND 1) then inc phase.lo ' phase moves the ripples up the screen
     inc scrl.lo
 return
 
@@ -169,5 +166,6 @@ return
 
 initVars:
     f = boingStart : y = &h0100 : text = 160 : fstep = 1 : xstep = 100
-    init vars @x
+    clear vars, x
+    clear ram, &h1EA0, 1
 return

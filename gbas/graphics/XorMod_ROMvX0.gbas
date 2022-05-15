@@ -1,4 +1,4 @@
-_runtimePath_ "../../runtime"
+_runtimePath_ "../runtime"
 _runtimeStart_ &h7FFF
 _codeRomType_ ROMvX0
 
@@ -23,13 +23,13 @@ loop:   LD      _i
         MOVQB   giga_sysArg4, 8
         MOVQW   giga_sysFn, SYS_Divide_u168_vX_56
         SYS     56
-        LD      giga_sysArg1
-        STPX    _yx, giga_vAC
+        LDW     _yx 
+        STPX    giga_sysArg1
         DBGE    _yx + 1, _loop
     endasm
 
     inc i.lo
-    if (i.lo AND 63) &&= 63
+    if (i.lo AND 63) = 63
         inc m.lo
     endif
     poke &h0101, i.lo
@@ -47,7 +47,7 @@ loop:   LD      _i
 '    next y
 '
 '    inc i.lo
-'    if (i.lo AND 63) &&= 63
+'    if (i.lo AND 63) = 63
 '        inc m.lo
 '    endif
 '    poke &h0101, i.lo

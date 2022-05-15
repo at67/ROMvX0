@@ -37,9 +37,10 @@ drawLine_addr       EQU     register10
 drawLine_ddx        EQU     register11
 drawLine_cnt        EQU     register12
 drawLine_swp        EQU     register13
+drawLine_xy         EQU     register7
 
-drawPixel_xy        EQU     giga_sysArg6
-readPixel_xy        EQU     giga_sysArg6
+readPixel_xy        EQU     register0
+drawPixel_xy        EQU     register0
 
 drawCircle_cx       EQU     register0
 drawCircle_cy       EQU     register1
@@ -62,33 +63,32 @@ drawCircleF_r       EQU     register11
 drawCircleF_v       EQU     register8
 drawCircleF_w       EQU     register9
 
-drawRect_x1         EQU     register8
+drawRect_x1         EQU     register7
 drawRect_y1         EQU     register10
 drawRect_x2         EQU     register11
-drawRect_y2         EQU     register15
+drawRect_y2         EQU     register16
 
 drawRectF_x1        EQU     register0
 drawRectF_y1        EQU     register1
 drawRectF_x2        EQU     register2
 drawRectF_y2        EQU     register8
 
+drawPoly_addr       EQU     register7
 drawPoly_mode       EQU     register14
-drawPoly_addr       EQU     giga_sysArg6                        ; TODO: find a better spot for this
 
 
 %SUB                waitVBlanks
-waitVBlanks         PUSH
-
-waitVB_loop         LDW     waitVBlankNum
+waitVBlanks         LDW     waitVBlankNum
                     SUBI    0x01
                     STW     waitVBlankNum
                     BGE     waitVB_vblank
-                    POP
                     RET
     
-waitVB_vblank       LDWI    waitVBlank
+waitVB_vblank       PUSH
+                    LDWI    waitVBlank
                     CALL    giga_vAC
-                    BRA     waitVB_loop
+                    POP
+                    BRA     waitVBlanks
 %ENDS   
 
 %SUB                waitVBlank
@@ -565,13 +565,13 @@ drawVTL_num         LDWI    SYS_LSRW1_48
 
 %SUB                drawVTLineLoop
 drawVTLineLoop      LDW     drawLine_xy1
-                    STW     drawPixel_xy
-                    LDWI    drawPixel
+                    STW     drawLine_xy
+                    LDWI    drawVTLinePixel
                     CALL    giga_vAC                        ;plot start pixel
 
                     LDW     drawLine_xy2
-                    STW     drawPixel_xy
-                    LDWI    drawPixel
+                    STW     drawLine_xy
+                    LDWI    drawVTLinePixel
                     CALL    giga_vAC                        ;plot end pixel, (meet in middle)
                     
                     LDW     drawLine_num                    ;numerator += sy
@@ -608,6 +608,15 @@ drawVTL_count       LDW     drawLine_count
                     STW     drawLine_count
                     BGT     drawVTLineLoop
                     POP                                     ;matches drawVTLine's PUSH
+                    RET
+                    
+drawVTLinePixel     LD      drawLine_xy + 1
+                    LSLW
+                    INC     giga_vAC + 1
+                    PEEK
+                    ST      drawLine_xy + 1
+                    LD      fgbgColour + 1
+                    POKE    drawLine_xy
                     RET
 %ENDS
 
@@ -857,9 +866,7 @@ drawRectF           PUSH
                     LDW     drawLine_tmp
                     STW     drawRectF_y1                    ;if y2 < y1 then swap y2 with y1
                     
-drawRF_loop         LDW     drawRectF_y1
-                    STW     drawHLine_y1
-                    LDWI    drawHLine
+drawRF_loop         LDWI    drawHLine                       ;drawHLine_y1 = drawRectF_y1 = register0
                     CALL    giga_vAC
                     INC     drawRectF_y1
                     LDW     drawRectF_y1

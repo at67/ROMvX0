@@ -35,7 +35,7 @@ stringChr           LDI     1
 %SUB                stringSpc
                     ; create a spc string, (parameter in strLen)
 stringSpc           LD      strLen
-                    BEQ     stringS_exit
+                    BLE     stringS_exit
                     SUBI    94
                     BGT     stringS_exit
                     POKE    strAddr                             ; set destination buffer length
@@ -61,6 +61,7 @@ stringHex           LDWI    SYS_LSRW4_50                        ; shift right by
                     LDW     strAddr
                     STW     strTmpAddr                          ; store string start
                     LD      strLen
+                    BLE     stringH_done
                     POKE    strAddr                             ; length byte
                     ADDI    1
                     ADDW    strAddr
@@ -224,10 +225,11 @@ stringCCL_exit      POP
 %SUB                stringLeft
                     ; copies sub string from left hand side of source string to destination string
 stringLeft          LD      strDstLen
-                    POKE    strDstAddr                          ; destination length
                     BEQ     stringL_exit                        ; exit if left length = 0
+                    POKE    strDstAddr                          ; destination length
                     LDW     strSrcAddr
                     PEEK                                        ; get source length
+                    BEQ     stringL_exit                        ; exit if source length = 0
                     STW     strSrcLen
                     SUBW    strDstLen
                     BGE     stringL_skip                        ; is left length <= source length
@@ -257,10 +259,11 @@ stringL_exit        INC     strDstAddr
 %SUB                stringRight
                     ; copies sub string from right hand side of source string to destination string
 stringRight         LD      strDstLen
-                    POKE    strDstAddr                          ; destination length
                     BEQ     stringR_exit                        ; exit if right length = 0
+                    POKE    strDstAddr                          ; destination length
                     LDW     strSrcAddr
                     PEEK                                        ; get source length
+                    BEQ     stringR_exit                        ; exit if source length = 0
                     STW     strSrcLen
                     SUBW    strDstLen
                     BGE     stringR_skip                        ; length <= srcLength
@@ -292,16 +295,18 @@ stringR_exit        INC     strDstAddr
 %SUB                stringMid
                     ; copies length sub string from source offset to destination string
 stringMid           LD      strDstLen
-                    POKE    strDstAddr                          ; destination length
                     BEQ     stringM_exit                        ; exit if right length = 0
+                    POKE    strDstAddr                          ; destination length
                     LDW     strSrcAddr
                     PEEK                                        ; get source length
+                    BEQ     stringM_exit                        ; exit if source length = 0
                     STW     strSrcLen
                     SUBW    strOffset                           
                     SUBW    strDstLen
                     BGE     stringM_skip                        ; length + offset <= srcLength
                     LD      strSrcLen
                     SUBW    strOffset
+                    BLE     stringM_exit
                     STW     strDstLen
                     POKE    strDstAddr                          ; new destination length
                     

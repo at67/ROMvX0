@@ -36,13 +36,10 @@ romC_check          LDW     romType                             ; non experiment
                     SUBW    romUser
                     BGT     romC_return                         ; romType > romUser, so ok
                     
-                    ; gprintf's are only shown in the emulator and always attached to the next instruction
-                    gprintf("Wrong ROM version, you asked for 0x%2X, you have 0x%2X", *romUser, *romType)
-romC_fail           LSLW                                        ; dummy instruction that gprintf can attach to
-
-romC_f0             LD      giga_rand0
+romC_fail           LD      giga_rand0
                     POKE    romErrAddr                          ; random horizontal scroll
-                    BRA     romC_f0
+                    BRA     romC_fail
+
 romC_return         RET
 %ENDS
 
@@ -59,6 +56,23 @@ romRead             MOVQW   giga_sysFn, SYS_ReadRomDir_v5_80    ; address < 0x01
                     RET
 %ENDS
 
+%SUB                getRomType
+getRomType          ANDBK   giga_romType, 0xFC
+                    RET
+%ENDS
+
+%SUB                isRomTypeX
+                    ; return zero if false, non zero if true
+isRomTypeX          ANDBK   giga_romType, 0x80
+                    BEQ     isRomX_false
+                    CMPI    giga_romType, 0xF0
+                    BGE     isRomX_false
+                    RET
+                    
+isRomX_false        LDI     0
+                    RET
+%ENDS
+
 %SUB                realTimeStub
                     ; runs real time, (vblank interrupt), code at regular intervals
                     ; self modifying code allows for timer, midi and user procs
@@ -68,7 +82,6 @@ realTimeStub        RET                                         ; RET gets repla
                     STLW    0 
                     
 realTimeStub0       CALLI   0x0000                              ; 0x0000 = realTimeProc0
-                    INC     timerPrev                           ; 1/60 internal counter
 
 realTimeStub1       BRA     realTS_exit
                     RET                                         ; BRA + RET = realTimeProc1
@@ -88,13 +101,9 @@ realTS_rti          POP
 
 %SUB                setRealTimeProc0
 setRealTimeProc0    LDWI    realTimeStub
-                    STW     realTimeAddr
-                    LDI     0x75
-                    POKE    realTimeAddr                        ; replace RET with PUSH
+                    POKEI   0x75                                ; replace RET with PUSH
                     LDWI    realTimeStub0 + 1
-                    STW     realTimeAddr
-                    LDW     realTimeProc0
-                    DOKE    realTimeAddr                        ; replace 0x0000 with proc
+                    DOKEA   realTimeProc0                       ; replace 0x0000 with proc
                     RET
 %ENDS
 
@@ -102,11 +111,9 @@ setRealTimeProc0    LDWI    realTimeStub
 setRealTimeProc1    PUSH
                     CALLI   setRealTimeProc0
                     LDWI    realTimeStub1
-                    STW     realTimeAddr
-                    LDI     0x85
-                    POKE+   realTimeAddr                        ; replace POP with CALLI, realTimeStub + 1
-                    LDW     realTimeProc1
-                    DOKE    realTimeAddr                        ; replace 2xRET with proc
+                    POKEI   0x85                                ; replace BRA with CALLI
+                    ADDI    1                                   ; realTimeStub1 + 1
+                    DOKEA   realTimeProc1                       ; replace LBL + RET with proc
                     POP
                     RET
 %ENDS
@@ -115,11 +122,9 @@ setRealTimeProc1    PUSH
 setRealTimeProc2    PUSH
                     CALLI   setRealTimeProc1
                     LDWI    realTimeStub2
-                    STW     realTimeAddr
-                    LDI     0x85
-                    POKE+   realTimeAddr                        ; replace POP with CALLI, realTimeStub + 1
-                    LDW     realTimeProc2
-                    DOKE    realTimeAddr                        ; replace 2xRET with proc
+                    POKEI   0x85                                ; replace BRA with CALLI
+                    ADDI    1                                   ; realTimeStub2 + 1
+                    DOKEA   realTimeProc2                       ; replace LBL + RET with proc
                     POP
                     RET
 %ENDS

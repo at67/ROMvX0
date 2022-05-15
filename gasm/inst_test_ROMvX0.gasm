@@ -31,6 +31,7 @@ INS50           EQU     0x0400
 INS70           EQU     0x0500
 INS89           EQU     0x0600
 INS106          EQU     0x08A0
+INS116          EQU     0x09A0
 
 entry_point     LD      giga_romType
                 ANDI    0xFC
@@ -46,12 +47,14 @@ romC_loop       LD      romErrPixel
 
 romC_pass       MOVQB   giga_vSPH, 0x06
                 MOVQB   giga_vSP, 0x00
+                LDWI    0x02FC
+                STW     0x40
                 
 inst_loop       MOVQB   giga_soundTimer, 5
                 LDWI    (_test_equ >>8) + 1
                 LDI     50
                 STW     0x32
-                CALL    INS108 ;STACK_CHK
+                CALL    INS99 ;STACK_CHK
                 BRA     inst_loop
 
 STACK_CHK       PUSH
@@ -174,13 +177,13 @@ INS22           LDWI    0x0800
                 
 INS23           LDWI    0x0800
                 STW     0x30
-                DEEK+   0x30
+                DEEKV+  0x30
                 RET
 
 INS24           LDWI    0x0800
                 STW     0x30
                 LDWI    0x00FF
-                DOKE+   0x30
+                DOKEV+  0x30
                 LDWI    0x0003
                 DOKE    0x30
                 RET
@@ -339,13 +342,13 @@ INS58           LDWI    0x0000
                 RET
 
 INS59           LDI     1
-                CONDI   0x55, 0xAA
+                CONDII  0x55, 0xAA
                 RET
 
 INS60           MOVQB   0x30, 0xAA
                 MOVQB   0x31, 0x55
                 LDI     1
-                CONDB   0x30, 0x31
+                CONDBB  0x30, 0x31
                 RET
 
 INS61           MOVQB   0x30, 0x55
@@ -420,7 +423,7 @@ _breakpoint_
 
 INS72           LDI     0x20
 _breakpoint_
-                FREQZ   0
+                FREQI   0
                 RET
 
 INS73           MOVQB   0x30, 0
@@ -443,21 +446,7 @@ _breakpoint_
 
 INS76           LDI     0x20
 _breakpoint_
-                MODZ    0
-                RET
-
-INS77           LDWI    3
-                STW     0x30
-                LDWI    30000
-_breakpoint_
-                CMPWS   0x30
-                RET
-
-INS78           LDWI    34000
-                STW     0x30
-                LDWI    33000
-_breakpoint_
-                CMPWU   0x30
+                MODI    0
                 RET
 
 INS79           LDWI    0x1234
@@ -546,130 +535,149 @@ _breakpoint_
 INS88_1         DJGE   0x30, INS88_1
                 RET
 
-INS89           LDI     0x30
-                LOKEI   0x80000001
+INS89           LDI     150
+                ARRW    0x0200
+                RET
+
+INS90           LDWI    129
+                STW     0x32
+                ARRVW   0x32, 0x0800
+                RET
+
+INS91           LDI     128
+                STW     0x32
+                LDWI    0x0200
+_breakpoint_
+                DEEKR   0x32
+                RET
+
+INS92           LDWI    0x3232
+                STW     0x30
+                LDWI    0x6464
+                STW     0x32
+_breakpoint_
+                VADDBW  0x30, 0x32
+                RET
+
+INS93           LDI     0x30
+                LOKEQI  -100
                 LDI     0x34
-                LOKEI   0x80000002
+                LOKEQI  1234
 _breakpoint_
-                ADDVL   0x30, 0x34
+                VADDBL  0x30, 0x34
                 RET
 
-INS90           LDI     0x34
-                LOKEI   0x00000001
-                LDI     0x30
-                LOKEI   0x0000FFFF
+INS94           MOVQW   0x30, 0xEF
+                MOVQW   0x32, 0xBE
 _breakpoint_
-                SUBVL   0x30, 0x34
+                PACKVW  0x30, 0x32
                 RET
 
-INS91           LDI     0x34
-                LOKEI   0x7EFC1111
-                LDI     0x30
-                LOKEI   0x9871FFFF
+INS95           LDWI    11753
 _breakpoint_
-                ANDVL   0x30, 0x34
+                ABSW
                 RET
 
-INS92           LDI     0x34
-                LOKEI   0x7EFC1111
-                LDI     0x30
-                LOKEI   0x9871FFFF
+INS96           LDWI    11753
 _breakpoint_
-                ORVL    0x30, 0x34
+                SGNW
                 RET
 
-INS93           LDI     0x34
-                LOKEI   0x7EFC1111
-                LDI     0x30
-                LOKEI   0x9871FFFF
+INS97           LDWM    0x0200
 _breakpoint_
-                XORVL   0x30, 0x34
                 RET
 
-INS94           LDI     0x30
-                LOKEI   0xAAAAAAAA
+INS98           LDWI    0x1234    
 _breakpoint_
-                LSRVL   0x30
+                STWM    0x0800
                 RET
 
-INS95           LDI     0x30
-                LOKEI   0x12345678
+INS99           MOVQW   0x30, 0x31
+                LDARRW  0x30, 0x0200
 _breakpoint_
-                LSLVL   0x30
                 RET
 
-INS96           LDI     0x30
+INS100          MOVQW   0x30, 0x31
+                LDWI    0xFF00
 _breakpoint_
-                LOKEI   0xDEADBEEF
+                STARRW  0x30, 0x0800
                 RET
 
-INS97           LDI     0x30
-                LOKEI   0x00000000                              ; doesn't destroy vAC
+INS101          MOVQW   0x30, 3
 _breakpoint_
-                JEQL    INS97                                   ; expects address of long in vAC
+                LDARRB  0x30, 0x0200
+                RET
+                
+INS102          MOVQW   0x30, 3
+                LDI     0xFF
+_breakpoint_
+                STARRB  0x30, 0x0800
                 RET
 
-INS98           LDI     0x30
-                LOKEI   0x00000000                              ; doesn't destroy vAC
+INS103          MOVQW   0x30, 3
 _breakpoint_
-                JNEL    INS98                                   ; expects address of long in vAC
-                RET
-
-INS99           LDI     0x30
-                LOKEI   0x00000000                              ; doesn't destroy vAC
-_breakpoint_
-                JLTL    INS99                                   ; expects address of long in vAC
-                RET
-
-INS100          LDI     0x30
-                LOKEI   0x7F000000                              ; doesn't destroy vAC
-_breakpoint_
-                JGTL    INS100                                   ; expects address of long in vAC
-                RET
-
-INS101          LDI     0x30
-                LOKEI   0x80000001                              ; doesn't destroy vAC
-_breakpoint_
-                JLEL    INS101                                  ; expects address of long in vAC
-                RET
-
-INS102          LDI     0x30
-                LOKEI   0x80000000                              ; doesn't destroy vAC
-_breakpoint_
-                JGEL    INS102                                  ; expects address of long in vAC
-                RET
-
-INS103          MOVQB   0x30, 0x55
-                ANDBI   0x30, 0xAA
+                STARRI  0x30, 0x0800, 0xFF
                 RET
 
 INS104          MOVQB   0x30, 0x55
-                ORBI    0x30, 0xAA
+                ANDBI   0x30, 0xAA
                 RET
 
 INS105          MOVQB   0x30, 0x55
+                ORBI    0x30, 0xAA
+                RET
+
+INS106          MOVQB   0x30, 0x55
                 XORBI   0x30, 0xAA
                 RET
 
-INS106          LDI     0x34
-                LOKEI   0x00001FFF
-                LDI     0x30
-                LOKEI   0x00000000
-INS106.0        INCL    0x30
-                LDI     0x30
-                LEEKA   0x38
-                SUBVL   0x34, 0x38
-                LDI     0x38
-                JLTL    INS106.0
-                RET
-
 INS107          LDI     0x30
-                LOKEI   0xFF00FFFF
-INS107.0        DECL    0x30
-_breakpoint_
-                BRA     INS107.0
+                LOKEQI  0x1234
                 RET
 
-INS108          LDI     0x30
-                LOKEQI  0x1234
+INS108          LDWI    19999
+                SUBIW   20000
+                RET
+
+INS109          RANDW
+_breakpoint_
+                RET
+
+INS110          PEEKV+  0x40
+_breakpoint_
+                RET
+
+INS111          LDI     0x69
+                POKEV+  0x40
+_breakpoint_
+                RET
+
+INS112          LDI     1
+_breakpoint_
+                CMPII   32, 130
+                RET
+
+INS113          MOVQB   0x32, 65
+_breakpoint_
+                FNT6X8  0x30, 0x32
+                RET
+
+INS114          MOVQW   0x30, 66
+                FNT4X6  0x32, 0x30
+                FLT4X6  0x32
+                LDWI    0x0F20
+                STW     giga_sysArg0
+                MOVQB   giga_sysArg2, 3
+                LDWI    0x1020
+                PRN4X6  0x32
+                RET
+
+INS115          LDI     19
+_breakpoint_
+                MULB10
+                RET
+
+INS116          LDWI    0x0850
+_breakpoint_
+                VTBL    0x30
                 RET

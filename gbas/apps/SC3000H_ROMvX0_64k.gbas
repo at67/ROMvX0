@@ -34,8 +34,6 @@ init midiv
 set FGBG_COLOUR, fgBgColour
 mode 2
 
-'audio fix for ROMv5a
-poke &h21, peek(&h21) OR 3
 cls
 
 sound off
@@ -102,6 +100,7 @@ print
 play mididv, 0, 3
 
 cls INIT
+set BG_COLOUR, 0
 cls
 posX = 2 : posY = posX
 stepX = 1 : stepY = stepX
@@ -111,35 +110,35 @@ repeat
     posW = 124 - posX
     posZ = 76 - posY
 
-    set FG_COLOUR, 8
-    rect posX-2, posY-2, posX+37, posY+45
     set FG_COLOUR, 0
+    rect posX-2, posY-2, posX+37, posY+45
+    set FG_COLOUR, &h3f
     rect posX-1, posY-1, posX+36, posY+44
     blit noFlip, frame, posX, posY
     
-    set FG_COLOUR, 8
-    rect posW-2, posZ-2, posW+37, posZ+45
     set FG_COLOUR, 0
+    rect posW-2, posZ-2, posW+37, posZ+45
+    set FG_COLOUR, &h3f
     rect posW-1, posZ-1, posW+36, posZ+44
     blit noFlip, 13 - frame, posW, posZ
 
     inc t.lo
-    if t.lo &> 8
+    if t.lo > 8
         t.lo = 0
         inc frame.lo
-        if frame.lo &> frameStart + 13
+        if frame.lo > frameStart + 13
             frame = frameStart
         endif
     endif
     
     posX = posX + stepX
-    if &((posX > 122) OR (posX < 2))
+    if ((posX > 122) OR (posX < 2))
         stepX = -stepX
         posX = posX + stepX
     endif
     
     posY = posY + stepY
-    if &((posY > 74) OR (posY < 2))
+    if ((posY > 74) OR (posY < 2))
         stepY = -stepY
         posY = posY + stepY
     endif

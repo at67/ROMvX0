@@ -1,15 +1,16 @@
 timeByte            EQU     register0
-timeDigit           EQU     register4
+timeDigit           EQU     register1
+timeDelta           EQU     register4                           ; the following 3 registers need state, (i.e. use 4 to 7)
 timeArrAddr         EQU     register5
 timeStrAddr         EQU     register6
-timeDelta           EQU     register7
 
 
 %SUB                tickTime
-tickTime            LD      timerPrev
+                    ; must be called at least once per second for ROM1 <-> ROM4
+tickTime            LD      timerJiff + 1                       ; high byte is prev_frameCount, low byte is 1/60 jiffies
                     STW     timeDelta
                     LD      giga_frameCount
-                    ST      timerPrev                           ; reset timerPrev
+                    ST      timerJiff + 1                       ; reset timerJiff
                     SUBW    timeDelta
                     BEQ     tickT_exit                          ; exit if we are still on the same frame
                     STW     timeDelta                           ; framCounter - prev
@@ -18,19 +19,21 @@ tickTime            LD      timerPrev
                     ADDW    timeDelta
                     STW     timeDelta                           ; delta is negative and frameCount wraps around at 256
                     
-tickT_pos           ADDW    timerTick
-                    STW     timerTick                           ; 1/60 user timer, (max time = 546.116 seconds)
-                    LD      timerPrev + 1
+tickT_pos           LD      timerJiff
                     ADDW    timeDelta
-                    ST      timerPrev + 1                       ; 1/60 internal counter
+                    ST      timerJiff                           ; 1/60 jiffies counter
                     SUBI    60
                     BLT     tickT_exit                          ; exit because at least 1 second has not elapsed
-                    ST      timerPrev + 1                       ; reset 1/60 internal counter
+                    ST      timerJiff                           ; reset 1/60 jiffies counter
+                    LDW     timerTick
+                    ADDI    1
+                    STW     timerTick                           ; 1 second user timer, (max time = 65535 seconds)
+%if TIME_HANDLER
                     PUSH
                     LDWI    handleTime                          ; handle time every second
                     CALL    giga_vAC
                     POP
-
+%endif
 tickT_exit          RET                    
 %ENDS
 
@@ -60,12 +63,12 @@ handleTime          LDWI    _timeArray_
                     PEEK
                     ADDI    1
                     POKE    timeArrAddr                         ; hours
-handleT_mode        XORI    24                                  ; [handleT_mode + 1] = 12 hour/24 hour
-                    BNE     handleT_exit
+handleT_mode        SUBI    24                                  ; [handleT_mode + 1] = 12 hour/24 hour
+                    BLT     handleT_exit
 handleT_epoch       LDI     0                                   ; [handleT_epoch + 1] = start hour
                     POKE    timeArrAddr                         ; reset hours
 
-handleT_exit        RET                    
+handleT_exit        RET
 %ENDS
 
 %SUB                timeDigits
@@ -119,6 +122,34 @@ timeString          PUSH
                     STW     timeByte
                     LDWI    timeDigits
                     CALL    giga_vAC
+                    POP
+                    RET
+%ENDS
+
+%SUB                initCursorTimer
+initCursorTimer     PUSH
+                    LDWI    isRomTypeX
+                    CALL    giga_vAC
+                    BNE     initCT_exit
+                    LDWI    0x0900              ; 0x09 = tempo, 0x00 = enable
+                    STW     giga_ledState       ; enable LED's and cursor flash, (ROMv2+)
+
+initCT_exit         POP
+                    RET
+%ENDS
+
+%SUB                getCursorFlash
+getCursorFlash      PUSH
+                    LDWI    isRomTypeX
+                    CALL    giga_vAC
+                    BNE     getCF_romX
+                    LD      giga_ledState
+                    ANDI    2
+                    POP
+                    RET
+
+getCF_romX          LD      giga_jiffiesTick
+                    ANDI    32
                     POP
                     RET
 %ENDS

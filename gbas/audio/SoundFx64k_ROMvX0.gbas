@@ -80,7 +80,7 @@ loop:
     gosub vuMeter
     
     k = get("SERIAL_RAW")
-    if kk &&= 255 then gosub k
+    if kk = 255 then gosub k
     gosub state
     kk = k
 goto loop
@@ -111,16 +111,16 @@ return
 proc vuDisplay, volAddr, freqAddr, vuX
 local v
     v = peek(volAddr)
-    if v &>= VU_H
-        if deek(freqAddr) &= 0 then goto decay 'if frequency is 0, (i.e. note off), then decay
-        if v &< vol
+    if v >= VU_H
+        if deek(freqAddr) = 0 then goto decay 'if frequency is 0, (i.e. note off), then decay
+        if v < vol
             y = ((VU_H-1) - (v - VU_H)) LSR 1 'transform 127->64 to 0->63
             vol = v
         else
 decay:
             dec y
             inc vol
-            if y &< 1
+            if y < 1
                 inc y
                 vol = 126
             endif
@@ -147,7 +147,7 @@ oscilloscope:
 '    asm
 '        MOVQB   _count, 0x40
 'cro:    LD      0x13
-'        POKE+   _addrA
+'        POKEV+  _addrA
 '        DBNE    _count, _cro
 '    endasm
 
@@ -157,7 +157,7 @@ oscilloscope:
     for i=SMP_N-1 &downto 0
         asm
             LD      0x13    'sample waveform
-            POKE+   _addrA  'save to buffer
+            POKEV+  _addrA  'save to buffer
             LDWI    _OSC_A
             OSCPX   _sAddr, _i
         endasm
@@ -237,7 +237,7 @@ return
     return
 
 99: gosub resetWaves
-    if get("MIDI_STREAM") &= &h0000
+    if get("MIDI_STREAM") = &h0000
         play mididv, 0
     endif
     return
@@ -425,7 +425,7 @@ siren:
     sound on, 3, f_lut+200, v_lut, 2
     sound on, 4, f_lut+300, v_lut, 2
     inc t
-    if t &= 64
+    if t = 64
         t = 0
         state = 0
         sound off
@@ -440,7 +440,7 @@ crash:
     sound on, 3, f_lut+200, d_lut, 0
     sound on, 4, f_lut+300, d_lut, 0
     inc t
-    if t &= 64
+    if t = 64
         t = 0
         state = 0
         sound off
@@ -450,7 +450,7 @@ return
 beep:
     sound on, 1, 8000, 63, 1
     inc t
-    if t &= 3
+    if t = 3
         t = 0
         state = 0
         sound off
@@ -462,7 +462,7 @@ tictoc:
     sound on, 1, t_lut LSL 4, t_lut, 0
 
     inc t
-    if t &= T_SIZ-2
+    if t = T_SIZ-2
         t = 0
         state = 0
         sound off
@@ -478,10 +478,10 @@ pucDeath:
     n = get("MIDI_NOTE", peek(@pnotes + (t AND 15)))
     sound on, 1, n - f, 63 - (t LSR 2), 1
     inc t
-    if (t AND 7) &= 0
+    if (t AND 7) = 0
         f = f + 200
     endif
-    if t &= 128
+    if t = 128
         t = 0
         f = 0
         state = 0
@@ -494,7 +494,7 @@ ghostMove:
     n = get("MIDI_NOTE", peek(@gnotes + (t AND 15)) + 10)
     sound on, 1, n, 63, 2
     inc t
-    if t &= 128
+    if t = 128
         t = 0
         state = 0
         sound off
@@ -512,16 +512,16 @@ invaderMove:
     'sound on, 2, n, vv, 3
     'sound on, 3, n, vv, 3
     inc t
-    if t &= 25
+    if t = 25
         t = 0
         vv = 63
         inc f
-        if f &= 4
+        if f = 4
             f = 0
             state = 0
             sound off
         endif
-    elseif t &= 4
+    elseif t = 4
         vv = 0
     endif
 return
@@ -539,7 +539,7 @@ invaderShootOld:
     'sound on, 1, deek(I_LUT + (t AND 31)), vv, 2
     inc t
     vv = vv - 2
-    if vv &<= 0
+    if vv <= 0
         t = 0
         vv = 63
         state = 0
@@ -553,7 +553,7 @@ invaderShoot:
     sound on, 1, ff, vvv, 3
     sound on, 2, ff, vvv, 0
     inc t
-    if t &= 32
+    if t = 32
         t = 0
         state = 0
         sound off
@@ -572,7 +572,7 @@ saucerMove:
     ff = deek(SF_LUT + (t LSL 1))
     sound on, 1, ff, 32, 2
     inc t
-    if t &= SF_SIZ
+    if t = SF_SIZ
         t = 0
     endif
 return
@@ -587,9 +587,9 @@ def word(IE_LUT, y, 0.0, IE_SIZ, IE_SIZ) = 6000.0*(1 - exp(-0.5*y))
 invaderExplode:
     sound on, 1, deek(IE_LUT + (t LSL 1)), vv, 2
     inc t
-    if t &= IE_SIZ then t = 0
+    if t = IE_SIZ then t = 0
     vv = vv - 2
-    if vv &<= 0
+    if vv <= 0
         t = 0
         vv = 60
         state = 0
@@ -598,15 +598,16 @@ invaderExplode:
 return
 
 testSfx:
+    ff = ff - 16384
     ff = 16384 - (vv LSL 8) + f
     sound on, 1, ff, vv, 2
     inc t
     vv = vv - 8
-    if vv &<= 0
+    if vv <= 0
         t = 0
         vv = 63
         f = f + 1000
-        if f &= 4000
+        if f = 4000
             f = 0
             state = 0
             sound off
@@ -624,11 +625,11 @@ saucerExplode:
     sound on, 1, ff, vv, 2
     sound on, 2, ff LSR 4, vv, 0
     inc t
-    if t &= SEF_SIZ
+    if t = SEF_SIZ
         t = 0
         f = f + 600
         vv = vv - 15
-        if vv &<= 0
+        if vv <= 0
             f = 0
             vv = 60
             state = 0
@@ -651,9 +652,9 @@ playerExplode:
     sound on, 3, f, vv, 0
     sound on, 4, f, vv, 0
     inc t
-    if t &= PEF_SIZ then t = 0
+    if t = PEF_SIZ then t = 0
     vv = vv - 1
-    if vv &<= 0
+    if vv <= 0
         t = 0
         vv = 60
         state = 0
@@ -705,7 +706,7 @@ textScroll:
 ret
 
 initialise:
-    init vars @t
+    clear vars, @t
 
     mode 2
     set BG_COLOUR, &h30

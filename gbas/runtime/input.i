@@ -19,8 +19,8 @@ input               PUSH
                     LDW     inpLutAddr
                     DEEK
                     STW     inpVarsAddr         ; vars LUT address
-                    LDWI    0x0900              ; 0x09 = tempo, 0x00 = enable
-                    STW     giga_ledState       ; enable LED's and cursor flash, (ROMv2+)
+                    LDWI    initCursorTimer
+                    CALL    giga_vAC
                     LDW     inpLutAddr
                     ADDI    2
                     DEEK
@@ -119,9 +119,9 @@ inputCursor         PUSH
                     LDW     textChr
                     XORI    127
                     BNE     inputC_skip         ; don't flash cursor if char != 127
-                    LD      giga_ledState
-                    ANDI    2
-                    BNE     inputC_skip         ; use ledState as a hack timer
+                    LDWI    getCursorFlash
+                    CALL    giga_vAC
+                    BNE     inputC_skip
                     LDI     32
                     STW     textChr             ; alternate between 32 and 127
                     

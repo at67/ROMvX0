@@ -28,6 +28,9 @@ resetA_loop         LDI     giga_soundChan1
                     INC     audioAddr    
                     LDI     0
                     DOKE    audioAddr                       ; keyL and keyH
+                    INC     audioAddr
+                    INC     audioAddr
+                    DOKE    audioAddr                       ; oscL and oscH, (must be reset to prevent glitches)
                     INC     audioAddr + 1                   ; increment high byte
                     LD      audioAddr + 1
                     SUBI    4

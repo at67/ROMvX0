@@ -1,0 +1,85 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+
+'not using strings
+free STRINGWORKAREA
+
+dim scanx%(119) = 0
+dim scany%(119) = 0
+
+mode 2 : cls
+
+set FG_COLOUR, &h25
+rectf 40, 20, 120, 100
+
+set FG_COLOUR, &h21
+circlef 80, 60, 35
+
+set FG_COLOUR, 0
+rect 40, 20, 120, 100
+
+set TIMER, 0
+call flood, 80, 60, &h1f, &h21
+call flood, 0, 0, &h37, &h20
+call flood, 41, 21, &h59, &h25
+j = get("JIFFIES")
+s = get("TIMER")
+set FG_COLOUR, &hFF
+print s;" ";j;"/60"
+
+end
+
+proc flood, x, y, fc, rc
+    local i, j, idx
+
+    idx = 1
+    scanx(0) = x
+    scany(0) = y
+
+    while idx > 0
+        dec idx
+        x.lo = scanx(idx)
+        y.lo = scany(idx)
+        
+        i = x - 1 : j = y
+        while (point(i, j) = rc) AND (i >= 0)
+            pset i, j, fc
+            dec i
+        wend
+        
+        i = x : j = y
+        while (point(i, j) = rc) AND (i < 160)
+            pset i, j, fc
+            inc i
+        wend
+        
+        dec i
+        y = j - 1
+        if y >= 0
+            for x=i &downto 1
+                if point(x, y) = rc
+                    scanx(idx) = x
+                    scany(idx) = y
+                    inc idx
+                    goto break0
+                endif
+            next x
+        endif
+break0:
+
+        y = j + 1
+        if y < 120
+            for x=i &downto 1
+                if point(x, y) = rc
+                    scanx(idx) = x
+                    scany(idx) = y
+                    inc idx
+                    goto break1
+                endif
+            next x
+        endif
+break1:
+
+    wend
+endproc

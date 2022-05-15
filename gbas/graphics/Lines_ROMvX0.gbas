@@ -3,7 +3,8 @@ _codeRomType_ ROMvX0
 
 cls : mode 2
 
-repeat
+set TIMER, 0
+for i=1000 &downto 0
     ' fast 0 - 159 and 0 - 119, emulates shaped noise not a true white noise
     'x1 = (rnd(0) AND &h7F) + (rnd(0) AND &h1F) + (rnd(0) AND &h01)
     'y1 = (rnd(0) AND &h3F) + (rnd(0) AND &h1F) + (rnd(0) AND &h0F) + (rnd(0) AND &h07) + (rnd(0) AND &h03)
@@ -13,6 +14,10 @@ repeat
     x2 = rnd(160) : y2 = rnd(120)
     set FG_COLOUR, rnd(0) AND &h3F
     line x1, y1, x2, y2
-forever
+next i
+jiffies = get("JIFFIES")
+seconds = get("TIMER")
 
+set FG_COLOUR, &h3F
+print : print seconds;" ";jiffies;"/60"
 end

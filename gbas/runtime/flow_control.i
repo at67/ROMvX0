@@ -37,13 +37,9 @@ romC_check          LDW     romType                         ; non experimental R
                     SUBW    romUser
                     BGT     romC_return                     ; romType > romUser, so ok
                     
-                    ; gprintf's are only shown in the emulator and always attached to the next instruction
-                    gprintf("Wrong ROM version, you asked for 0x%2X, you have 0x%2X", *romUser, *romType)
-romC_fail           LSLW                                    ; dummy instruction that gprintf can attach to
-
-romC_f0             LD      giga_rand0
+romC_fail           LD      giga_rand0
                     POKE    romErrAddr                      ; random horizontal scroll
-                    BRA     romC_f0
+                    BRA     romC_fail
                     
 romC_return         RET
 %ENDS
@@ -64,16 +60,38 @@ romRead             LDI     SYS_ReadRomDir_v5_80            ; address < 0x0100 s
                     RET
 %ENDS
 
+%SUB                getRomType
+getRomType          LD      giga_romType
+                    ANDI    0xFC
+                    RET
+%ENDS
+
+%SUB                isRomTypeX
+                    ; return zero if false, non zero if true
+isRomTypeX          LD      giga_romType
+                    ANDI    0x80
+                    BEQ     isRomX_false
+                    LD      giga_romType
+                    SUBI    0xF0
+                    BGE     isRomX_false
+                    RET
+                    
+isRomX_false        LDI     0
+                    RET
+%ENDS
+
 %SUB                realTimeStub
                     ; runs real time, (time sliced), code at regular intervals
                     ; self modifying code allows for timer, midi and user procs
 realTimeStub        RET                                     ; RET gets replaced by PUSH
                     LDWI    0x0000                          ; 0x0000 gets replaced by realTimeProc0 address
                     CALL    giga_vAC
+                    
 realTimeStub1       POP
                     RET
                     RET                                     ; POP + 2xRET gets replaced by LDWI realTimeProc1 address
                     CALL    giga_vAC
+                    
 realTimeStub2       POP
                     RET
                     RET                                     ; POP + 2xRET gets replaced by LDWI realTimeProc2 address

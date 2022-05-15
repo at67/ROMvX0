@@ -9,8 +9,8 @@ videoY              DB      207 219 235 251 2
 _startAddress_      EQU     loader
 
 
-loader              LDWI    SYS_LoadSerialIn_vX_58
+loader              LDWI    SYS_LoadSerialIn_vX_56
                     STW     giga_sysFn
                     MOVQB   giga_sysArg0, videoY
                     MOVQB   giga_sysArg1, giga_sysArg2
-                    SYS     58
+                    SYS     56

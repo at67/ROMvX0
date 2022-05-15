@@ -223,6 +223,11 @@ _label_ CALL    giga_vAC
         CALL    giga_vAC
 %ENDM
 
+%MACRO  TextWidth
+        STW     textLen
+        CALLI   textWidth
+%ENDM
+
 %MACRO  Input
         STW     inpLutAddr
         LDWI    input
@@ -830,37 +835,43 @@ _id_    LDW     v1
 _id_    CALL    giga_vAC
 %ENDM
 
-%MACRO  JumpEQ _label id
+%MACRO  JumpTrue _label id
+        BEQ     _id_ + 2                                ; unique id is used as an internal macro label
+        LDWI    _label
+_id_    CALL    giga_vAC
+%ENDM
+
+%MACRO  JumpEQ _label id                                ; inverted logic
         BEQ     _id_ + 2
         LDWI    _label
 _id_    CALL    giga_vAC
 %ENDM
 
-%MACRO  JumpNE _label id
+%MACRO  JumpNE _label id                                ; inverted logic
         BNE     _id_ + 2
         LDWI    _label
 _id_    CALL    giga_vAC
 %ENDM
 
-%MACRO  JumpLE _label id
+%MACRO  JumpLE _label id                                ; inverted logic
         BLE     _id_ + 2
         LDWI    _label
 _id_    CALL    giga_vAC
 %ENDM
 
-%MACRO  JumpGE _label id
+%MACRO  JumpGE _label id                                ; inverted logic
         BGE     _id_ + 2
         LDWI    _label
 _id_    CALL    giga_vAC
 %ENDM
 
-%MACRO  JumpLT _label id
+%MACRO  JumpLT _label id                                ; inverted logic
         BLT     _id_ + 2
         LDWI    _label
 _id_    CALL    giga_vAC
 %ENDM
 
-%MACRO  JumpGT _label id
+%MACRO  JumpGT _label id                                ; inverted logic
         BGT     _id_ + 2
         LDWI    _label
 _id_    CALL    giga_vAC
@@ -971,8 +982,19 @@ _id_    CALL    giga_vAC
         CALL    giga_vAC
 %ENDM
 
-%MACRO  ResetVars
+%MACRO  ResetVars _addr
+        LDI     _addr
+        STW     varAddress
         LDWI    resetVars
+        CALL    giga_vAC
+%ENDM
+
+%MACRO  ResetMem _memAddr _memCount
+        LDWI    _memAddr
+        STW     ramAddr0
+        LDWI    _memAddr + _memCount
+        STW     ramAddr1
+        LDWI    resetMem
         CALL    giga_vAC
 %ENDM
 
@@ -1000,8 +1022,9 @@ _id_    CALL    giga_vAC
         LDI     MISC_ENABLE_SCROLL_BIT
         STW     miscFlags                               ; reset flags
         LDI     0
-        STW     frameCountPrev                          ; reset frameCount shadow var
         STW     midiStream                              ; reset MIDI
+        LD      giga_frameCount
+        STW     frameCountPrev                          ; reset frameCount shadow var
 
         LDWI    resetVideoFlags
         CALL    giga_vAC

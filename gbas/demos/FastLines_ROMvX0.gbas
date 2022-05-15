@@ -1,8 +1,6 @@
 _runtimePath_ "../runtime"
 _codeRomType_ ROMvX0
 
-'audio fix for ROMv5a
-poke &h21, peek(&h21) OR 3
 mode 2 : cls
 
 init time, midi
@@ -40,12 +38,13 @@ repeat
     next i
 'next c
 forever
+seconds = get("TIMER")
+jiffies = get("JIFFIES")
 
-ticks = get("TIMER")
 play midi, 0
 cls
 set FG_COLOUR, &h3F
-print "Lines: ";ticks/60;" ";ticks % 60;"/60"
+print "Lines: ";seconds;" ";jiffies;"/60"
 end
 
 ' x = i*8 + 4 : y = i*6 + 3

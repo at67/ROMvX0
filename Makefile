@@ -67,7 +67,7 @@ SDCARD.rom: Core/* Apps/*/* Makefile interface.json
 		Reset=Core/Reset_SDCARD.gcl
  
 # New instructions and a 16bit stack pointer (vSP)
-ROMvX0.rom: Core/* Apps/*/* Makefile ROMvX0_interface.json
+ROMvX0.rom: Core/* Apps/*/* gasm/loader/* gbas/browser/* gbas/menu/* Makefile ROMvX0_interface.json
 	python3 Core/ROMvX0.asm.py\
 		SYS_Racer_v1.py\
 		zippedRacerHorizon=Apps/Racer/Horizon-256x16.rgb\
@@ -85,7 +85,7 @@ ROMvX0.rom: Core/* Apps/*/* Makefile ROMvX0_interface.json
         SDCard=gbas/browser/Browser_SDCard_ROMvX0.gt1\
         Loader=gasm/loader/Loader_ROMvX0.gt1\
 		Boot=Apps/CardBoot/CardBoot.gt1\
-		Main=Apps/MainMenu/MainMenu_vX0.gcl\
+		Main=gbas/menu/MainMenu_vX0.gt1\
 		Reset=Core/Reset_vX0.gcl
         
 # Development towards "ROM v5"

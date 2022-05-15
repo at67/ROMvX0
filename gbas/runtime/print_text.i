@@ -488,3 +488,18 @@ atTC_resbot         LD      miscFlags
                     ST      miscFlags                       ; reset on bottom row flag
                     RET
 %ENDS
+
+%SUB                textWidth
+textWidth           LD      textLen
+                    SUBI    26
+                    BLT     textW_mul6
+                    LDI     26*6
+                    RET
+
+textW_mul6          LD      textLen
+                    LSLW
+                    LSLW
+                    ADDW    textLen
+                    ADDW    textLen
+                    RET
+%ENDS

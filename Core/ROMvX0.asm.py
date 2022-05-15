@@ -181,6 +181,7 @@ from os  import getenv
 from asm import *
 import gcl0x as gcl
 import font_v4 as font
+import font_vX0 as fontvX0
 
 enableListing()
 #-----------------------------------------------------------------------
@@ -193,8 +194,6 @@ enableListing()
 # accidentally redefined with a different value
 loadBindings('ROMvX0_interface.json')
 loadBindings('Core/interface-dev.json') # Provisional values for DEVROM
-
-
  
 # Gigatron clock
 cpuClock = 6.250e+06
@@ -285,17 +284,16 @@ assert sample == 3
 
 # Former bootCount and bootCheck (<= ROMv3)
 vSPH             = zpByte()
-#zpReserved      = zpByte() # Recycled and still unused. Candidate future uses:
-                           # - Video driver high address (for alternative video modes)
-                           # - v6502: ADH offset ("MMU")
-                           # - v8080: ???
 
 # The current channel number for sound generation. Advanced every scan line
 # and independent of the vertical refresh to maintain constant oscillation.
 channel         = zpByte()
 
 # Entropy harvested from SRAM startup and controller input
-entropy         = zpByte(3)
+entropy         = zpByte(2)
+
+# Audio quantisation bit mask, (needs a HW mod for full realisation)
+audioBitMask    = zpByte() # 0xFF:0bits to 0x00:8bits, default 0x0F:4bits
 
 # Visible video
 videoY          = zpByte() # Counts up from 0 to 238 in steps of 2
@@ -363,9 +361,12 @@ sysArgs         = zpByte(8)
 soundTimer      = zpByte()
 
 # Fow now the LED state machine itself is hard-coded in the program ROM
-ledTimer        = zpByte() # Number of ticks until next LED change
-ledState_v2     = zpByte() # Current LED state
-ledTempo        = zpByte() # Next value for ledTimer after LED state change
+#ledTimer        = zpByte() # Number of ticks until next LED change
+#ledState_v2     = zpByte() # Current LED state
+#ledTempo        = zpByte() # Next value for ledTimer after LED state change
+jiffiesTick     = zpByte() # VBlank ticks
+secondsTickLo   = zpByte() # Seconds ticks low byte
+secondsTickHi   = zpByte() # Seconds ticks high byte
 
 # All bytes above userVars, except 0x80, are potentially usable by user code
 # that refrains from using ROM facilities introduced since ROMv5a.
@@ -549,6 +550,7 @@ v6502_Stack     = 0x0000        # 0x0100 is already used in the Gigatron
 #v6502_RESET    = 0xfffc
 #v6502_IRQ      = 0xfffe
 
+
 #-----------------------------------------------------------------------
 #
 #  $0000 ROM page 0: Boot
@@ -557,10 +559,17 @@ v6502_Stack     = 0x0000        # 0x0100 is already used in the Gigatron
 
 align(0x100, size=0x80)
 
+# ROM type (see also Docs/GT1-files.txt)
+romTypeValue = symbol('romTypeValue_ROMvX0')
+
+#ROM's from ROMvX0 onwards will always have the romType at a fixed and known location
+ld(romTypeValue)
+st([romType])
+
 # Give a first sign of life that can be checked with a voltmeter
-ld(0b0000)                      # LEDs |OOOO|
+ld(0b1111)                      # LED's
 ld(syncBits^hSync,OUT)          # Prepare XOUT update, hSync goes down, RGB to black
-ld(syncBits,OUT)                # hSync goes up, updating XOUT
+ld(syncBits,OUT)                # hSync goes up, updating XOUT, (turn on real LED's)
 
 # Setup I/O and RAM expander
 ctrl(0b01111111)                # Expansion board: (1) reset signal.
@@ -596,26 +605,8 @@ bra('.countMem0')               # Loop to test next address line
 adda(AC)                        # Executes in the branch delay slot!
 label('.countMem1')
 
-# Momentarily wait to allow for debouncing of the reset switch by spinning
-# roughly 2^15 times at 2 clocks per loop: 6.5ms@10MHz to 10ms@6.3MHz
-# Real-world switches normally bounce shorter than that.
-# "[...] 16 switches exhibited an average 1557 usec of bouncing, with,
-#  as I said, a max of 6200 usec" (From: http://www.ganssle.com/debouncing.htm)
-# Relevant for the breadboard version, as the kit doesn't have a reset switch.
- 
-#ld(255)                         # Debounce reset button
-#label('.debounce')
-#st([0])
-#bne(pc())
-#suba(1)                         # Branch delay slot
-#ld([0])
-#bne('.debounce')
-#suba(1)                         # Branch delay slot
-
-# Update LEDs (memory is present and counted, reset is stable)
-ld(0b0001)                      # LEDs |*OOO|
-ld(syncBits^hSync,OUT)
-ld(syncBits,OUT)
+#ld(syncBits^hSync,OUT)
+#ld(syncBits,OUT)
 
 # Scan the entire RAM space to collect entropy for a random number generator.
 # The 16-bit address space is scanned, even if less RAM was detected.
@@ -635,8 +626,6 @@ adda([entropy+0])
 xora(193)
 label('.initEnt2')
 st([entropy+1])
-adda([entropy+2])
-st([entropy+2])
 ld([vAC+0])
 adda(1)
 bne('.initEnt0')
@@ -646,10 +635,8 @@ adda(1)
 bne('.initEnt0')
 st([vAC+1],Y)
 
-# Update LEDs
-ld(0b0011)                      # LEDs |**OO|
-ld(syncBits^hSync,OUT)
-ld(syncBits,OUT)
+#ld(syncBits^hSync,OUT)
+#ld(syncBits,OUT)
  
 # vCPU reset handler
 ld((vReset&255)-2)              # Setup vCPU reset handler
@@ -678,24 +665,23 @@ st([serialLast])
 st([buttonState])
 st([resetTimer])                # resetTimer<0 when entering Main.gcl
 
-ld(0b0111)                      # LEDs |***O|
-ld(syncBits^hSync,OUT)
-ld(syncBits,OUT)
-
 ld(0)
 st([0])                         # Carry lookup ([0x80] in 1st line of vBlank)
 st([channel])
 st([soundTimer])
-
-ld(0b1111)                      # LEDs |****|
+st([jiffiesTick])
+st([secondsTickLo])
+st([secondsTickHi])
 ld(syncBits^hSync,OUT)
-ld(syncBits,OUT)
+ld(syncBits,OUT)                # turn off real LED's
 st([xout])                      # Setup for control by video loop
-st([xoutMask])
+st([xoutMask])                  # audio = 0, SW LED's = 0
+
+ld(0x0f)                        # default 4bit sound
+st([audioBitMask])
 
 ld(hi('startVideo'),Y)          # Enter video loop at vertical blank
 jmp(Y,'startVideo')
-st([ledState_v2])               # Setting to 1..126 means "stopped"
 
 #-----------------------------------------------------------------------
 # Extension SYS_Reset_88: Soft reset
@@ -708,9 +694,6 @@ st([ledState_v2])               # Setting to 1..126 means "stopped"
 # !!! This function was REMOVED from interface.json
 # !!! Better use vReset as generic entry point for soft reset
 
-# ROM type (see also Docs/GT1-files.txt)
-romTypeValue = symbol('romTypeValue_ROMvX0')
-
 label('SYS_Reset_88')
 assert pc()>>8 == 0
 assert (romTypeValue & 7) == 0
@@ -719,26 +702,6 @@ jmp(Y,'sys_Reset_88')           #16
 ld(romTypeValue)                #17 Set ROM type/version and clear channel mask
 
  
-# STPX implementation
-label('stpx#13')
-ld([X])                         #13,
-st([vTmp])                      #14,
-st([Y,Xpp])                     #15, relies on being in page 0!
-ld([X])                         #16, y
-adda([X])                       #17, y*2
-ld(AC,X)                        #18,
-ld(1,Y)                         #19, Y,X = 0x0100 + 2*y, (0 >= y <= 127)
-ld([Y,X])                       #20,
-ld(AC,Y)                        #21, Y = [Y,X]
-ld([sysArgs+7],X)               #22,
-ld([X])                         #23, colour
-ld([vTmp],X)                    #24,
-st([Y,X])                       #25, [Y,X] = colour
-ld(hi('NEXTY'),Y)               #26,
-jmp(Y,'NEXTY')                  #27,
-ld(-30/2)                       #28,
-
-
 align(0x80, size=0x80)
 assert pc() == 0x80
 
@@ -911,15 +874,13 @@ ld(hi('sys_Divide_u168'),Y)     #15 slot 0xd7
 jmp(Y,'sys_Divide_u168')        #16
 ld([sysArgs+1])                 #17 
 
-label('SYS_ReadPixel_vX_32')
-ld(hi('sys_ReadPixel'),Y)       #15 slot 0xda
-jmp(Y,'sys_ReadPixel')          #16
-ld([vAC+1])                     #17 y
+ld(hi('REENTER'),Y)             #15 slot 0xda
+jmp(Y,'REENTER')                #16
+ld(-20/2)                       #17
 
-label('SYS_DrawPixel_vX_30')
-ld(hi('sys_DrawPixel'),Y)       #15 slot 0xdd
-jmp(Y,'sys_DrawPixel')          #16
-ld([sysArgs+1])                 #17 y
+ld(hi('REENTER'),Y)             #15 slot 0xdd
+jmp(Y,'REENTER')                #16
+ld(-20/2)                       #17
 
 ld(hi('REENTER'),Y)             #15 slot 0xe0
 jmp(Y,'REENTER')                #16
@@ -1094,70 +1055,55 @@ xora([entropy+1])               #41 Mix entropy
 xora([serialRaw])               #42 Mix in serial input
 adda([entropy+0])               #43
 st([entropy+0])                 #44
-adda([entropy+2])               #45 Some hidden state
-st([entropy+2])                 #46
-bmi(pc()+3)                     #47
-bra(pc()+3)                     #48
-xora(64+16+2+1)                 #49
-xora(64+32+8+4)                 #49(!)
-adda([entropy+1])               #50
-st([entropy+1])                 #51
+adda([vPC])                     #45 Some hidden state
+bmi(pc()+3)                     #46
+bra(pc()+3)                     #47
+xora(64+16+2+1)                 #48
+xora(64+32+8+4)                 #48(!)
+adda([entropy+1])               #49
+st([entropy+1])                 #50
 
-# LED sequencer (18 cycles)
-ld([ledTimer])                  #52 Blinkenlight sequencer
-beq(pc()+3)                     #53
-bra(pc()+3)                     #54
-suba(1)                         #55
-ld([ledTempo])                  #55(!)
-st([ledTimer])                  #56
-beq(pc()+3)                     #57
-bra(pc()+3)                     #58
-ld(0)                           #59 Don't advance state
-ld(1)                           #59(!) Advance state when timer passes through 0
-adda([ledState_v2])             #60
-bne(pc()+3)                     #61
-bra(pc()+3)                     #62
-ld(-24)                         #63 State 0 becomes -24, start of sequence
-bgt('.leds#65')                 #63(!) Catch the stopped state (>0)
-st([ledState_v2])               #64
-adda('.leds#69')                #65
-bra(AC)                         #66 Jump to lookup table
-bra('.leds#69')                 #67 Single-instruction subroutine
 
-label('.leds#65')
-ld(0x0f)                        #65 Maintain stopped state
-st([ledState_v2])               #66
-bra('.leds#69')                 #67
-anda([xoutMask])                #68 Always clear sound bits (this is why AC=0x0f)
+# Timer
+ld([jiffiesTick])               #51
+adda(1)                         #52
+st([jiffiesTick])               #53
+xora(60)                        #54
+beq(pc()+3)                     #55
+bra(pc()+3)                     #56
+nop()                           #57
+st([jiffiesTick])               #57(!)
+beq(pc()+3)                     #58
+bra(pc()+3)                     #59
+ld(0)                           #60
+ld(1)                           #60(!)
+beq('vblankExpansion')          #61
+adda([secondsTickLo])           #62
+st([secondsTickLo])             #63
+beq(pc()+3)                     #64
+bra(pc()+3)                     #65
+ld(0)                           #66
+ld(1)                           #66(!)
+adda([secondsTickHi])           #67
+bra('vPulseInit')               #68
+st([secondsTickHi])             #69
 
-ld(0b1111)                      #68 LEDs |****| offset -24 Low 4 bits are the LED output
-ld(0b0111)                      #68 LEDs |***O|
-ld(0b0011)                      #68 LEDs |**OO|
-ld(0b0001)                      #68 LEDs |*OOO|
-ld(0b0010)                      #68 LEDs |O*OO|
-ld(0b0100)                      #68 LEDs |OO*O|
-ld(0b1000)                      #68 LEDs |OOO*|
-ld(0b0100)                      #68 LEDs |OO*O|
-ld(0b0010)                      #68 LEDs |O*OO|
-ld(0b0001)                      #68 LEDs |*OOO|
-ld(0b0011)                      #68 LEDs |**OO|
-ld(0b0111)                      #68 LEDs |***O|
-ld(0b1111)                      #68 LEDs |****|
-ld(0b1110)                      #68 LEDs |O***|
-ld(0b1100)                      #68 LEDs |OO**|
-ld(0b1000)                      #68 LEDs |OOO*|
-ld(0b0100)                      #68 LEDs |OO*O|
-ld(0b0010)                      #68 LEDs |O*OO|
-ld(0b0001)                      #68 LEDs |*OOO|
-ld(0b0010)                      #68 LEDs |O*OO|
-ld(0b0100)                      #68 LEDs |OO*O|
-ld(0b1000)                      #68 LEDs |OOO*|
-ld(0b1100)                      #68 LEDs |OO**|
-ld(0b1110)                      #68 LEDs |O***| offset -1
-label('.leds#69')
-st([xoutMask])                  #69 Sound bits will be re-enabled below
-ld(vPulse*2)                    #70 vPulse default length when not modulated
-st([videoPulse])                #71
+# VBlank expansion area, LED flasher, etc
+label('vblankExpansion')
+nop()                           #63
+nop()                           #64
+nop()                           #65
+nop()                           #66
+nop()                           #67
+nop()                           #68
+nop()                           #69
+
+label('vPulseInit')
+ld([xoutMask])                  #70 mask LED's
+anda([audioBitMask])            #71 configure 4/6/8bit audio
+st([xoutMask])                  #72 Sound bits will be re-enabled below
+ld(vPulse*2)                    #73 vPulse default length when not modulated
+st([videoPulse])                #74
 
 # When the total number of scan lines per frame is not an exact multiple of the
 # (4) channels, there will be an audible discontinuity if no measure is taken.
@@ -1174,30 +1120,33 @@ if soundDiscontinuity > 2:
   highlight('Warning: sound discontinuity not suppressed')
 
 # vCPU interrupt
-ld([frameCount])                #72
-beq('vBlankFirst#75')           #73
+ld([frameCount])                #75
+beq('vBlankFirst#78')           #76
 
-runVcpu(186-74-extra,           #74 Application cycles (scan line 0)
+runVcpu(183-77-extra,           #77 Application cycles (scan line 0)
     '---D line 0 no timeout',
-    returnTo='vBlankFirst#186')
+    returnTo='vBlankFirst#183')
 
-label('vBlankFirst#75')
-ld(hi('vBlankFirst#78'),Y)      #75
-jmp(Y,'vBlankFirst#78')         #76
-ld(hi(vIRQ_v5),Y)               #77
-label('vBlankFirst#186')
+label('vBlankFirst#78')
+ld(hi('vBlankFirst#81'),Y)      #78
+jmp(Y,'vBlankFirst#81')         #79
+ld(hi(vIRQ_v5),Y)               #80
 
 # Mitigation for rogue channelMask (3 cycles)
-ld([channelMask])               #186 Normalize channelMask, for robustness
-anda(0b11111011)                #187
-st([channelMask])               #188
+label('vBlankFirst#183')
+ld([channelMask])               #183 Normalize channelMask, for robustness
+anda(0b11111011)                #184
+st([channelMask])               #185 
 
 # Sound on/off (6 cycles)
+ld([audioBitMask])              #186 configure 4/6/8bit audio
+xora(255)                       #187
+st([vTmp])                      #188
 ld([soundTimer])                #189 Sound on/off
 bne(pc()+3)                     #190
 bra(pc()+3)                     #191
 ld(0)                           #192 Keeps sound unchanged (should be off here)
-ld(0xf0)                        #192(!) Turns sound back on
+ld([vTmp])                      #192(!) Turns sound back on
 ora([xoutMask])                 #193
 st([xoutMask])                  #194
 
@@ -1289,9 +1238,9 @@ bra('sound1')                   #199
 ld([videoSync0],OUT)            #0 <New scan line start>
 
 label('vBlankSample')
-ora(0x0f)                       #51 New sound sample is ready
+ora([audioBitMask])             #51 configure 4/6/8bit audio
 anda([xoutMask])                #52
-st([xout])                      #53
+st([xout])                      #53 New sound sample is ready
 st(sample, [sample])            #54 Reset for next sample
 
 runVcpu(199-55, '--C- line 3-39')#55 Application cycles (vBlank scan lines with sound sample update)
@@ -1367,7 +1316,7 @@ st([videoModeC])                #74
 st([videoModeB])                #75
 nop()                           #76
 label('.select#77')
-st([videoModeD])                #77
+st([videoModeD])                #77 
 wait(188-78)                    #78 Don't waste code space expanding runVcpu here
 # AC==255 now
 st([buttonState])               #188
@@ -1458,7 +1407,7 @@ anda(0x80,X)                    #10
 ld([X])                         #11
 adda([Y,oscH])                  #12
 adda([Y,keyH])                  #13
-st([Y,oscH] )                   #14
+st([Y,oscH])                    #14
 anda(0xfc)                      #15
 xora([Y,wavX])                  #16
 ld(AC,X)                        #17
@@ -1496,7 +1445,7 @@ label('videoC')
 ld('videoD')                    #29 3rd scanline of 4
 st([nextVideo])                 #30
 ld([sample])                    #31 New sound sample is ready (didn't fit in the audio loop)
-ora(0x0f)                       #32
+ora([audioBitMask])             #32 configure 4/6/8bit audio
 anda([xoutMask])                #33
 st([xout])                      #34 Update [xout] with new sample (4 channels just updated)
 st(sample, [sample])            #35 Reset for next sample
@@ -1647,18 +1596,18 @@ jmp(Y,'ld#13')                  #11
 # dummy                         #12 Overlap
 #
 # pc = 0x031c, Opcode = 0x1c
-# Instruction LOKEQI: Loke immediate unsigned word into address contained in [vAC], 34 cycles
-label('LOKEQI') 
-ld(hi('lokeqi#13'),Y)           #10 #12
-jmp(Y,'lokeqi#13')              #11
-st([vTmp])                      #12 imm.1
+# Instruction MOVQW: Load a word var with a small constant 0..255, 28 cycles
+label('MOVQW')
+ld(hi('movqw#13'),Y)            #10 #12
+jmp(Y,'movqw#13')               #11
+ld([vPC+1],Y)                   #12 vPC.hi
 
 # pc = 0x031f, Opcode = 0x1f
-# Instruction CMPHS: Adjust high byte for signed compare (vACH=XXX), 28 cycles
-label('CMPHS')
-ld(hi('cmphs#13'),Y)            #10
-jmp(Y,'cmphs#13')               #11
-# dummy                         #12 Overlap, not dependent on ld(AC,X) anymore
+# Instruction ARRW: vAC = imm16 + vAC*2, 48 cycles
+label('ARRW')
+ld(hi('arrw#13'),Y)             #10
+jmp(Y,'arrw#13')                #11
+# dummy                         #12 Overlap
 #
 # pc = 0x0321, Opcode = 0x21
 # Instruction LDW: Load word from zero page (vAC=[D]+256*[D+1]), 24 cycles
@@ -1668,10 +1617,10 @@ jmp(Y,'ldw#13')                 #11
 # dummy                         #12 Overlap
 # 
 # pc = 0x0323, Opcode = 0x23
-# Instruction PEEK+: Peek byte at address contained in var, inc var, 30 cycles
-label('PEEK+') 
-ld(hi('peek+#13'),Y)            #10 #12
-jmp(Y,'peek+#13')               #11
+# Instruction PEEKV+: Peek byte at address contained in var, inc var, 30 cycles
+label('PEEKV+') 
+ld(hi('peekv+#13'),Y)           #10 #12
+jmp(Y,'peekv+#13')              #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0325, Opcode = 0x25
@@ -1703,7 +1652,7 @@ jmp(Y,'stw#13')                 #11
 # dummy                         #12 Overlap
 #
 # pc = 0x032d, Opcode = 0x2d
-# Instruction ADDBI: Add a constant 0..255 to byte var, 28 cycles
+# Instruction ADDBI: var.lo += imm, 28 cycles
 label('ADDBI') 
 ld(hi('addbi#13'),Y)            #10 #12
 jmp(Y,'addbi#13')               #11
@@ -1717,71 +1666,67 @@ jmp(Y,'prefx2#13')              #11
 st([sysArgs+7])                 #12 Operand
 
 # pc = 0x0332, Opcode = 0x32
-# Instruction DBNE:  Decrement byte var and branch if not zero, 28 cycles
-label('DBNE')
-ld(hi('dbne#13'),Y)             #10
-jmp(Y,'dbne#13')                #11
+# Instruction MOVWA: Move 16bits from src zero page var to dst zero page var, vAC=dst, 40 cycles
+label('MOVWA')
+ld(hi('movwa#13'),Y)            #10
+jmp(Y,'movwa#13')               #11
 ld([vPC+1],Y)                   #12 vPC.hi
 
 # pc = 0x0335, Opcode = 0x35
 # Instruction BCC: Test AC sign and branch conditionally, variable, (24-26), cycles
 label('BCC')
-bra(AC)                         #10 AC is the conditional operand
-st([Y,Xpp])                     #11 X++
-
-# pc = 0x0337, Opcode = 0x37
-# Instruction DOKEI: Doke immediate word into address contained in [vAC], 30 cycles
+st([Y,Xpp])                     #10 X++
+ld(0x3f,Y)                      #11
+jmp(Y,AC)                       #12 AC is the conditional operand
+# dummy                         #13 Overlap
+#
+# pc = 0x0338, Opcode = 0x38
+# Instruction DOKEI: doke immediate word into address contained in [vAC], 28 cycles
 label('DOKEI') 
-ld(hi('dokei#13'),Y)            #10
+ld(hi('dokei#13'),Y)            #10 #13
 jmp(Y,'dokei#13')               #11
-# dummy                         #12 Overlap
-#
-# pc = 0x0339, Opcode = 0x39
-# Instruction PEEKV: Read byte from address contained in var, 30 cycles
-label('PEEKV')
-ld(hi('peekv#13'),Y)            #10
-jmp(Y,'peekv#13')               #11
-# dummy                         #12 Overlap
-#
+ld([vPC+1],Y)                   #13
+
 # pc = 0x033b, Opcode = 0x3b
-# Instruction DEEKV: Read word from address contained in var, 28 cycles
+# Instruction DEEKV: read word from address contained in var, 28 cycles
 label('DEEKV')
-ld(hi('deekv#13'),Y)            #10 #12
+ld(hi('deekv#13'),Y)            #10
 jmp(Y,'deekv#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x033d, Opcode = 0x3d
-# Instruction LOKEI: Loke immediate long into address contained in [vAC], 42 cycles
-label('LOKEI') 
-ld(hi('lokei#13'),Y)            #10
-jmp(Y,'lokei#13')               #11
+# Instruction ARRVW: vAC = imm16 + idx*2, 56 cycles
+label('ARRVW')
+ld(hi('arrvw#13'),Y)            #10 #12
+jmp(Y,'arrvw#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x033f, Opcode = 0x3f
-# Conditional EQ: Branch if zero (if(vACL==0)vPCL=D)
-ld(hi('beq#15'),Y)              #12 #12
-jmp(Y,'beq#15')                 #13
-ld([vPC+1],Y)                   #14 vPC.hi
+# Instruction LDARRW: vAC = deek [imm16 + idx*2], 62 cycles
+label('LDARRW')
+ld(hi('ldarrw#13'),Y)           #10
+jmp(Y,'ldarrw#13')              #11
+ld([vPC+1],Y)                   #12 vPC.hi
 
 # pc = 0x0342, Opcode = 0x42
-# Instruction ADDVI: Add 8bit immediate to 16bit zero page var, var += imm, vAC = var, 50 cycles
+# Instruction ADDVI: add 8bit immediate to 16bit zero page var, var += imm, vAC = var, 50 cycles
 label('ADDVI')
 ld(hi('addvi#13'),Y)            #10
 jmp(Y,'addvi#13')               #11
 # dummy                         #12 Overlap
 
 # pc = 0x0344, Opcode = 0x44
-# Instruction SUBVI: Subtract 8bit immediate from 16bit zero page var, var -= imm, vAC = var, 50 cycles
+# Instruction SUBVI: subtract 8bit immediate from 16bit zero page var, var -= imm, vAC = var, 50 cycles
 label('SUBVI')
 ld(hi('subvi#13'),Y)            #10 #12
 jmp(Y,'subvi#13')               #11
 # dummy                         #12 Overlap
 
 # pc = 0x0346, Opcode = 0x46
-# Instruction DOKE+: doke word in vAC to address contained in var, var += 2, 30 cycles
-label('DOKE+') 
-ld(hi('doke+#13'),Y)            #10 #12
-jmp(Y,'doke+#13')               #11
+# Instruction DEEKV+: Deek word at address contained in var, var += 2, 30 cycles
+label('DEEKV+') 
+ld(hi('deekv+#13'),Y)           #10 #12
+jmp(Y,'deekv+#13')              #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0348, Opcode = 0x48
@@ -1799,29 +1744,47 @@ jmp(Y,'djge#13')                #11
 ld([vPC+1],Y)                   #12
 
 # pc = 0x034d, Opcode = 0x4d
-# Conditional GT: Branch if positive (if(vACL>0)vPCL=D)
-ld(hi('bgt#15'),Y)              #12
-jmp(Y,'bgt#15')                 #13
-ld([vPC+1],Y)                   #14 vPC.hi
-
-# pc = 0x0350, Opcode = 0x50
-# Conditional LT: Branch if negative (if(vACL<0)vPCL=D)
-ld(hi('blt#15'),Y)              #12
-jmp(Y,'blt#15')                 #13
-ld([vPC+1],Y)                   #14 vPC.hi
-
+# Instruction LOKEQI: loke imm16 into [vAC], 36 cycles
+label('LOKEQI') 
+ld(hi('lokeqi#13'),Y)           #10 #12
+jmp(Y,'lokeqi#13')              #11
+# dummy                         #12 Overlap
+#
+# pc = 0x034f, Opcode = 0x4f
+# Instruction STWM: store [vAC] into [imm16], 30 cycles 
+label('STWM')
+ld(hi('stwm#13'),Y)             #10 #12
+jmp(Y,'stwm#13')                #11
+# dummy                         #12 Overlap
+#
+# pc = 0x0351, Opcode = 0x51
+# Instruction STARRW: doke [imm16 + idx*2] with vAC, 62 cycles
+label('STARRW')
+ld(hi('starrw#13'),Y)           #10 #12
+jmp(Y,'starrw#13')              #11
+# dummy                         #12 Overlap
+#
 # pc = 0x0353, Opcode = 0x53
-# Conditional GE: Branch if positive or zero (if(vACL>=0)vPCL=D)
-ld(hi('bge#15'),Y)              #12
-jmp(Y,'bge#15')                 #13
-ld([vPC+1],Y)                   #14 vPC.hi
-
-# pc = 0x0356, Opcode = 0x56
-# Conditional LE: Branch if negative or zero (if(vACL<=0)vPCL=D)
-ld(hi('ble#15'),Y)              #12
-jmp(Y,'ble#15')                 #13
-ld([vPC+1],Y)                   #14 vPC.hi
-
+# Instruction LDARRB: vAC = peek [imm16 + idx], 54 cycles
+label('LDARRB')
+ld(hi('ldarrb#13'),Y)           #10 #12
+jmp(Y,'ldarrb#13')              #11
+# dummy                         #12 Overlap
+#
+# pc = 0x0355, Opcode = 0x55
+# Instruction STARRB: poke [imm16 + idx] with vAC.lo, 52 cycles
+label('STARRB')
+ld(hi('starrb#13'),Y)           #10 #12
+jmp(Y,'starrb#13')              #11
+# dummy                         #12 Overlap
+#
+# pc = 0x0357, Opcode = 0x57
+# Instruction STARRI: poke [imm16 + idx] with 8bit imm, 56 cycles
+label('STARRI')
+ld(hi('starri#13'),Y)           #10 #12
+jmp(Y,'starri#13')              #11
+# dummy                         #12 Overlap
+#
 # pc = 0x0359, Opcode = 0x59
 # Instruction LDI: Load immediate small positive constant (vAC=D), 20 cycles
 label('LDI')
@@ -1830,11 +1793,11 @@ jmp(Y,'ldi#13')                 #11
 # dummy                         #12 Overlap
 #
 # pc = 0x035b, Opcode = 0x5b
-# Instruction MOVQW: Load a word var with a small constant 0..255, 30 cycles
-label('MOVQW')
-ld(hi('movqw#13'),Y)            #10 #12
-jmp(Y,'movqw#13')               #11
-ld([vPC+1],Y)                   #12 vPC.hi
+# Instruction PEEKV: Read byte from address contained in var, 28 cycles
+label('PEEKV')
+ld(hi('peekv#13'),Y)            #10
+jmp(Y,'peekv#13')               #11
+ld(AC,X)                        #12
 
 # pc = 0x035e, Opcode = 0x5e
 # Instruction ST: Store byte in zero page ([D]=vAC&255), 20 cycles
@@ -1844,10 +1807,10 @@ jmp(Y,'st#13')                  #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0360, Opcode = 0x60
-# Instruction DEEK+: Deek word at address contained in var, var += 2, 30 cycles
-label('DEEK+') 
-ld(hi('deek+#13'),Y)            #10 #12
-jmp(Y,'deek+#13')               #11
+# Instruction DOKEV+: doke word in vAC to address contained in var, var += 2, 30 cycles
+label('DOKEV+') 
+ld(hi('dokev+#13'),Y)           #10 #12
+jmp(Y,'dokev+#13')              #11
 ld(0,Y)                         #12
 
 # pc = 0x0363, Opcode = 0x63
@@ -1858,10 +1821,10 @@ jmp(Y,'pop#13')                 #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0365, Opcode = 0x65
-# Instruction MOV: Moves a byte from src var to dst var, 28 cycles
-label('MOV')
-ld(hi('mov#13'),Y)              #10 #12
-jmp(Y,'mov#13')                 #11
+# Instruction MOVB: Moves a byte from src var to dst var, 28 cycles
+label('MOVB')
+ld(hi('movb#13'),Y)             #10 #12
+jmp(Y,'movb#13')                #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0367, Opcode = 0x67
@@ -1879,14 +1842,14 @@ jmp(Y,'pokea#13')               #11
 # dummy                         #12 Overlap
 
 # pc = 0x036b, Opcode = 0x6b
-# Instruction TEQ: Test for EQ, returns 0x0000 or 0x0101 in vAC, 28 cycles
+# Instruction TEQ: Test for EQ, returns 0x0000 or 0xFFFF in zero page var, 24 cycles
 label('TEQ')
 ld(hi('teq#13'),Y)              #10 #12
 jmp(Y,'teq#13')                 #11
 # dummy                         #12 Overlap
 #
 # pc = 0x036d, Opcode = 0x6d
-# Instruction TNE: Test for NE, returns 0x0000 or 0x0101 in vAC, 28 cycles
+# Instruction TNE: Test for NE, returns 0x0000 or 0xFFFF in zero page var, 24 cycles
 label('TNE')
 ld(hi('tne#13'),Y)              #10 #12
 jmp(Y,'tne#13')                 #11
@@ -1900,10 +1863,11 @@ jmp(Y,'deeka#13')               #11
 st([vTmp])                      #12 mask
 
 # pc = 0x0372, Opcode = 0x72
-# Conditional NE: Branch if not zero (if(vACL!=0)vPCL=D)
-ld(hi('bne#15'),Y)              #12
-jmp(Y,'bne#15')                 #13
-ld([vPC+1],Y)                   #14 vPC.hi
+# Instruction LDWM: LDWI + DEEK, 30 cycles
+label('LDWM')
+ld(hi('ldwm#13'),Y)             #10
+jmp(Y,'ldwm#13')                #11
+ld([vPC+1],Y)                   #12 vPC.hi
 
 # pc = 0x0375, Opcode = 0x75
 # Instruction PUSH: Push vLR on stack ([vSP-2],v[vSP-1],vSP=vLR&255,vLR>>8,vLR-2), 30 cycles
@@ -1969,7 +1933,7 @@ jmp(Y,'ori#13')                 #11
 # dummy                         #12 Overlap
 #
 # pc = 0x038a, Opcode = 0x8a
-# Instruction PEEKA+: Peek a byte from [vAC] to var, incw vAC, 28 to 30 cycles
+# Instruction PEEKA+: Peek a byte from [vAC] to var, incw vAC, 28-30 cycles
 label('PEEKA+') 
 ld(hi('peeka+#13'),Y)           #10 #12
 jmp(Y,'peeka+#13')              #11
@@ -2011,11 +1975,11 @@ jmp(Y,'incwa#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0397, Opcode = 0x97
-# Instruction CMPHU: Adjust high byte for unsigned compare (vACH=XXX), 28 cycles
-label('CMPHU')
-ld(hi('cmphu#13'),Y)            #10 #12
-jmp(Y,'cmphu#13')               #11
-# dummy                         #12 Overlap, not dependent on ld(AC,X) anymore
+# Instruction POKEA+: Poke a byte from var to [vAC], incw vAC, 26-30 cycles
+label('POKEA+') 
+ld(hi('pokea+#13'),Y)           #10 #12
+jmp(Y,'pokea+#13')              #11
+# dummy                         #12 Overlap
 #
 # pc = 0x0399, Opcode = 0x99
 # Instruction ADDW: Word addition with zero page (vAC+=[D]+256*[D+1]), 30 cycles
@@ -2030,28 +1994,27 @@ label('LDNI')
 ld(hi('ldni#13'),Y)             #10
 jmp(Y,'ldni#13')                #11
 # dummy                         #12 Overlap
-
+#
 # pc = 0x039e, Opcode = 0x9e
-# Instruction ANDBK: vAC = var & imm, 30 cycles
-label('ANDBK')
-ld(hi('andbk#13'),Y)            #10 #12
-jmp(Y,'andbk#13')               #11
-# dummy                         #12 Overlap
-
+# Instruction DBNE:  Decrement byte var and branch if != 0, 28-30 cycles
+label('DBNE')
+ld(hi('dbne#13'),Y)             #10 #12
+jmp(Y,'dbne#13')                #11
+#
 # pc = 0x03a0, Opcode = 0xa0
-# Instruction ORBK: vAC = var | imm, 30 cycles
-label('ORBK')
-ld(hi('orbk#13'),Y)             #10 #12
-jmp(Y,'orbk#13')                #11
+# Instruction DEEKR: vAC = DEEK[vAC + idx*2], 52 cycles
+label('DEEKR')
+ld(hi('deekr#13'),Y)            #10 #12
+jmp(Y,'deekr#13')               #11
 # dummy                         #12 Overlap
-
+#
 # pc = 0x03a2, Opcode = 0xa2
-# Instruction XORBK: vAC = var ^ imm, 30 cycles
-label('XORBK')
-ld(hi('xorbk#13'),Y)            #10 #12
-jmp(Y,'xorbk#13')               #11
+# Instruction PACKVW: vAC = src0.lo | (src1.lo <<8), 30 cycles
+label('PACKVW')
+ld(hi('packvw#13'),Y)           #10 #12
+jmp(Y,'packvw#13')              #11
 # dummy                         #12 Overlap
-
+#
 # pc = 0x03a4, Opcode = 0xa4, 26 to 46 cycles
 # Instruction DJNE:
 label('DJNE')
@@ -2211,10 +2174,10 @@ jmp(Y,'call#13')                #11
 # dummy                         #12 Overlap
 #
 # pc = 0x03d1, Opcode = 0xd1
-# Instruction POKE+: Poke byte in vAC to address contained in var, inc var, 30 cycles
-label('POKE+') 
-ld(hi('poke+#13'),Y)            #10 #12
-jmp(Y,'poke+#13')               #11
+# Instruction POKEV+: Poke byte in vAC to address contained in var, inc var, 30 cycles
+label('POKEV+') 
+ld(hi('pokev+#13'),Y)           #10 #12
+jmp(Y,'pokev+#13')              #11
 # dummy                         #12 Overlap
 #
 # pc = 0x03d3, Opcode = 0xd3
@@ -2225,28 +2188,28 @@ jmp(Y,'lsrv#13')                #11
 # dummy                         #12 Overlap
 #
 # pc = 0x03d5, Opcode = 0xd5
-# Instruction TGE: Test for GE, returns 0x0000 or 0x0101 in vAC, 26 cycles
+# Instruction TGE: Test for GE, returns 0x0000 or 0xFFFF in zero page var, 24 cycles
 label('TGE')
 ld(hi('tge#13'),Y)              #10 #12
 jmp(Y,'tge#13')                 #11
 # dummy                         #12 Overlap
 #
 # pc = 0x03d7, Opcode = 0xd7
-# Instruction TLT: Test for LT, returns 0x0000 or 0x0101 in vAC, 26 cycles
+# Instruction TLT: Test for LT, returns 0x0000 or 0xFFFF in zero page var, 24 cycles
 label('TLT')
 ld(hi('tlt#13'),Y)             #10 #12
 jmp(Y,'tlt#13')                #11
 # dummy                        #12 Overlap
 #
 # pc = 0x03d9, Opcode = 0xd9
-# Instruction TGT: Test for GT, returns 0x0000 or 0x0101 in vAC, 28 cycles
+# Instruction TGT: Test for GT, returns 0x0000 or 0xFFFF in zero page var, 24-26 cycles
 label('TGT')
 ld(hi('tgt#13'),Y)             #10 #12
 jmp(Y,'tgt#13')                #11
 # dummy                        #12 Overlap
 #
 # pc = 0x03db, Opcode = 0xdb
-# Instruction TLE: Test for LE, returns 0x0000 or 0x0101 in vAC
+# Instruction TLE: Test for LE, returns 0x0000 or 0xFFFF in zero page var, 24-26 cycles
 label('TLE')
 ld(hi('tle#13'),Y)             #10 #12
 jmp(Y,'tle#13')                #11
@@ -2267,7 +2230,7 @@ jmp(Y,'alloc#13')              #11
 # dummy                        #12 Overlap
 #
 # pc = 0x03e1, Opcode = 0xe1
-# Instruction SUBBI: Subtract a constant 0..255 from a byte var, 28 cycles
+# Instruction SUBBI: var.lo -= imm, 28 cycles
 label('SUBBI')
 ld(hi('subbi#13'),Y)            #10 #12
 jmp(Y,'subbi#13')               #11
@@ -2546,24 +2509,6 @@ ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
 
-# PEEK+ implementation
-label('peek+#13')
-ld(0,Y)                         #13
-ld(AC,X)                        #14
-ld([X])                         #15 low byte peek address
-st([vTmp])                      #16
-adda(1)                         #17
-st([Y,Xpp])                     #18
-ld([X])                         #19 high byte peek address
-ld(AC,Y)                        #20
-ld([vTmp],X)                    #21
-ld([Y,X])                       #22
-st([vAC])                       #23
-ld(0)                           #24
-st([vAC+1])                     #25
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
 
 fillers(until=0xa7)
 
@@ -2596,28 +2541,26 @@ fillers(until=0xa7)
 # Variables:
 #       vAC
 
-label('SYS_Random_34')
+label('SYS_Random_34')          # leave name as 34 to remain compatible with previous ROM's
 ld([frameCount])                #15
 xora([entropy+1])               #16
 xora([serialRaw])               #17
 adda([entropy+0])               #18
 st([entropy+0])                 #19
 st([vAC+0])                     #20
-adda([entropy+2])               #21
-st([entropy+2])                 #22
-bmi('.sysRnd0')                 #23
-bra('.sysRnd1')                 #24
-xora(64+16+2+1)                 #25
-label('.sysRnd0')
-xora(64+32+8+4)                 #25
-label('.sysRnd1')
-adda([entropy+1])               #26
-st([entropy+1])                 #27
-st([vAC+1])                     #28
-ld(hi('REENTER'),Y)             #29
-jmp(Y,'REENTER')                #30
-ld(-34/2)                       #31
+adda([vPC])                     #21
+bmi(pc()+3)                     #22
+bra(pc()+3)                     #23
+xora(64+16+2+1)                 #24
+xora(64+32+8+4)                 #24 (!)
+adda([entropy+1])               #25
+st([entropy+1])                 #26
+st([vAC+1])                     #27
+ld(hi('NEXTY'),Y)               #28
+jmp(Y,'NEXTY')                  #29
+ld(-32/2)                       #30
 
+nop()                           # padding required to remain compatible with previous ROM's
 label('SYS_LSRW7_30')
 ld([vAC])                       #15
 anda(128,X)                     #16
@@ -3628,89 +3571,6 @@ st([vPC])                       #23
 ld(hi('NEXTY'),Y)               #24
 jmp(Y,'NEXTY')                  #25
 ld(-28/2)                       #26
-
-# -------------------------------------------------------------
-# vCPU instructions for comparisons between two 16-bit operands
-# -------------------------------------------------------------
-#
-# vCPU's conditional branching (BCC) always compares vAC against 0,
-# treating vAC as a two's complement 16-bit number. When we need to
-# compare two arbitrary numnbers we normally first take their difference
-# with SUBW.  However, when this difference is too large, the subtraction
-# overflows and we get the wrong outcome. To get it right over the
-# entire range, an elaborate sequence is needed. TinyBASIC uses this
-# blurp for its relational operators. (It compares stack variable $02
-# with zero page variable $3a.)
-#
-#       0461  ee 02            LDLW  $02
-#       0463  fc 3a            XORW  $3a
-#       0465  35 53 6a         BGE   $046c
-#       0468  ee 02            LDLW  $02
-#       046a  90 6e            BRA   $0470
-#       046c  ee 02            LDLW  $02
-#       046e  b8 3a            SUBW  $3a
-#       0470  35 56 73         BLE   $0475
-#
-# The CMPHS and CMPHU instructions were introduced to simplify this.
-# They inspect both operands to see if there is an overflow risk. If
-# so, they modify vAC such that their difference gets smaller, while
-# preserving the relation between the two operands. After that, the
-# SUBW instruction can't overflow and we achieve a correct comparison.
-# Use CMPHS for signed comparisons and CMPHU for unsigned. With these,
-# the sequence above becomes:
-#
-#       0461  ee 02            LDLW  $02
-#       0463  1f 3b            CMPHS $3b        Note: high byte of operand
-#       0465  b8 3a            SUBW  $3a
-#       0467  35 56 73         BLE   $0475
-#
-# CMPHS/CMPHU don't make much sense other than in combination with
-# SUBW. These modify vACH, if needed, as given in the following table:
-#
-#       vACH  varH  |     vACH
-#       bit7  bit7  | CMPHS  CMPHU
-#       ---------------------------
-#         0     0   |  vACH   vACH      no change needed
-#         0     1   | varH+1 varH-1     narrowing the range
-#         1     0   | varH-1 varH+1     narrowing the range
-#         1     1   |  vACH   vACH      no change needed
-#       ---------------------------
-
-# CMPHS implementation
-label('cmphs#13')
-ld(AC,X)                        #13
-ld([X])                         #14
-xora([vAC+1])                   #15
-bpl('.cmphu#18')                #16 Skip if same sign
-ld([vAC+1])                     #17
-bmi(pc()+3)                     #18
-bra(pc()+3)                     #19
-label('.cmphs#20')
-ld(+1)                          #20    vAC < variable
-ld(-1)                          #20(!) vAC > variable
-label('.cmphs#21')
-adda([X])                       #21
-st([vAC+1])                     #22
-ld(hi('REENTER'),Y)             #23
-jmp(Y,'REENTER')                #24
-ld(-28/2)                       #25
-
-# CMPHU implementation
-label('cmphu#13')
-ld(AC,X)                        #13
-ld([X])                         #14
-xora([vAC+1])                   #15
-bpl('.cmphu#18')                #16 Skip if same sign
-ld([vAC+1])                     #17
-bmi('.cmphs#20')                #18
-bra('.cmphs#21')                #19
-ld(-1)                          #20    vAC > variable
-
-# No-operation for CMPHS/CMPHU when high bits are equal
-label('.cmphu#18')
-ld(hi('NEXTY'),Y)               #18
-jmp(Y,'NEXTY')                  #19
-ld(-22/2)                       #20
 
 
 #-----------------------------------------------------------------------
@@ -5453,39 +5313,39 @@ ld(-36/2)                       #35
 align(0x100)
 
 # Check if an IRQ handler is defined
-label('vBlankFirst#78')
-ld([Y,vIRQ_v5])                 #78
-ora([Y,vIRQ_v5+1])              #79
-bne('vBlankFirst#82')           #80
-ld([vPC])                       #81
-runVcpu(186-82-extra,           #82 Application cycles (scan line 0)
+label('vBlankFirst#81')
+ld([Y,vIRQ_v5])                 #81
+ora([Y,vIRQ_v5+1])              #82
+bne('vBlankFirst#85')           #83
+ld([vPC])                       #84
+runVcpu(183-85-extra,           #85 Application cycles (scan line 0)
     '---D line 0 timeout but no irq',
-    returnTo='vBlankFirst#186')
+    returnTo='vBlankFirst#183')
 
-label('vBlankFirst#82')
-st([vIrqSave])                  #82 Save vPC
-ld([vPC+1])                     #83
-st([vIrqSave+1])                #84
-ld([vAC])                       #85 Save vAC
-st([vIrqSave+2])                #86
-ld([vAC+1])                     #87
-st([vIrqSave+3])                #88
-ld([vCpuSelect])                #89 Save vCpuSelect for PREFIX
-st([vIrqSave+4])                #90
-ld([Y,vIRQ_v5])                 #91 Set vPC to vIRQ
-suba(2)                         #92
-st([vPC])                       #93
-ld([Y,vIRQ_v5+1])               #94
-st([vPC+1])                     #95
-ld([vCpuSelect])                #96 Handler must save this if needed
-st([vAC+1])                     #97
-ld(0)                           #98
-st([vAC])                       #99
-ld(hi('ENTER'))                 #100 Set vCpuSelect to ENTER (=regular vCPU)
-st([vCpuSelect])                #101
-runVcpu(186-102-extra,          #102 Application cycles (scan line 0)
+label('vBlankFirst#85')
+st([vIrqSave])                  #85 Save vPC
+ld([vPC+1])                     #86
+st([vIrqSave+1])                #87
+ld([vAC])                       #88 Save vAC
+st([vIrqSave+2])                #89
+ld([vAC+1])                     #90
+st([vIrqSave+3])                #91
+ld([vCpuSelect])                #92 Save vCpuSelect for PREFIX
+st([vIrqSave+4])                #93
+ld([Y,vIRQ_v5])                 #94 Set vPC to vIRQ
+suba(2)                         #95
+st([vPC])                       #96
+ld([Y,vIRQ_v5+1])               #97
+st([vPC+1])                     #98
+ld([vCpuSelect])                #99 Handler must save this if needed
+st([vAC+1])                     #100
+ld(0)                           #101
+st([vAC])                       #102
+ld(hi('ENTER'))                 #103 Set vCpuSelect to ENTER (=regular vCPU)
+st([vCpuSelect])                #104
+runVcpu(183-105-extra,          #105 Application cycles (scan line 0)
     '---D line 0 timeout with irq',
-    returnTo='vBlankFirst#186')
+    returnTo='vBlankFirst#183')
 
 # vIRQ sequence WITH interpreter switch
 label('vRTI#18')
@@ -6102,6 +5962,7 @@ ld(hi('NEXTY'),Y)               #18
 jmp(Y,'NEXTY')                  #19
 ld(-22/2)                       #20
 
+
 # PEEKA+ implementation
 label('peeka+#13')
 st([vTmp])                      #13
@@ -6109,23 +5970,25 @@ ld([vAC+1],Y)                   #14
 ld([vAC])                       #15
 ld(AC,X)                        #16
 adda(1)                         #17
-st([vAC])                       #18
+st([vAC])                       #18 inc vAC.lo
 beq('.peeka+#21')               #19 if low byte is 0x00
 ld([Y,X])                       #20 peek [vAC]
 ld([vTmp],X)                    #21 dst var
-st([X])                         #22 dst = peek [vAC]
+st([X])                         #22 dst.lo = peek [vAC]
 ld(hi('REENTER'),Y)             #23
 jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
+
 label('.peeka+#21')
 ld([vTmp],X)                    #21 dst var
-st([X])                         #22 dst = peek [vAC]
+st([X])                         #22 dst.lo = peek [vAC]
 ld([vAC+1])                     #23
 adda(1)                         #24
-st([vAC+1])                     #25
+st([vAC+1])                     #25 inc vAC.hi
 ld(hi('NEXTY'),Y)               #26
 jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
+
 
 # ADDVW implementation
 label('addvw#13')
@@ -6425,26 +6288,27 @@ ld(-28/2)                       #26
 
 # DBNE implementation
 label('dbne#13')
-st([vTmp])                      #13 branch offset
-st([Y,Xpp])                     #14 X++, address of counter
-ld([Y,X])                       #15
-ld(AC,X)                        #16 fetch counter
-ld([X])                         #17
-suba(1)                         #18 decrement counter
-beq('.dbne#21')                 #19 if zero BRA
-st([X])                         #20
-ld([vTmp])                      #21
-st([vPC])                       #22 BRA to branch offset
-ld(hi('REENTER'),Y)             #23
-jmp(Y,'REENTER')                #24
-ld(-28/2)                       #25
-label('.dbne#21')
-ld([vPC])                       #21
-adda(1)                         #22
-st([vPC])                       #23 advance vPC by 1
+ld([vPC+1],Y)                   #13 vPC.hi
+st([vTmp])                      #14 branch offset
+st([Y,Xpp])                     #15 X++, address of counter
+ld([Y,X])                       #16
+ld(AC,X)                        #17 fetch counter
+ld([X])                         #18
+suba(1)                         #19 decrement counter
+beq('.dbne#22')                 #20 if zero BRA
+st([X])                         #21
+ld([vTmp])                      #22
+st([vPC])                       #23 BRA to branch offset
 ld(hi('NEXTY'),Y)               #24
 jmp(Y,'NEXTY')                  #25
 ld(-28/2)                       #26
+label('.dbne#22')
+ld([vPC])                       #22
+adda(1)                         #23
+st([vPC])                       #24 advance vPC by 1
+ld(hi('REENTER'),Y)             #25
+jmp(Y,'REENTER')                #26
+ld(-30/2)                       #27
  
 # TEQ implementation
 label('teq#13')
@@ -6453,14 +6317,14 @@ ld([vAC+1])                     #14
 ora([vAC])                      #15 
 beq('.teq#18')                  #16 if (vAC.hi OR vAC.lo) == 0
 ld(0,Y)                         #17
-st(0,[Y,Xpp])                   #18 var.lo = 0
-st(0,[Y,X])                     #19 var.hi = 0
+st(0,[Y,Xpp])                   #18
+st(0,[Y,X])                     #19 var = 0
 ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 label('.teq#18')
-st(1,[Y,Xpp])                   #18 var.lo = 1
-st(0,[Y,X])                     #19 var.hi = 0
+st(0xFF,[Y,Xpp])                #18
+st(0xFF,[Y,X])                  #19 var = -1
 ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
@@ -6472,14 +6336,14 @@ ld([vAC+1])                     #14
 ora([vAC])                      #15
 beq('.tne#18')                  #16 if (vAC.hi OR vAC.lo) == 0
 ld(0,Y)                         #17
-st(1,[Y,Xpp])                   #18 var.lo = 1
-st(0,[Y,X])                     #19 var.hi = 0
+st(0xFF,[Y,Xpp])                #18
+st(0xFF,[Y,X])                  #19 var = -1
 ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 label('.tne#18')
-st(0,[Y,Xpp])                   #18 var.lo = 0
-st(0,[Y,X])                     #19 var.hi = 0
+st(0,[Y,Xpp])                   #18
+st(0,[Y,X])                     #19 var = 0
 ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
@@ -6490,14 +6354,14 @@ ld(AC,X)                        #13 address of var
 ld([vAC+1])                     #14
 bmi('.tge#17')                  #15 if vAC.hi < 0
 ld(0,Y)                         #16
-st(1,[Y,Xpp])                   #17 var.lo = 1
-st(0,[Y,X])                     #18 var.hi = 0
+st(0xFF,[Y,Xpp])                #17
+st(0xFF,[Y,X])                  #18 var = -1
 ld(hi('REENTER'),Y)             #19
 jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
 label('.tge#17')
-st(0,[Y,Xpp])                   #17 var.lo = 0
-st(0,[Y,X])                     #18 var.hi = 0
+st(0,[Y,Xpp])                   #17
+st(0,[Y,X])                     #18 var = 0
 ld(hi('REENTER'),Y)             #19
 jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
@@ -6508,14 +6372,14 @@ ld(AC,X)                        #13 address of var
 ld([vAC+1])                     #14
 bmi('.tlt#17')                  #15 if vAC.hi < 0
 ld(0,Y)                         #16
-st(0,[Y,Xpp])                   #17 var.lo = 0
-st(0,[Y,X])                     #18 var.hi = 0
+st(0,[Y,Xpp])                   #17
+st(0,[Y,X])                     #18 var = 0
 ld(hi('REENTER'),Y)             #19
 jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
 label('.tlt#17')
-st(1,[Y,Xpp])                   #17 var.lo = 1
-st(0,[Y,X])                     #18 var.hi = 0
+st(0xFF,[Y,Xpp])                #17
+st(0xFF,[Y,X])                  #18 var = -1
 ld(hi('REENTER'),Y)             #19
 jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
@@ -6529,20 +6393,20 @@ blt('.tgt#18')                  #16 if vAC.hi < 0
 ora([vAC])                      #17
 bne('.tgt#20')                  #18 if (vAC.hi OR vAC.lo) != 0
 nop()                           #19
-st(0,[Y,Xpp])                   #20 var.lo = 0
-st(0,[Y,X])                     #21 var.hi = 0
+st(0,[Y,Xpp])                   #20
+st(0,[Y,X])                     #21 var = 0
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
 label('.tgt#18')
-st(0,[Y,Xpp])                   #18 var.lo = 0
-st(0,[Y,X])                     #19 var.hi = 0
+st(0,[Y,Xpp])                   #18
+st(0,[Y,X])                     #19 var = 0
 ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 label('.tgt#20')
-st(1,[Y,Xpp])                   #20 var.lo = 1
-st(0,[Y,X])                     #21 var.hi = 0
+st(0xFF,[Y,Xpp])                #20
+st(0xFF,[Y,X])                  #21 var = -1
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
@@ -6556,20 +6420,20 @@ blt('.tle#18')                  #16 if vAC.hi < 0
 ora([vAC])                      #17
 bne('.tle#20')                  #18 if (vAC.hi OR vAC.lo) != 0
 nop()                           #19
-st(1,[Y,Xpp])                   #20 var.lo = 1
-st(0,[Y,X])                     #21 var.hi = 0
+st(0xFF,[Y,Xpp])                #20
+st(0xFF,[Y,X])                  #21 var = -1
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
 label('.tle#18')
-st(1,[Y,Xpp])                   #18 var.lo = 1
-st(0,[Y,X])                     #19 var.hi = 0
+st(0xFF,[Y,Xpp])                #18
+st(0xFF,[Y,X])                  #19 var = -1
 ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 label('.tle#20')
-st(0,[Y,Xpp])                   #20 var.lo = 0
-st(0,[Y,X])                     #21 var.hi = 0
+st(0,[Y,Xpp])                   #20
+st(0,[Y,X])                     #21 var = 0
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
@@ -6626,6 +6490,12 @@ align(0x100, size=0x100)
 #-----------------------------------------------------------------------
 #       More vCPU instruction implementations, (0x1600)
 #-----------------------------------------------------------------------
+
+# BRA implementation
+label('bra#13')
+ld(hi('REENTER'),Y)             #13
+jmp(Y,'REENTER')                #14
+ld(-18/2)                       #15
 
 # INC implementation
 label('inc#13')
@@ -6684,6 +6554,35 @@ ld(hi('REENTER'),Y)             #15
 jmp(Y,'REENTER')                #16
 ld(-20/2)                       #17
 
+# XORI implementation
+label('xori#13')
+xora([vAC])                     #13
+st([vAC])                       #14
+ld(hi('REENTER'),Y)             #15
+jmp(Y,'REENTER')                #16
+ld(-20/2)                       #17
+
+# LDNI implementation
+label('ldni#13')
+xora(255)                       #13
+adda(1)                         #14
+st([vAC])                       #15
+ld(255)                         #16
+st([vAC+1])                     #17
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
+
+# NOTB implementation
+label('notb#13')
+ld(AC,X)                        #13 address of var
+ld([X])                         #14
+xora(255)                       #15
+st([X])                         #16
+ld(hi('REENTER'),Y)             #17
+jmp(Y,'REENTER')                #18
+ld(-22/2)                       #19
+
 # ALLOC implementation
 label('alloc#13')
 adda([vSP])                     #13
@@ -6692,8 +6591,8 @@ ld(hi('REENTER'),Y)             #15
 jmp(Y,'REENTER')                #16
 ld(-20/2)                       #17
 
-# MOV implementation
-label('mov#13')
+# MOVB implementation
+label('movb#13')
 ld([vPC+1],Y)                   #13
 st([vTmp])                      #14 save address of dst var
 st([Y,Xpp])                     #15 X++
@@ -6701,7 +6600,7 @@ ld([Y,X])                       #16 address of src var
 ld(AC,X)                        #17 
 ld([X])                         #18 get src
 ld([vTmp],X)                    #19 address of dst var
-st([X])                         #20 dst = src
+st([X])                         #20 dst.lo = src.lo
 ld([vPC])                       #21
 adda(1)                         #22
 st([vPC])                       #23
@@ -6740,25 +6639,7 @@ ld(hi('NEXTY'),Y)               #26
 jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
 
-# PEEKA implementation
-#label('peeka#13')
-#ld(0,Y)                         #13
-#ld(AC,X)                        #14 address of var
-#ld([Y,X])                       #15
-#st([vTmp])                      #16 low byte of src pointer
-#st([Y,Xpp])                     #17 X++
-#ld([Y,X])                       #18
-#ld(AC,Y)                        #19 high byte of src pointer
-#ld([vTmp],X)                    #20
-#ld([Y,X])                       #21 peek src
-#ld([vAC],X)                     #22 low byte of dst pointer
-#ld([vAC+1],Y)                   #23 high byte of dst pointer
-#st([Y,X])                       #24 poke dst
-#ld(hi('REENTER'),Y)             #25
-#jmp(Y,'REENTER')                #26
-#ld(-30/2)                       #27
-
-# SUBBI implementation, var -= imm, does NOT modify var.hi
+# SUBBI implementation, var.lo -= imm, does NOT modify var.hi
 label('subbi#13')
 ld([vPC+1],Y)                   #13
 st([vTmp])                      #14 immediate value
@@ -6798,48 +6679,32 @@ st([Y,Xpp])                     #14 X++
 ld([Y,X])                       #15
 ld(AC,X)                        #16 address of var
 ld([vTmp])                      #17
-st([X])                         #18 var.lo = immediate value
-ld(0,Y)                         #19
-st([Y,Xpp])                     #20 X++
-ld(0)                           #21
-st([X])                         #22 var.hi = 0
-ld([vPC])                       #23
-adda(1)                         #24
-st([vPC])                       #25 advance vPC by 1
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
+ld(0,Y)                         #18
+st([Y,Xpp])                     #19 var.lo = immediate value
+st(0,[X])                       #20 var.hi = 0
+ld([vPC])                       #21
+adda(1)                         #22
+st([vPC])                       #23 advance vPC by 1
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
 
-# LSRB implementation
-label('lsrb#13')
-ld(AC,X)                        #13 var
-ld(hi('shiftTable'),Y)          #14 logical shift right 1 bit (X >> 1)
-ld('.lsrb#24')                  #15 continuation address
-st([vTmp])                      #16
-ld([X])                         #17 load byte from var
-anda(0xfe)                      #18
-jmp(Y,AC)                       #19
-bra(255)                        #20 bra shiftTable+255
-#dummy
-# continues in page 0x0600 at label('.lsrb#24') after fetching shifted byte from 0x0500
- 
 # PEEKV implementation
 label('peekv#13')
-ld(AC,X)                        #13
-ld(0,Y)                         #14
-ld([Y,X])                       #15 low byte peek address
-st([Y,Xpp])                     #16 X++
-st([vTmp])                      #17
-ld([Y,X])                       #18 high byte peek address
-ld(AC,Y)                        #19
-ld([vTmp],X)                    #20
-ld([Y,X])                       #21 peek byte
-st([vAC])                       #22
-ld(0)                           #23
-st([vAC+1])                     #24
-ld(hi('REENTER'),Y)             #25
-jmp(Y,'REENTER')                #26
-ld(-30/2)                       #27
+ld(0,Y)                         #13
+ld([Y,X])                       #14 low byte peek address
+st([Y,Xpp])                     #15 X++
+st([vTmp])                      #16
+ld([Y,X])                       #17 high byte peek address
+ld(AC,Y)                        #18
+ld([vTmp],X)                    #19
+ld([Y,X])                       #20 peek byte
+st([vAC])                       #21
+ld(0)                           #22
+st([vAC+1])                     #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
 
 # DEEKV implementation
 label('deekv#13')
@@ -6860,6 +6725,7 @@ ld(hi('NEXTY'),Y)               #26
 jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
 
+
 # LSLV implementation
 label('lslv#13')
 ld(0,Y)                         #13
@@ -6875,6 +6741,7 @@ st([X])                         #22 var.hi <<1 | 1
 ld(hi('REENTER'),Y)             #23
 jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
+
 label('.lslv#18')
 st([Y,Xpp])                     #18
 ld([X])                         #19
@@ -6883,6 +6750,20 @@ st([X])                         #21
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
+
+
+# LSRB implementation
+label('lsrb#13')
+ld(AC,X)                        #13 var address
+ld(hi('shiftTable'),Y)          #14 logical shift right 1 bit (X >> 1)
+ld('.lsrb#24')                  #15 continuation address
+st([vTmp])                      #16
+ld([X])                         #17 load byte from var
+anda(0xfe)                      #18
+jmp(Y,AC)                       #19
+bra(255)                        #20 bra shiftTable+255
+#dummy
+# continues in page 0x0600 at label('.lsrb#24') after fetching shifted byte from 0x0500
 
 # LDW implementation
 label('ldw#13')
@@ -6909,24 +6790,7 @@ ld(hi('REENTER'),Y)             #19
 jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
 
-# POKE+ implementation
-label('poke+#13')
-ld(AC,X)                        #13 Operand
-ld(0,Y)                         #14    
-ld([X])                         #15 low byte poke address
-st([vTmp])                      #16
-adda(1)                         #17
-st([Y,Xpp])                     #18
-ld([X])                         #19 high byte poke address
-ld(AC,Y)                        #20
-ld([vTmp],X)                    #21
-ld([vAC])                       #22
-st([Y,X])                       #23
-ld(hi('NEXTY'),Y)               #24
-jmp(Y,'NEXTY')                  #25
-ld(-28/2)                       #26
-
-# ADDBI implementation, var += imm, does NOT modify var.hi
+# ADDBI implementation, var.lo += imm, does NOT modify var.hi
 label('addbi#13')
 ld([vPC+1],Y)                   #13
 st([vTmp])                      #14 immediate value
@@ -6942,6 +6806,27 @@ st([vPC])                       #23 advance vPC by 1
 ld(hi('NEXTY'),Y)               #24
 jmp(Y,'NEXTY')                  #25
 ld(-28/2)                       #26
+
+# JLT implementation
+label('jlt#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+ld([vAC+1])                     #14
+blt('.jlt#17')                  #15 if vAC.hi < 0
+ld([Y,X])                       #16 address of branch destination
+ld([vPC])                       #17
+adda(1)                         #18
+st([vPC])                       #19
+ld(hi('NEXTY'),Y)               #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+label('.jlt#17')
+st([vPC])                       #17
+st([Y,Xpp])                     #18
+ld([Y,X])                       #19 hi address of jump destination
+st([vPC+1])                     #20
+ld(hi('REENTER'),Y)             #21
+jmp(Y,'REENTER')                #22
+ld(-26/2)                       #23
 
 
 fillers(until=0xff)
@@ -6998,125 +6883,125 @@ jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
 
 # BEQ implementation
-label('beq#15')
-ld([vAC+1])                     #15
-ora([vAC])                      #16 
-beq('.beq#19')                  #17 if (vAC.hi OR vAC.lo) == 0
-ld([Y,X])                       #18 address of branch destination
-ld([vPC])                       #19
-adda(1)                         #20
+label('beq#17')
+ld([vAC+1])                     #17
+ora([vAC])                      #18 
+beq('.beq#21')                  #19 if (vAC.hi OR vAC.lo) == 0
+ld([Y,X])                       #20 address of branch destination
+ld([vPC])                       #21
+adda(1)                         #22
+st([vPC])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+label('.beq#21')
 st([vPC])                       #21
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
-label('.beq#19')
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
 
 # BNE implementation
-label('bne#15')
-ld([vAC+1])                     #15
-ora([vAC])                      #16 
-bne('.bne#19')                  #17 if (vAC.hi OR vAC.lo) != 0
-ld([Y,X])                       #18 address of branch destination
-ld([vPC])                       #19
-adda(1)                         #20
+label('bne#17')
+ld([vAC+1])                     #17
+ora([vAC])                      #18 
+bne('.bne#21')                  #19 if (vAC.hi OR vAC.lo) != 0
+ld([Y,X])                       #20 address of branch destination
+ld([vPC])                       #21
+adda(1)                         #22
+st([vPC])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+label('.bne#21')
 st([vPC])                       #21
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
-label('.bne#19')
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
 
 # BGT implementation
-label('bgt#15')
-ld([vAC+1])                     #15
-blt('.bgt#18')                  #16 if vAC.hi < 0
-ora([vAC])                      #17
-bne('.bgt#20')                  #18 if (vAC.hi OR vAC.lo) != 0
-ld([vPC])                       #19
-adda(1)                         #20
-st([vPC])                       #21
-ld(hi('NEXTY'),Y)               #22
-jmp(Y,'NEXTY')                  #23
-ld(-26/2)                       #24
-label('.bgt#18')
-ld([vPC])                       #18
-adda(1)                         #19
-st([vPC])                       #20
-ld(hi('REENTER'),Y)             #21
-jmp(Y,'REENTER')                #22
-ld(-26/2)                       #23
+label('bgt#17')
+ld([vAC+1])                     #17
+blt('.bgt#20')                  #18 if vAC.hi < 0
+ora([vAC])                      #19
+bne('.bgt#22')                  #20 if (vAC.hi OR vAC.lo) != 0
+ld([vPC])                       #21
+adda(1)                         #22
+st([vPC])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
 label('.bgt#20')
-ld([Y,X])                       #20 address of branch destination
-st([vPC])                       #21
-ld(hi('NEXTY'),Y)               #22
-jmp(Y,'NEXTY')                  #23
-ld(-26/2)                       #24
+ld([vPC])                       #20
+adda(1)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+label('.bgt#22')
+ld([Y,X])                       #22 address of branch destination
+st([vPC])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
 
 # BLT implementation
-label('blt#15')
-ld([vAC+1])                     #15
-blt('.blt#18')                  #16 if vAC.hi < 0
-ld([vPC])                       #17
-adda(1)                         #18
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
-label('.blt#18')
-ld([Y,X])                       #18 address of branch destination
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
+label('blt#17')
+ld([vAC+1])                     #17
+blt('.blt#20')                  #18 if vAC.hi < 0
+ld([vPC])                       #19
+adda(1)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+label('.blt#20')
+ld([Y,X])                       #20 address of branch destination
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
 
 # BGE implementation
-label('bge#15')
-ld([vAC+1])                     #15
-blt('.bge#18')                  #16 if vAC.hi < 0
-ld([vPC])                       #17
-ld([Y,X])                       #18 address of branch destination
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
-label('.bge#18')
-adda(1)                         #18
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
-
-# BLE implementation
-label('ble#15')
-ld([vAC+1])                     #15
-blt('.ble#18')                  #16 if vAC.hi < 0
-ora([vAC])                      #17
-bne('.ble#20')                  #18 if (vAC.hi OR vAC.lo) != 0
+label('bge#17')
+ld([vAC+1])                     #17
+blt('.bge#20')                  #18 if vAC.hi < 0
 ld([vPC])                       #19
 ld([Y,X])                       #20 address of branch destination
 st([vPC])                       #21
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
-label('.ble#18')
-ld([Y,X])                       #18 address of branch destination
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
-label('.ble#20')
+label('.bge#20')
 adda(1)                         #20
 st([vPC])                       #21
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
+
+# BLE implementation
+label('ble#17')
+ld([vAC+1])                     #17
+blt('.ble#20')                  #18 if vAC.hi < 0
+ora([vAC])                      #19
+bne('.ble#22')                  #20 if (vAC.hi OR vAC.lo) != 0
+ld([vPC])                       #21
+ld([Y,X])                       #22 address of branch destination
+st([vPC])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+label('.ble#20')
+ld([Y,X])                       #20 address of branch destination
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+label('.ble#22')
+adda(1)                         #22
+st([vPC])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
 
 # ADDBA implementation
 label('addba#13')
@@ -7170,42 +7055,6 @@ ld(hi('REENTER'),Y)             #23
 jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
 
-# ADDB implementation, dst += src, does NOT modify dst.hi
-#label('addb#13')
-#ld([vPC+1],Y)                   #13
-#st([vTmp])                      #14 dst var
-#st([Y,Xpp])                     #15 X++
-#ld([Y,X])                       #16
-#ld(AC,X)                        #17 src var
-#ld([X])                         #18
-#ld([vTmp],X)                    #19
-#adda([X])                       #20
-#st([X])                         #21 dst += src
-#ld([vPC])                       #22
-#adda(1)                         #23
-#st([vPC])                       #24 advance vPC by 1
-#ld(hi('REENTER'),Y)             #25
-#jmp(Y,'REENTER')                #26
-#ld(-30/2)                       #27
-
-# ADDBA implementation, vAC.lo = dst + src, does NOT modify vAC.hi
-#label('addba#13')
-#ld([vPC+1],Y)                   #13
-#st([vTmp])                      #14 dst var
-#st([Y,Xpp])                     #15 X++
-#ld([Y,X])                       #16
-#ld(AC,X)                        #17 src var
-#ld([X])                         #18
-#ld([vTmp],X)                    #19
-#adda([X])                       #20
-#st([vAC])                       #21 vAC.lo = dst + src
-#ld([vPC])                       #22
-#adda(1)                         #23
-#st([vPC])                       #24 advance vPC by 1
-#ld(hi('REENTER'),Y)             #25
-#jmp(Y,'REENTER')                #26
-#ld(-30/2)                       #27
-
 # POKEA implementation
 label('pokea#13')
 ld(AC,X)                        #13
@@ -7247,40 +7096,58 @@ ld(-20/2)                       #18
 
 # DOKEI implementation
 label('dokei#13')
-ld([vPC+1],Y)                   #13
-st([vTmp])                      #14 imm.hi
-st([Y,Xpp])                     #15 X++
-ld([Y,X])                       #16 imm.lo
-ld([vAC+1],Y)                   #17
-ld([vAC],X)                     #18
-st([Y,Xpp])                     #19
-ld([vTmp])                      #20
-st([Y,X])                       #21
-ld([vPC])                       #22
-adda(1)                         #23
-st([vPC])                       #24
-ld(hi('REENTER'),Y)             #25
-jmp(Y,'REENTER')                #26
-ld(-30/2)                       #27
+st([vTmp])                      #13 imm.hi
+st([Y,Xpp])                     #14 X++
+ld([Y,X])                       #15 imm.lo
+ld([vAC+1],Y)                   #16
+ld([vAC],X)                     #17
+st([Y,Xpp])                     #18
+ld([vTmp])                      #19
+st([Y,X])                       #20
+ld([vPC])                       #21
+adda(1)                         #22
+st([vPC])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
 
-# DEEK+ implementation
-label('deek+#13')
-ld(AC,X)                        #13
-ld([X])                         #14 low byte deek address
-st([vTmp])                      #15
-adda(2)                         #16
-st([Y,Xpp])                     #17
-ld([X])                         #18 high byte deek address
-ld(AC,Y)                        #19
-ld([vTmp],X)                    #20
-ld([Y,X])                       #21
+
+# MOVWA implementation 
+label('movwa#13')
+st([vTmp])                      #13 address of dst var
+st([Y,Xpp])                     #14 X++
+ld(min(0,maxTicks-40/2))        #15
+adda([vTicks])                  #16
+blt('.movwa#19')                #17 not enough time left, so retry
+ld([Y,X])                       #18
+ld(AC,X)                        #19 address of src var
+ld(0,Y)                         #20
+ld([Y,X])                       #21 src.lo
 st([Y,Xpp])                     #22 X++
-st([vAC])                       #23
-ld([Y,X])                       #24
-st([vAC+1])                     #25
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
+st([sysArgs+6])                 #23
+ld([X])                         #24 src.hi
+st([sysArgs+7])                 #25
+ld([vTmp],X)                    #26 address of dst var
+ld([sysArgs+6])                 #27
+st([Y,Xpp])                     #28 dst.lo = src.lo, X++
+st([vAC])                       #29 vAC.lo = dst.lo
+ld([sysArgs+7])                 #30
+st([Y,X])                       #31 dst.hi = src.hi
+st([vAC+1])                     #32 vAC.hi = dst.hi
+ld([vPC])                       #33
+adda(1)                         #34
+st([vPC])                       #35 advance vPC by 1
+ld(hi('NEXTY'),Y)               #36
+jmp(Y,'NEXTY')                  #37
+ld(-40/2)                       #38
+
+label('.movwa#19')
+ld([vPC])                       #19 retry instruction
+suba(2)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24 
 
 
 fillers(until=0xff)
@@ -7307,149 +7174,185 @@ ld(hi('REENTER'),Y)             #21
 jmp(Y,'REENTER')                #22
 ld(-26/2)                       #23
 
-# NOTB implementation
-label('notb#13')
-ld(AC,X)                        #13 address of var
-ld([X])                         #14
-xora(255)                       #15
-st([X])                         #16
-ld(hi('REENTER'),Y)             #17
-jmp(Y,'REENTER')                #18
-ld(-22/2)                       #19
 
-# DOKE+ implementation
-label('doke+#13')
+# PEEKV+ implementation
+label('peekv+#13')
+ld(0,Y)                         #13
+ld(AC,X)                        #14
+ld(min(0,maxTicks-36/2))        #15
+adda([vTicks])                  #16
+blt('.peekv+#19')               #17 not enough time left, so retry
+ld([X])                         #18 low byte peek address
+st([vTmp])                      #19
+adda(1)                         #20
+st([Y,Xpp])                     #21
+beq('.peekv+#24')               #22 if low byte is 0x00
+ld([X])                         #23 high byte peek address
+ld(AC,Y)                        #24
+ld([vTmp],X)                    #25
+ld([Y,X])                       #26
+st([vAC])                       #27
+ld(0)                           #28
+st([vAC+1])                     #29
+ld(hi('NEXTY'),Y)               #30
+jmp(Y,'NEXTY')                  #31
+ld(-34/2)                       #32
+
+label('.peekv+#24')
+ld(AC,Y)                        #24
+adda(1)                         #25
+st([X])                         #26
+ld([vTmp],X)                    #27
+ld([Y,X])                       #28
+st([vAC])                       #29
+ld(0)                           #30
+st([vAC+1])                     #31
+ld(hi('NEXTY'),Y)               #32
+jmp(Y,'NEXTY')                  #33
+ld(-36/2)                       #34
+
+label('.peekv+#19')
+ld([vPC])                       #19 retry instruction
+suba(2)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24 
+
+
+# POKEV+ implementation
+label('pokev+#13')
+ld(0,Y)                         #13    
+ld(AC,X)                        #14 Operand
+ld(min(0,maxTicks-34/2))        #15
+adda([vTicks])                  #16
+blt('.pokev+#19')               #17 not enough time left, so retry
+ld([X])                         #18 low byte poke address
+st([vTmp])                      #19
+adda(1)                         #20
+st([Y,Xpp])                     #21
+beq('.pokev+#24')               #22 if low byte is 0x00
+ld([X])                         #23 high byte poke address
+ld(AC,Y)                        #24
+ld([vTmp],X)                    #25
+ld([vAC])                       #26
+st([Y,X])                       #27
+ld(hi('NEXTY'),Y)               #28
+jmp(Y,'NEXTY')                  #29
+ld(-32/2)                       #30
+
+label('.pokev+#24')
+ld(AC,Y)                        #24
+adda(1)                         #25
+st([X])                         #26
+ld([vTmp],X)                    #27
+ld([vAC])                       #28
+st([Y,X])                       #29
+ld(hi('NEXTY'),Y)               #30
+jmp(Y,'NEXTY')                  #31
+ld(-34/2)                       #32
+
+label('.pokev+#19')
+ld([vPC])                       #19 retry instruction
+suba(2)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24 
+
+
+# DEEKV+ implementation
+label('deekv+#13')
+ld(0,Y)                         #13
+ld(AC,X)                        #14
+ld(min(0,maxTicks-38/2))        #15
+adda([vTicks])                  #16
+blt('.deekv+#19')               #17 not enough time left, so retry
+ld([X])                         #18 low byte deek address
+st([vTmp])                      #19
+adda(2)                         #20
+st([Y,Xpp])                     #21
+anda(0xFE)                      #22
+beq('.deekv+#25')               #23 if low byte is 0x00 or 0x01
+ld([X])                         #24 high byte deek address
+ld(AC,Y)                        #25
+ld([vTmp],X)                    #26
+ld([Y,X])                       #27
+st([Y,Xpp])                     #28 X++
+st([vAC])                       #29
+ld([Y,X])                       #30
+st([vAC+1])                     #31
+ld(hi('NEXTY'),Y)               #32
+jmp(Y,'NEXTY')                  #33
+ld(-36/2)                       #34
+
+label('.deekv+#25')
+ld(AC,Y)                        #25
+adda(1)                         #26
+st([X])                         #27
+ld([vTmp],X)                    #28
+ld([Y,X])                       #29
+st([Y,Xpp])                     #30 X++
+st([vAC])                       #31
+ld([Y,X])                       #32
+st([vAC+1])                     #33
+ld(hi('NEXTY'),Y)               #34
+jmp(Y,'NEXTY')                  #35
+ld(-38/2)                       #36
+
+label('.deekv+#19')
+ld([vPC])                       #19 retry instruction
+suba(2)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24 
+
+
+# DOKEV+ implementation
+label('dokev+#13')
 ld(AC,X)                        #13
-ld(0,Y)                         #14
-ld([X])                         #15 low byte poke address
-st([vTmp])                      #16
-adda(2)                         #17
-st([Y,Xpp])                     #18
-ld([X])                         #19 high byte poke address
-ld(AC,Y)                        #20
-ld([vTmp],X)                    #21
-ld([vAC])                       #22
-st([Y,Xpp])                     #23
-ld([vAC+1])                     #24
-st([Y,X])                       #25
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
+ld(min(0,maxTicks-36/2))        #14
+adda([vTicks])                  #15
+blt('.dokev+#18')               #16 not enough time left, so retry
+ld([X])                         #17 low byte poke address
+st([vTmp])                      #18
+adda(2)                         #19
+st([Y,Xpp])                     #20
+anda(0xFE)                      #21
+beq('.dokev+#24')               #22 if low byte is 0x00 or 0x01
+ld([X])                         #23 high byte poke address
+ld(AC,Y)                        #24
+ld([vTmp],X)                    #25
+ld([vAC])                       #26
+st([Y,Xpp])                     #27
+ld([vAC+1])                     #28
+st([Y,X])                       #29
+ld(hi('NEXTY'),Y)               #30
+jmp(Y,'NEXTY')                  #31
+ld(-34/2)                       #32
 
-# XORI implementation
-label('xori#13')
-xora([vAC])                     #13
-st([vAC])                       #14
-ld(hi('REENTER'),Y)             #15
-jmp(Y,'REENTER')                #16
-ld(-20/2)                       #17
+label('.dokev+#24')
+ld(AC,Y)                        #24
+adda(1)                         #25
+st([X])                         #26
+ld([vTmp],X)                    #27
+ld([vAC])                       #28
+st([Y,Xpp])                     #29
+ld([vAC+1])                     #30
+st([Y,X])                       #31
+ld(hi('NEXTY'),Y)               #32
+jmp(Y,'NEXTY')                  #33
+ld(-36/2)                       #34
 
-# NOP implementation
-label('nop#13')
-ld([vPC])                       #13
-suba(1)                         #14
-st([vPC])                       #15 vPC--
-ld(hi('NEXTY'),Y)               #16
-jmp(Y,'NEXTY')                  #17
-ld(-20/2)                       #18
+label('.dokev+#18')
+ld([vPC])                       #18 retry instruction
+suba(2)                         #19
+st([vPC])                       #20
+ld(hi('REENTER'),Y)             #21
+jmp(Y,'REENTER')                #22
+ld(-26/2)                       #23 
 
-# BRA implementation
-label('bra#13')
-ld(hi('REENTER'),Y)             #13
-jmp(Y,'REENTER')                #14
-ld(-18/2)                       #15
-
-# DBGE implementation
-label('dbge#13')
-ld([vPC+1],Y)                   #13 vPC.hi
-st([vTmp])                      #14 branch offset
-st([Y,Xpp])                     #15 X++, address of counter
-ld([Y,X])                       #16
-ld(AC,X)                        #17 fetch counter
-ld([X])                         #18
-suba(1)                         #19 decrement counter
-blt('.dbge#22')                 #20 if < 0 BRA
-st([X])                         #21
-ld([vTmp])                      #22
-st([vPC])                       #23 BRA to branch offset
-ld(hi('NEXTY'),Y)               #24
-jmp(Y,'NEXTY')                  #25
-ld(-28/2)                       #26
-label('.dbge#22')
-ld([vPC])                       #22
-adda(1)                         #23
-st([vPC])                       #24 advance vPC by 1
-ld(hi('REENTER'),Y)             #25
-jmp(Y,'REENTER')                #26
-ld(-30/2)                       #27
-
-# LDNI implementation
-label('ldni#13')
-xora(255)                       #13
-adda(1)                         #14
-st([vAC])                       #15
-ld(255)                         #16
-st([vAC+1])                     #17
-ld(hi('NEXTY'),Y)               #18
-jmp(Y,'NEXTY')                  #19
-ld(-22/2)                       #20
-
-# ANDBK implementation
-label('andbk#13')
-ld([vPC+1],Y)                   #13
-st([vTmp])                      #14 immediate value
-st([Y,Xpp])                     #15 X++
-ld([Y,X])                       #16
-ld(AC,X)                        #17 address of var
-ld([X])                         #18
-anda([vTmp])                    #19
-st([vAC])                       #20
-ld(0)                           #21
-st([vAC+1])                     #22 Store high result
-ld([vPC])                       #23
-adda(1)                         #24
-st([vPC])                       #25 advance vPC by 1
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
- 
-# ORBK implementation
-label('orbk#13')
-ld([vPC+1],Y)                   #13
-st([vTmp])                      #14 immediate value
-st([Y,Xpp])                     #15 X++
-ld([Y,X])                       #16
-ld(AC,X)                        #17 address of var
-ld([X])                         #18
-ora([vTmp])                     #19
-st([vAC])                       #20
-ld(0)                           #21
-st([vAC+1])                     #22 Store high result
-ld([vPC])                       #23
-adda(1)                         #24
-st([vPC])                       #25 advance vPC by 1
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
-
-# XORBK implementation
-label('xorbk#13')
-ld([vPC+1],Y)                   #13
-st([vTmp])                      #14 immediate value
-st([Y,Xpp])                     #15 X++
-ld([Y,X])                       #16
-ld(AC,X)                        #17 address of var
-ld([X])                         #18
-xora([vTmp])                    #19
-st([vAC])                       #20
-ld(0)                           #21
-st([vAC+1])                     #22 Store high result
-ld([vPC])                       #23
-adda(1)                         #24
-st([vPC])                       #25 advance vPC by 1
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
 
 # CMPI implementation
 label('cmpi#13')
@@ -7493,6 +7396,65 @@ st([vPC])                       #20
 ld(hi('REENTER'),Y)             #21
 jmp(Y,'REENTER')                #22
 ld(-26/2)                       #23
+# CMPI implementation
+#label('cmpi#13')
+#st([vTmp])                      #13 immediate value
+#ld(min(0,maxTicks-42/2))        #14
+#adda([vTicks])                  #15
+#blt('.cmpi#18')                 #16 not enough time left, so retry
+#ld([vPC+1],Y)                   #17
+#ld([vTmp])                      #18 immediate value
+#st([Y,Xpp])                     #19 X++
+#ld([Y,X])                       #20 address of var
+#ld(AC,X)                        #21
+#ld(0,Y)                         #22
+#ld([X])                         #23 low byte of var
+#st([sysArgs+7])                 #24
+#st([Y,Xpp])                     #25 X++
+#ld([X])                         #26 high byte of var
+#beq('.cmpi#29')                 #27 exit if var.hi != 0
+#ld([sysArgs+7])                 #28 var.lo
+#ld([vPC])                       #29
+#adda(1)                         #30
+#st([vPC])                       #31 advance vPC by 1
+#ld(hi('NEXTY'),Y)               #32
+#jmp(Y,'NEXTY')                  #33
+#ld(-36/2)                       #34
+#
+#label('.cmpi#29')
+#bmi('.cmpi#31')                 #29
+#suba([vTmp])                    #30
+#st([vAC])                       #31 store low result
+#ora([vTmp])                     #32
+#anda(0x80)                      #33   
+#st([vAC+1])                     #34 [vAC.hi] = sign bit, numerical accuracy is not important
+#ld([vPC])                       #35
+#adda(1)                         #36
+#st([vPC])                       #37 advance vPC by 1
+#ld(hi('NEXTY'),Y)               #38
+#jmp(Y,'NEXTY')                  #39
+#ld(-42/2)                       #40
+#
+#label('.cmpi#31')
+#st([vAC])                       #31 store low result
+#anda([vTmp])                    #32
+#anda(0x80)                      #33   
+#st([vAC+1])                     #34 [vAC.hi] = sign bit, numerical accuracy is not important
+#ld([vPC])                       #35
+#adda(1)                         #36
+#st([vPC])                       #37 advance vPC by 1
+#ld(hi('NEXTY'),Y)               #38
+#jmp(Y,'NEXTY')                  #39
+#ld(-42/2)                       #40
+#
+#label('.cmpi#18')
+#ld([vPC])                       #18 retry instruction
+#suba(2)                         #19
+#st([vPC])                       #20
+#ld(hi('REENTER'),Y)             #21
+#jmp(Y,'REENTER')                #22
+#ld(-26/2)                       #23
+
 
 # JEQ implementation
 label('jeq#13')
@@ -7537,74 +7499,6 @@ st([vPC+1])                     #21
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
-
-# JLT implementation
-label('jlt#13')
-ld([vPC+1],Y)                   #13 vPC.hi
-ld([vAC+1])                     #14
-blt('.jlt#17')                  #15 if vAC.hi < 0
-ld([Y,X])                       #16 address of branch destination
-ld([vPC])                       #17
-adda(1)                         #18
-st([vPC])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
-label('.jlt#17')
-st([vPC])                       #17
-st([Y,Xpp])                     #18
-ld([Y,X])                       #19 hi address of jump destination
-st([vPC+1])                     #20
-ld(hi('REENTER'),Y)             #21
-jmp(Y,'REENTER')                #22
-ld(-26/2)                       #23
-
-# BBEQ implementation
-#label('bbeq#13')
-#ld([vPC+1],Y)                   #13 vPC.hi
-#st([vTmp])                      #14 branch offset
-#st([Y,Xpp])                     #15 X++
-#ld([Y,X])                       #16
-#ld(AC,X)                        #17
-#ld([X])                         #18 low byte of var
-#beq('.bbeq#21')                 #19
-#ld([vPC])                       #20
-#adda(1)                         #21
-#st([vPC])                       #22 advance vPC by 1
-#ld(hi('REENTER'),Y)             #23
-#jmp(Y,'REENTER')                #24
-#ld(-28/2)                       #25
-#label('.bbeq#21')
-#ld([vTmp])                      #21
-#st([vPC])                       #22 branch to offset
-#ld(hi('REENTER'),Y)             #23
-#jmp(Y,'REENTER')                #24
-#ld(-28/2)                       #25
-
-# BWEQ implementation
-#label('bweq#13')
-#ld([vPC+1],Y)                   #13 vPC.hi
-#st([vTmp])                      #14 branch offset
-#st([Y,Xpp])                     #15 X++
-#ld([Y,X])                       #16
-#ld(AC,X)                        #17
-#ld([X])                         #18 low byte of var
-#ld(0,Y)                         #19
-#st([Y,Xpp])                     #20 X++
-#ora([Y,X])                      #21 or with high byte of var
-#beq('.bweq#24')                 #22
-#ld([vPC])                       #23
-#adda(1)                         #24
-#st([vPC])                       #25 advance vPC by 1
-#ld(hi('NEXTY'),Y)               #26
-#jmp(Y,'NEXTY')                  #27
-#ld(-30/2)                       #28
-#label('.bweq#24')
-#ld([vTmp])                      #24
-#st([vPC])                       #25 branch to offset
-#ld(hi('NEXTY'),Y)               #26
-#jmp(Y,'NEXTY')                  #27
-#ld(-30/2)                       #28
 
 
 fillers(until=0xff)
@@ -8382,38 +8276,6 @@ jmp(Y,'NEXTY')                  #51,
 ld(-54/2)                       #52,
 
 
-# sys_ReadPixel
-label('sys_ReadPixel')
-adda([vAC+1])                   #18,
-ld(AC,X)                        #19,
-ld(1,Y)                         #20, Y,X = 0x0100 + 2*y, (0 >= y <= 127)
-ld([Y,X])                       #21,
-ld(AC,Y)                        #22, Y = [Y,X]
-ld([vAC],X)                     #23, X = x
-ld([Y,X])                       #24,
-st([vAC])                       #25, vAC = [Y,X]
-ld(0)                           #26,
-st([vAC+1])                     #27,
-ld(hi('NEXTY'),Y)               #28,
-jmp(Y,'NEXTY')                  #29,
-ld(-32/2)                       #30,
-
-
-# sys_DrawPixel
-label('sys_DrawPixel')
-adda([sysArgs+1])               #18,
-ld(AC,X)                        #19,
-ld(1,Y)                         #20, Y,X = 0x0100 + 2*y, (0 >= y <= 127)
-ld([Y,X])                       #21,
-ld(AC,Y)                        #22, Y = [Y,X]
-ld([sysArgs+0],X)               #23, X = x
-ld([sysArgs+2])                 #24, colour
-st([Y,X])                       #25, [Y,X] = colour
-ld(hi('NEXTY'),Y)               #26,
-jmp(Y,'NEXTY')                  #27,
-ld(-30/2)                       #28,
-
-
 fillers(until=0xff)
 align(0x100, size=0x100)
 
@@ -8551,7 +8413,7 @@ ld([0x83],Y)                    #23, spriteY
 bne(pc()+3)                     #24, colourkey
 bra(pc()+3)                     #25,
 ld([Y,X])                       #26,
-nop()                           #26, (!)
+xora([0x07])                    #26, (!)
 st([Y,Xpp])                     #27, draw pixel0
 
 ld([Y,X])                       #28, get back1
@@ -8562,7 +8424,7 @@ ld([0x83],Y)                    #32, spriteY
 bne(pc()+3)                     #33, colourkey
 bra(pc()+3)                     #34,
 ld([Y,X])                       #35,
-nop()                           #35, (!)
+xora([0x07])                    #35, (!)
 st([Y,Xpp])                     #36, draw pixel1
 
 ld([Y,X])                       #37, get back2
@@ -8573,7 +8435,7 @@ ld([0x83],Y)                    #41, spriteY
 bne(pc()+3)                     #42, colourkey
 bra(pc()+3)                     #43,
 ld([Y,X])                       #44,
-nop()                           #44, (!)
+xora([0x07])                    #44, (!)
 st([Y,Xpp])                     #45, draw pixel2
 
 ld([Y,X])                       #46, get back3
@@ -8584,7 +8446,7 @@ ld([0x83],Y)                    #50, spriteY
 bne(pc()+3)                     #51, colourkey
 bra(pc()+3)                     #52,
 ld([Y,X])                       #53,
-nop()                           #53, (!)
+xora([0x07])                    #53, (!)
 st([Y,Xpp])                     #54, draw pixel3
 
 ld([Y,X])                       #55, get back4
@@ -8595,7 +8457,7 @@ ld([0x83],Y)                    #59, spriteY
 bne(pc()+3)                     #60, colourkey
 bra(pc()+3)                     #61,
 ld([Y,X])                       #62,
-nop()                           #62, (!)
+xora([0x07])                    #62, (!)
 st([Y,Xpp])                     #63, draw pixel4
 
 ld([Y,X])                       #64, get back5
@@ -8606,7 +8468,7 @@ ld([0x83],Y)                    #68, spriteY
 bne(pc()+3)                     #69, colourkey
 bra(pc()+3)                     #70,
 ld([Y,X])                       #71,
-nop()                           #71, (!)
+xora([0x07])                    #71, (!)
 st([Y,Xpp])                     #72, draw pixel5
 
 ld([Y,X])                       #73, get back6
@@ -8617,7 +8479,7 @@ ld([0x83],Y)                    #77, spriteY
 bne(pc()+3)                     #78, colourkey
 bra(pc()+3)                     #79,
 ld([Y,X])                       #80,
-nop()                           #80, (!)
+xora([0x07])                    #80, (!)
 st([Y,Xpp])                     #81, draw pixel6
 
 ld([Y,X])                       #82, get back7
@@ -8628,7 +8490,7 @@ ld([0x83],Y)                    #86, spriteY
 bne(pc()+3)                     #87, colourkey
 bra(pc()+3)                     #88,
 ld([Y,X])                       #89,
-nop()                           #89, (!)
+xora([0x07])                    #89, (!)
 st([Y,Xpp])                     #90, draw pixel7
 
 ld([Y,X])                       #91, get back8
@@ -8639,7 +8501,7 @@ ld([0x83],Y)                    #95, spriteY
 bne(pc()+3)                     #96, colourkey
 bra(pc()+3)                     #97,
 ld([Y,X])                       #98,
-nop()                           #98, (!)
+xora([0x07])                    #98, (!)
 st([Y,Xpp])                     #99, draw pixel8
 
 ld([0x87],Y)                    #100, spriteData
@@ -9177,39 +9039,39 @@ jmp(Y,'NEXTY')                  #43,
 ld(-46/2)                       #44,
 
 
-# SYS_Reset_88 imolementation
+# SYS_Reset_88 implementation
 label('sys_Reset_88')
 st([romType])                   #18
 ld(0)                           #19
-st([vSP])                       #20 vSP
-st([vSPH])                      #21 vSPH
+st([vSP])                       #20
+st([vSPH])                      #21
 ld(hi('videoTop_v5'),Y)         #22
 st([Y,lo('videoTop_v5')])       #23 Show all 120 pixel lines
 st([Y,vIRQ_v5])                 #24 Disable vIRQ dispatch
 st([Y,vIRQ_v5+1])               #25
-#st([soundTimer])                #26 soundTimer
+st([soundTimer])                #26 soundTimer
 assert userCode&255 == 0
-st([vLR])                       #26 vLR
-ld(userCode>>8)                 #27
-st([vLR+1])                     #28
-ld('nopixels')                  #29 Video mode 3 (fast)
-st([videoModeB])                #30
-st([videoModeC])                #31
-st([videoModeD])                #32
-ld('SYS_Exec_88')               #33 SYS_Exec_88
-st([sysFn])                     #34 High byte (remains) 0
-ld('Reset')                     #35 Reset.gt1 from EPROM
-st([sysArgs+0])                 #36
-ld(hi('Reset'))                 #37
-st([sysArgs+1])                 #38
-ld([vPC])                       #39 Force second SYS call
-suba(2)                         #40
-st([vPC])                       #41
-ctrl(0b01111111)                #42 Expansion board: (1) reset signal.
-ctrl(0b01111100)                #43 (2) disable SPI slaves, enable RAM bank 1
-ld(hi('NEXTY'),Y)               #44
-jmp(Y,'NEXTY')                  #45
-ld(-48/2)                       #46
+st([vLR])                       #27 vLR
+ld(userCode>>8)                 #28
+st([vLR+1])                     #29
+ld('nopixels')                  #30 Video mode 3 (fast)
+st([videoModeB])                #31
+st([videoModeC])                #32
+st([videoModeD])                #33
+ld('SYS_Exec_88')               #34 SYS_Exec_88
+st([sysFn])                     #35 High byte (remains) 0
+ld('Reset')                     #36 Reset.gt1 from EPROM
+st([sysArgs+0])                 #37
+ld(hi('Reset'))                 #38
+st([sysArgs+1])                 #39
+ld([vPC])                       #40 Force second SYS call
+suba(2)                         #41
+st([vPC])                       #42
+ctrl(0b01111111)                #43 Expansion board: (1) reset signal.
+ctrl(0b01111100)                #44 (2) disable SPI slaves, enable RAM bank 1
+ld(hi('REENTER'),Y)             #45
+jmp(Y,'REENTER')                #46
+ld(-50/2)                       #47
 
 
 #-----------------------------------------------------------------------
@@ -9401,7 +9263,7 @@ ld([0x85],Y)                    #35, spriteY
 bne(pc()+3)                     #36, colourkey
 bra(pc()+3)                     #37,
 ld([Y,X])                       #38,
-nop()                           #38, (!)
+xora([0xB4])                    #38, (!)
 st([Y,Xpp])                     #39, draw pixel0
 
 ld([Y,X])                       #40, get back1
@@ -9412,7 +9274,7 @@ ld([0x85],Y)                    #44, spriteY
 bne(pc()+3)                     #45, colourkey
 bra(pc()+3)                     #46,
 ld([Y,X])                       #47,
-nop()                           #47, (!)
+xora([0xB4])                    #47, (!)
 st([Y,Xpp])                     #48, draw pixel1
 
 ld([Y,X])                       #49, get back2
@@ -9423,7 +9285,7 @@ ld([0x85],Y)                    #53, spriteY
 bne(pc()+3)                     #54, colourkey
 bra(pc()+3)                     #55,
 ld([Y,X])                       #56,
-nop()                           #56, (!)
+xora([0xB4])                    #56, (!)
 st([Y,Xpp])                     #57, draw pixel2
 
 ld([Y,X])                       #58, get back3
@@ -9434,7 +9296,7 @@ ld([0x85],Y)                    #62, spriteY
 bne(pc()+3)                     #63, colourkey
 bra(pc()+3)                     #64,
 ld([Y,X])                       #65,
-nop()                           #65, (!)
+xora([0xB4])                    #65, (!)
 st([Y,Xpp])                     #66, draw pixel3
 
 ld([Y,X])                       #67, get back4
@@ -9445,7 +9307,7 @@ ld([0x85],Y)                    #71, spriteY
 bne(pc()+3)                     #72, colourkey
 bra(pc()+3)                     #73,
 ld([Y,X])                       #74,
-nop()                           #74, (!)
+xora([0xB4])                    #74, (!)
 st([Y,Xpp])                     #75, draw pixel4
 
 ld([Y,X])                       #76, get back5
@@ -9456,7 +9318,7 @@ ld([0x85],Y)                    #80, spriteY
 bne(pc()+3)                     #81, colourkey
 bra(pc()+3)                     #82,
 ld([Y,X])                       #83,
-nop()                           #83, (!)
+xora([0xB4])                    #83, (!)
 st([Y,Xpp])                     #84, draw pixel5
 
 ld([Y,X])                       #85, get back6
@@ -9467,7 +9329,7 @@ ld([0x85],Y)                    #89, spriteY
 bne(pc()+3)                     #90, colourkey
 bra(pc()+3)                     #91,
 ld([Y,X])                       #92,
-nop()                           #92, (!)
+xora([0xB4])                    #92, (!)
 st([Y,Xpp])                     #93, draw pixel6
 
 ld([Y,X])                       #94, get back7
@@ -9478,7 +9340,7 @@ ld([0x85],Y)                    #98, spriteY
 bne(pc()+3)                     #99, colourkey
 bra(pc()+3)                     #100,
 ld([Y,X])                       #101,
-nop()                           #101, (!)
+xora([0xB4])                    #101, (!)
 st([Y,Xpp])                     #102, draw pixel7
 
 ld([Y,X])                       #103, get back8
@@ -9489,7 +9351,7 @@ ld([0x85],Y)                    #107, spriteY
 bne(pc()+3)                     #108, colourkey
 bra(pc()+3)                     #109,
 ld([Y,X])                       #110,
-nop()                           #110, (!)
+xora([0xB4])                    #110, (!)
 st([Y,Xpp])                     #111, draw pixel8
 
 ld([0x87],Y)                    #112, spriteData
@@ -9916,238 +9778,302 @@ ld(AC,X)                        #12
 label('XCHGB')
 ld(hi('xchgb#13'),Y)            #10
 jmp(Y,'xchgb#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
 # pc = 0x2219, Opcode = 0x19
 # Instruction MOVW: Move 16bits from src zero page var to dst zero page var, 22 + 30 cycles
 label('MOVW')
 ld(hi('movw#13'),Y)             #10
 jmp(Y,'movw#13')                #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
 # pc = 0x221b, Opcode = 0x1b
-# Instruction ADDWI: vAC += immediate 16bit value, 22 + 28 cycles
+# Instruction ADDWI: vAC += imm16, 22 + 28 cycles
 label('ADDWI')
 ld(hi('addwi#13'),Y)            #10 #12
 jmp(Y,'addwi#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
 # pc = 0x221d, Opcode = 0x1d
-# Instruction SUBWI: vAC -= immediate 16bit value, 22 + 28 cycles
+# Instruction SUBWI: vAC -= imm16, 22 + 28 cycles
 label('SUBWI')
 ld(hi('subwi#13'),Y)            #10 #12
 jmp(Y,'subwi#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
 # pc = 0x221f, Opcode = 0x1f
-# Instruction ANDWI: vAC &= immediate 16bit value, 22 + 22 cycles
+# Instruction ANDWI: vAC &= imm16, 22 + 22 cycles
 label('ANDWI')
 ld(hi('andwi#13'),Y)            #10 #12
 jmp(Y,'andwi#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
 # pc = 0x2221, Opcode = 0x21
-# Instruction ORWI: vAC |= immediate 16bit value, 22 + 22 cycles
+# Instruction ORWI: vAC |= imm16, 22 + 22 cycles
 label('ORWI')
 ld(hi('orwi#13'),Y)             #10 #12
 jmp(Y,'orwi#13')                #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
 # pc = 0x2223, Opcode = 0x23
-# Instruction XORWI: vAC ^= immediate 16bit value, 22 + 22 cycles
+# Instruction XORWI: vAC ^= imm16, 22 + 22 cycles
 label('XORWI')
 ld(hi('xorwi#13'),Y)            #10 #12
 jmp(Y,'xorwi#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
 # pc = 0x2225, Opcode = 0x25
-# Instruction LDPX: Load Pixel, <address var>, <colour var>, 22 + 30 cycles
-label('LDPX')
-ld(hi('ldpx#13'),Y)             #10 #12
-jmp(Y,'ldpx#13')                #11
-st([vTmp])                      #12
-
-# pc = 0x2228, Opcode = 0x28
-# Instruction STPX: Store Pixel, <address var>, <colour var>, 22 + 30 cycles
-label('STPX')
-ld(hi('stpx#13'),Y)             #10
-jmp(Y,'stpx#13')                #11
-ld(AC,X)                        #12
-
-# pc = 0x222b, Opcode = 0x2b
-# Instruction CONDI: chooses immediate operand based on condition, (vAC == 0), 22 + 26 cycles
-label('CONDI')
-ld(hi('condi#13'),Y)            #10
-jmp(Y,'condi#13')               #11
-# dummy                         #12
+# Instruction FNT6X8: vAC = FNT6X8(vAC), 22 + 42 cycles
+label('FNT6X8')
+ld(hi('fnt6x8#13'),Y)           #10
+jmp(Y,'fnt6x8#13')              #11
+# dummy                         #12 Overlap
 #
-# pc = 0x222d, Opcode = 0x2d
-# Instruction CONDB: chooses zero page byte var based on condition, (vAC == 0), 22 + 26 cycles
-label('CONDB')
-ld(hi('condb#13'),Y)            #10 #12
-jmp(Y,'condb#13')               #11
+# pc = 0x2227, Opcode = 0x27
+# Instruction FNT4X6: vAC = FNT4X6(vAC), 22 + 42 cycles
+label('FNT4X6')
+ld(hi('fnt4x6#13'),Y)           #10
+jmp(Y,'fnt4x6#13')              #11
+# dummy                         #12 Overlap
+#
+# pc = 0x2229, Opcode = 0x29
+# Instruction CONDII: chooses immediate operand based on condition, (vAC == 0), 22 + 26 cycles
+label('CONDII')
+ld(hi('condii#13'),Y)           #10 #12
+jmp(Y,'condii#13')              #11
+# dummy                         #12 Overlap
+#
+# pc = 0x222b, Opcode = 0x2b
+# Instruction CONDBB: chooses zero page byte var based on condition, (vAC == 0), 22 + 26 cycles
+label('CONDBB')
+ld(hi('condbb#13'),Y)           #10 #12
+jmp(Y,'condbb#13')              #11
 ld(AC,X)                        #12
 
-# pc = 0x2230, Opcode = 0x30
+# pc = 0x222e, Opcode = 0x2e
 # Instruction CONDIB: chooses between imm and zero page byte var based on condition, (vAC == 0), 22 + 26 cycles
 label('CONDIB')
 ld(hi('condib#13'),Y)           #10
 jmp(Y,'condib#13')              #11
 st([vTmp])                      #12
 
-# pc = 0x2233, Opcode = 0x33
+# pc = 0x2231, Opcode = 0x31
 # Instruction CONDBI: chooses between zero page byte var and imm based on condition, (vAC == 0), 22 + 26 cycles
 label('CONDBI')
 ld(hi('condbi#13'),Y)           #10
 jmp(Y,'condbi#13')              #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
-# pc = 0x2235, Opcode = 0x35
+# pc = 0x2233, Opcode = 0x33
 # Instruction XCHGW: Exchange two zero word variables, 22 + 46 cycles
 label('XCHGW')
 ld(hi('xchgw#13'),Y)            #10 #12
 jmp(Y,'xchgw#13')               #11
 st([sysArgs+6])                 #12 var1
 
-# pc = 0x2238, Opcode = 0x38
+# pc = 0x2236, Opcode = 0x36
 # Instruction OSCPX:
 label('OSCPX')
 ld(hi('oscpx#13'),Y)            #10
 jmp(Y,'oscpx#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 # 
-# pc = 0x223a, Opcode = 0x3a
+# pc = 0x2238, Opcode = 0x38
 # Instruction SWAPB: Swap two bytes in memory, 22 + 46 cycles
 label('SWAPB')
 ld(hi('swapb#13'),Y)            #10 #12
 jmp(Y,'swapb#13')               #11
 ld(AC,X)                        #12 var1
 # 
-# pc = 0x223d, Opcode = 0x3d
+# pc = 0x223b, Opcode = 0x3b
 # Instruction SWAPW: Swap two words in memory, 22 + 58 cycles
 label('SWAPW')
 ld(hi('swapw#13'),Y)            #10
 jmp(Y,'swapw#13')               #11
 ld(AC,X)                        #12 var1
 
-# pc = 0x2240, Opcode = 0x40
+# pc = 0x223e, Opcode = 0x3e
 # Instruction NEEKA: Peek <n> bytes from [vAC] into [var], 22 + 34*n + 24 cycles
 label('NEEKA')
 ld(hi('neeka#13'),Y)            #10
 jmp(Y,'neeka#13')               #11
 st([sysArgs+6])                 #12 var
 
-# pc = 0x2243, Opcode = 0x43
+# pc = 0x2241, Opcode = 0x41
 # Instruction NOKEA: Poke <n> bytes from [var] into [vAC], 22 + 34*n + 24 cycles
 label('NOKEA')
 ld(hi('nokea#13'),Y)            #10
 jmp(Y,'nokea#13')               #11
 st([sysArgs+6])                 #12 var
 
-# pc = 0x2246, Opcode = 0x46
+# pc = 0x2244, Opcode = 0x44
 # Instruction ADDVL: Add two 32bit zero page vars, dst += src, 22 + 78 cycles
 label('ADDVL')
 ld(hi('addvl#13'),Y)            #10
 jmp(Y,'addvl#13')               #11
 st([sysArgs+6],X)               #12 src var
 
-# pc = 0x2249, Opcode = 0x49
+# pc = 0x2247, Opcode = 0x47
 # Instruction SUBVL: Subtract two 32bit zero page vars, dst -= src, 22 + 74 cycles
 label('SUBVL')
 ld(hi('subvl#13'),Y)            #10
 jmp(Y,'subvl#13')               #11
 st([sysArgs+6],X)               #12 src var
 
-# pc = 0x224c, Opcode = 0x4c
+# pc = 0x224a, Opcode = 0x4a
 # Instruction ANDVL: And two 32bit zero page vars, dst &= src, 22 + 46 cycles
 label('ANDVL')
 ld(hi('andvl#13'),Y)            #10
 jmp(Y,'andvl#13')               #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x224f, Opcode = 0x4f
+# pc = 0x224d, Opcode = 0x4d
 # Instruction ORVL: Or two 32bit zero page vars, dst |= src, 22 + 46 cycles
 label('ORVL')
 ld(hi('orvl#13'),Y)             #10
 jmp(Y,'orvl#13')                #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x2252, Opcode = 0x52
+# pc = 0x2250, Opcode = 0x50
 # Instruction XORVL: Xor two 32bit zero page vars, dst ^= src, 22 + 76 cycles
 label('XORVL')
 ld(hi('xorvl#13'),Y)            #10
 jmp(Y,'xorvl#13')               #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x2255, Opcode = 0x55
+# pc = 0x2253, Opcode = 0x53
 # Instruction JEQL: 22 + 40 cycles
 label('JEQL')
 ld(hi('jeql#13'),Y)             #10
 jmp(Y,'jeql#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x2258, Opcode = 0x58
+# pc = 0x2256, Opcode = 0x56
 # Instruction JNEL: 22 + 40 cycles
 label('JNEL')
 ld(hi('jnel#13'),Y)             #10
 jmp(Y,'jnel#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x225B, Opcode = 0x5B
+# pc = 0x2259, Opcode = 0x59
 # Instruction JLTL: 22 + 26 cycles
 label('JLTL')
 ld(hi('jltl#13'),Y)             #10
 jmp(Y,'jltl#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x225E, Opcode = 0x5E
+# pc = 0x225c, Opcode = 0x5c
 # Instruction JGTL: 22 + 42 cycles
 label('JGTL')
 ld(hi('jgtl#13'),Y)             #10
 jmp(Y,'jgtl#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x2261, Opcode = 0x61
+# pc = 0x225f, Opcode = 0x5f
 # Instruction JLEL: 22 + 42 cycles
 label('JLEL')
 ld(hi('jlel#13'),Y)             #10
 jmp(Y,'jlel#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x2264, Opcode = 0x64
+# pc = 0x2262, Opcode = 0x62
 # Instruction JGEL: 22 + 26 cycles
 label('JGEL')
 ld(hi('jgel#13'),Y)             #10
 jmp(Y,'jgel#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x2267, Opcode = 0x67
+# pc = 0x2265, Opcode = 0x65
 # Instruction ANDBI: And immediate byte with byte var, result in byte var, 22 + 20 cycles
 label('ANDBI')
 ld(hi('andbi#13'),Y)            #10
 jmp(Y,'andbi#13')               #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x226A, Opcode = 0x6A
+# pc = 0x2268, Opcode = 0x68
 # Instruction ORBI: OR immediate byte with byte var, result in byte var, 22 + 20 cycles
 label('ORBI')
 ld(hi('orbi#13'),Y)             #10
 jmp(Y,'orbi#13')                #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x226D, Opcode = 0x6D
+# pc = 0x226b, Opcode = 0x6b
 # Instruction XORBI: var.lo ^= imm, 22 + 20 cycles
 label('XORBI')
 ld(hi('xorbi#13'),Y)            #10
 jmp(Y,'xorbi#13')               #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x2270, Opcode = 0x70
+# pc = 0x226e, Opcode = 0x6e
+# Instruction ANDBK: vAC.hi = 0, vAC.lo = var.lo & imm, 22 + 22 cycles
+label('ANDBK')
+ld(hi('andbk#13'),Y)            #10
+jmp(Y,'andbk#13')               #11
+ld(AC,X)                        #12 address of var
+
+# pc = 0x2271, Opcode = 0x71
+# Instruction ORBK: vAC.lo = var.lo | imm, 22 + 22 cycles
+label('ORBK')
+ld(hi('orbk#13'),Y)             #10
+jmp(Y,'orbk#13')                #11
+ld(AC,X)                        #12 address of var
+
+# pc = 0x2274, Opcode = 0x74
+# Instruction XORBK: vAC.lo = var.lo ^ imm, 22 + 22 cycles
+label('XORBK')
+ld(hi('xorbk#13'),Y)            #10
+jmp(Y,'xorbk#13')               #11
+ld(AC,X)                        #12 address of var
+
+# pc = 0x2277, Opcode = 0x77
 # Instruction JMPI, (lb3361): Jump to 16bit address, preserve vLR, 22 + 20 cycles
 label('JMPI')
 ld(hi('jmpi#13'),Y)             #10
 jmp(Y,'jmpi#13')                #11
 suba(2)                         #12
+
+# pc = 0x227a, Opcode = 0x7a
+# Instruction SUBIW: vAC = imm16 - vAC, 22 + 28 cycles
+label('SUBIW')
+ld(hi('subiw#13'),Y)            #10 #12
+jmp(Y,'subiw#13')               #11
+# dummy                         #12 Overlap
+#
+# pc = 0x227c, Opcode = 0x7c
+# Instruction VADDBW: dst.0 += src.0, dst.1 += src.1, 22 + 30 cycles
+label('VADDBW')
+ld(hi('vaddbw#13'),Y)           #10 overlap
+jmp(Y,'vaddbw#13')              #11
+ld(AC,X)                        #12 src var
+
+# pc = 0x227f, Opcode = 0x7f
+# Instruction VSUBBW: dst.0 -= src.0, dst.1 -= src.1, 22 + 30 cycles
+label('VSUBBW')
+ld(hi('vsubbw#13'),Y)           #10
+jmp(Y,'vsubbw#13')              #11
+ld(AC,X)                        #12 src var
+
+# pc = 0x2282, Opcode = 0x82
+# Instruction VADDBL: dst.0 += src.0, dst.1 += src.1, dst.2 += src.2, dst.3 += src.3, 22 + 46 cycles
+label('VADDBL')
+ld(hi('vaddbl#13'),Y)           #10
+jmp(Y,'vaddbl#13')              #11
+ld(AC,X)                        #12 src var
+
+# pc = 0x2285, Opcode = 0x85
+# Instruction VSUBBL: dst.0 -= src.0, dst.1 -= src.1, dst.2 -= src.2, dst.3 -= src.3, 22 + 46 cycles
+label('VSUBBL')
+ld(hi('vsubbl#13'),Y)           #10
+jmp(Y,'vsubbl#13')              #11
+ld(AC,X)                        #12 src var
+
+# pc = 0x2488 Opcode = 0x88
+# Instruction CMPII: if vAC < imm0 vAC=-1, if vAC >= imm1 vAC=1, else vAC=0, 18 + (28) cycles
+label('CMPII')
+ld(hi('cmpii#13'),Y)            #10
+jmp(Y,'cmpii#13')               #11
+# dummy                         #12 Overlap
+#
 
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
@@ -10256,21 +10182,21 @@ jmp(Y,'negw#13')                #11
 label('ANDBA')
 ld(hi('andba#13'),Y)            #10 #12
 jmp(Y,'andba#13')               #11
-ld(AC,X)                        #12 var
+ld(AC,X)                        #12
 
 # pc = 0x231c, Opcode = 0x1c
 # Instruction ORBA: vAC |= var.lo, 22 + 20 cycles
 label('ORBA')
 ld(hi('orba#13'),Y)             #10
 jmp(Y,'orba#13')                #11
-ld(AC,X)                        #12 var
+ld(AC,X)                        #12
 
 # pc = 0x231f, Opcode = 0x1f
 # Instruction XORBA: vAC ^= var.lo, 22 + 20 cycles
 label('XORBA')
 ld(hi('xorba#13'),Y)            #10
 jmp(Y,'xorba#13')               #11
-ld(AC,X)                        #12 var
+ld(AC,X)                        #12
 
 # pc = 0x2322, Opcode = 0x22
 # Instruction FREQM: [(((chan & 3) + 1) <<8) | 0x00FC] = vAC, chan var = [0..3], 22 + 26 cycles
@@ -10284,141 +10210,178 @@ jmp(Y,'freqm#13')               #11
 label('FREQA')
 ld(hi('freqa#13'),Y)            #10 #12
 jmp(Y,'freqa#13')               #11
-ld(AC,X)                        #12 var
+ld(AC,X)                        #12
 
 # pc = 0x2327, Opcode = 0x27
-# Instruction FREQZI: [(((imm & 3) + 1) <<8) | 0x00FC] = 0, imm = [0..3], 22 + 22 cycles
-label('FREQZI')
-ld(hi('freqzi#13'),Y)           #10
-jmp(Y,'freqzi#13')              #11
-anda(3)                         #12 channel
-
-# pc = 0x232a, Opcode = 0x2a
-# Instruction VOLM: [(((chan & 3) + 1) <<8) | 0x00FA] = vAC.low, chan var = [0..3], 22 + 24 cycles
-label('VOLM')
-ld(hi('volm#13'),Y)             #10
-jmp(Y,'volm#13')                #11
+# Instruction FREQI: [(((imm & 3) + 1) <<8) | 0x00FC] = vAC, chan imm = [0..3], 22 + 24 cycles
+label('FREQI')
+ld(hi('freqi#13'),Y)            #10
+jmp(Y,'freqi#13')               #11
 # dummy                         #12 Overlap
 #
+# pc = 0x2329, Opcode = 0x29
+# Instruction VOLM: [(((chan & 3) + 1) <<8) | 0x00FA] = vAC.low, chan var = [0..3], 22 + 24 cycles
+label('VOLM')
+ld(hi('volm#13'),Y)             #10 #12
+jmp(Y,'volm#13')                #11
+ld(AC,X)                        #12
+
 # pc = 0x232c, Opcode = 0x2c
 # Instruction VOLA: [((((chan - 1) & 3) + 1) <<8) | 0x00FA] = 63 - vAC.low + 64, chan var = [1..4],  22 + 26 cycles
 label('VOLA')
-ld(hi('vola#13'),Y)             #10 #12
+ld(hi('vola#13'),Y)             #10
 jmp(Y,'vola#13')                #11
-ld(AC,X)                        #12 chan + 1
+ld(AC,X)                        #12
 
 # pc = 0x232f, Opcode = 0x2f
 # Instruction MODA: [((((chan - 1) & 3) + 1) <<8) | 0x00FB] = vAC.low, chan var = [1..4], 22 + 24 cycles
 label('MODA')
 ld(hi('moda#13'),Y)             #10
 jmp(Y,'moda#13')                #11
-ld(AC,X)                        #12 chan + 1
+ld(AC,X)                        #12
 
 # pc = 0x2332, Opcode = 0x32
-# Instruction MODZI: [(((imm & 3) + 1) <<8) | 0x00FA] = 0x0200, imm = [0..3], 22 + 24 cycles
-label('MODZI')
-ld(hi('modzi#13'),Y)            #10
-jmp(Y,'modzi#13')               #11
+# Instruction MODI: [(((imm & 3) + 1) <<8) | 0x00FA] = (vAC.lo <<8) | 0, chan imm = [0..3], 22 + 24 cycles
+label('MODI')
+ld(hi('modi#13'),Y)             #10
+jmp(Y,'modi#13')                #11
 # dummy                         #12 Overlap
 #
-# pc = 0x2234, Opcode = 0x34
+# pc = 0x2334, Opcode = 0x34
 # Instruction SMPCPY:
 label('SMPCPY')
 ld(hi('smpcpy#13'),Y)           #10 #12
 jmp(Y,'smpcpy#13')              #11
-ld(AC,X)                        #12 dst var
+ld(AC,X)                        #12
 
-# pc = 0x2237, Opcode = 0x37
-# Instruction CMPWS:
-label('CMPWS')
-ld(hi('cmpws#13'),Y)            #10
-jmp(Y,'cmpws#13')               #11
-# dummy                         #12 Overlap
-#
-# pc = 0x2239, Opcode = 0x39
-# Instruction CMPWU:
-label('CMPWU')
-ld(hi('cmpwu#13'),Y)            #10 #12
-jmp(Y,'cmpwu#13')               #11
-# dummy                         #12 Overlap
-#
-# pc = 0x223b, Opcode = 0x3b
+# pc = 0x2337, Opcode = 0x37
+# Instruction CMPHS: Adjust high byte for signed compare (vACH=XXX), 22 + 26 cycles
+label('CMPHS')
+ld(hi('cmphs#13'),Y)            #10
+jmp(Y,'cmphs#13')               #11
+ld(AC,X)                        #12
+
+# pc = 0x233a, Opcode = 0x3a
+# Instruction CMPHU: Adjust high byte for unsigned compare (vACH=XXX), 22 + 26 cycles
+label('CMPHU')
+ld(hi('cmphu#13'),Y)            #10
+jmp(Y,'cmphu#13')               #11
+ld(AC,X)                        #12
+
+# pc = 0x233d, Opcode = 0x3d
 # Instruction LEEKA:
 label('LEEKA')
-ld(hi('leeka#13'),Y)            #10 #12
+ld(hi('leeka#13'),Y)            #10
 jmp(Y,'leeka#13')               #11
 # dummy                         #12 Overlap
 #
-# pc = 0x223d, Opcode = 0x3d
+# pc = 0x233f, Opcode = 0x3f
 # Instruction LOKEA:
 label('LOKEA')
 ld(hi('lokea#13'),Y)            #10 #12
 jmp(Y,'lokea#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
-# pc = 0x223f, Opcode = 0x3f
+# pc = 0x2341, Opcode = 0x41
 # Instruction FEEKA:
 label('FEEKA')
 ld(hi('feeka#13'),Y)            #10 #12
 jmp(Y,'feeka#13')               #11
-st([vTmp])                      #12 dst var
-
-# pc = 0x2242, Opcode = 0x42
+# dummy                         #12 Overlap
+#
+# pc = 0x2343, Opcode = 0x43
 # Instruction FOKEA:
 label('FOKEA')
-ld(hi('fokea#13'),Y)            #10
+ld(hi('fokea#13'),Y)            #10 #12
 jmp(Y,'fokea#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
-# pc = 0x2344, Opcode = 0x44
+# pc = 0x2345, Opcode = 0x45
 # Instruction MEEKA: Peek 8 bytes from [vAC] to [var], 22 + 64 cycles
 label('MEEKA')
 ld(hi('meeka#13'),Y)            #10 #12
 jmp(Y,'meeka#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
-# pc = 0x2346, Opcode = 0x46
+# pc = 0x2347, Opcode = 0x47
 # Instruction MOKEA: Poke 8 bytes from [var] to [vAC], 22 + 64 cycles
 label('MOKEA')
 ld(hi('mokea#13'),Y)            #10 #12
 jmp(Y,'mokea#13')               #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
-# pc = 0x2348, Opcode = 0x48
+# pc = 0x2349, Opcode = 0x49
 # Instruction LSRVL: Logical shift right var long, 22 + 104 cycles
 label('LSRVL')
 ld(hi('lsrvl#13'),Y)            #10 #12
 jmp(Y,'lsrvl#13')               #11
-ld(AC,X)                        #12 var
+ld(AC,X)                        #12
 
-# pc = 0x234b, Opcode = 0x4b
+# pc = 0x234c, Opcode = 0x4c
 # Instruction LSLVL: Logical shift left var long, 22 + 56 cycles
 label('LSLVL')
-ld(hi('lslvl#13'),Y)            #10 #12
+ld(hi('lslvl#13'),Y)            #10
 jmp(Y,'lslvl#13')               #11
-ld(AC,X)                        #12 var
+ld(AC,X)                        #12
 
-# pc = 0x234e, Opcode = 0x4e
+# pc = 0x234f, Opcode = 0x4f
 # Instruction INCL: Increment var long, 22 + 36 cycles
 label('INCL')
-ld(hi('incl#13'),Y)             #10 #12
+ld(hi('incl#13'),Y)             #10
 jmp(Y,'incl#13')                #11
-ld(AC,X)                        #12 var
+ld(AC,X)                        #12
 
-# pc = 0x2351, Opcode = 0x51
+# pc = 0x2352, Opcode = 0x52
 # Instruction DECL: Decrement var long, 22 + 40 cycles
 label('DECL')
-ld(hi('decl#13'),Y)             #10 #12
+ld(hi('decl#13'),Y)             #10
 jmp(Y,'decl#13')                #11
-# dummy                         #12
+# dummy                         #12 Overlap
 #
-# pc = 0x2353, Opcode = 0x53
-# Instruction PEEKV+: Peek byte at address contained in var, var += 1, 22 + 38-42 cycles, (can cross page boundaries)
-label('PEEKV+')
-ld(hi('peekv+#13'),Y)           #10 #12
-jmp(Y,'peekv+#13')              #11
-# dummy                         #12
+# pc = 0x2354 Opcode = 0x54
+# Instruction STPX: [vAC.xy] = var, scanline table y taken into account, 22 + 28 cycles
+label('STPX')
+ld(hi('stpx#13'),Y)             #10 #12
+jmp(Y,'stpx#13')                #11
+ld(AC,X)                        #12
+
+# pc = 0x2357, Opcode = 0x57
+# Instruction FLT6X8: fontTable.lo = vAC*5 + fontTable.lo
+label('FLT6X8')
+ld(hi('flt6x8#13'),Y)           #10 #12
+jmp(Y,'flt6x8#13')              #11
+ld([vAC])                       #12
+
+# pc = 0x235a, Opcode = 0x5a
+# Instruction FLT4X6: fontTable.lo = vAC*3 + fontTable.lo
+label('FLT4X6')
+ld(hi('flt4x6#13'),Y)           #10
+jmp(Y,'flt4x6#13')              #11
+# dummy                         #12 Overlap
 #
+# pc = 0x235c, Opcode = 0x5c
+# Instruction PRN4X6: print 4x6 font char to screen from var, 22 + 102 cycles
+# sysArgs01 = FG/BG COLOUR, sysArgs2 = 3, (LUP count), var = textFont address, vAC = dest addr
+label('PRN4X6')
+ld(hi('prn4x6#13'),Y)           #10 #12
+jmp(Y,'prn4x6#13')              #11
+# dummy                         #12 Overlap
+#
+# pc = 0x235e, Opcode = 0x5e
+# Instruction VTBL: var = VTBL(vAC), 22 + 28 cycles
+label('VTBL')
+ld(hi('vtbl#13'),Y)             #10 #12
+jmp(Y,'vtbl#13')                #11
+ld([vAC+1])                     #12 y
+
+# pc = 0x2361, Opcode = 0x61
+# Instruction OSCZ: [(((imm & 3) + 1) <<8) | 0x00FE] = 0, chan imm = [0..3], 22 + 22 cycles
+label('OSCZ')
+ld(hi('oscz#13'),Y)             #10 #12
+jmp(Y,'oscz#13')                #11
+# dummy                         #12 Overlap
+#
+
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
 ld(-28/2)                       #25
@@ -10445,16 +10408,16 @@ ld(AC,X)                        #12
 label('STLS')
 ld(hi('stls#13'),Y)             #10
 jmp(Y,'stls#13')                #11
-ld(AC,X)                        #12
-
-# pc = 0x23d6, Opcode = 0xd6
+# dummy                         #12 Overlap
+#
+# pc = 0x23d5, Opcode = 0xd5
 # Instruction NOTL (lb3361): complement long var. 22+30 cycles
 label('NOTL')
-ld(hi('notl#13'),Y)             #10
+ld(hi('notl#13'),Y)             #10 #12
 jmp(Y,'notl#13')                #11
 ld(AC,X)                        #12
 
-# pc = 0x23d9, Opcode = 0xd9
+# pc = 0x23d8, Opcode = 0xd8
 # Instruction NEGL (lb3361): negate long var. 22+58(max) cycles
 label('NEGL')
 ld(hi('negl#13'),Y)             #10
@@ -10518,21 +10481,21 @@ jmp(Y,'xla#13')                 #11
 ld([vAC])                       #12
 
 # pc = 0x241a Opcode = 0x1a
-# Instruction ADDLP (lb3361): vLAC += [vAC]. 22+66 cycles
+# Instruction ADDLP (lb3361): vLAC += [vAC]. 18 + 66 cycles
 label('ADDLP')
 ld(hi('addlp#13'),Y)            #10
 jmp(Y,'addlp#13')               #11
 ld([vTicks])                    #12
 
 # pc = 0x241d Opcode = 0x1d
-# Instruction SUBLP (lb3361): vLAC -= [vAC]. 22+60 cycles
+# Instruction SUBLP (lb3361): vLAC -= [vAC]. 18 + 60 cycles
 label('SUBLP')
 ld(hi('sublp#13'),Y)            #10
 jmp(Y,'sublp#13')               #11
 ld([vTicks])                    #12
 
-# pc = 0x241d Opcode = 0x20
-# Instruction ANDLP (lb3361): vLAC &= [vAC]. 22+42 cycles
+# pc = 0x2420 Opcode = 0x20
+# Instruction ANDLP (lb3361): vLAC &= [vAC]. 18 + 42 cycles
 # On return vAC>0 (resp =0, <0) iff LAC>0 (resp =0, <0)
 label('ANDLP')
 ld(hi('andlp#13'),Y)            #10
@@ -10540,7 +10503,7 @@ jmp(Y,'andlp#13')               #11
 ld([vTicks])                    #12
 
 # pc = 0x2423 Opcode = 0x23
-# Instruction ORLP (lb3361): vLAC |= [vAC]. 22+42 cycles
+# Instruction ORLP (lb3361): vLAC |= [vAC]. 18 + 42 cycles
 # On return vAC>0 (resp =0, <0) iff LAC>0 (resp =0, <0)
 label('ORLP')
 ld(hi('orlp#13'),Y)             #10
@@ -10548,7 +10511,7 @@ jmp(Y,'orlp#13')                #11
 ld([vTicks])                    #12
 
 # pc = 0x2426 Opcode = 0x26
-# Instruction XORLP (lb3361): vLAC ^= [vAC]. 22+42 cycles
+# Instruction XORLP (lb3361): vLAC ^= [vAC]. 18 + 42 cycles
 # On return vAC>0 (resp =0, <0) iff LAC>0 (resp =0, <0)
 label('XORLP')
 ld(hi('xorlp#13'),Y)            #10
@@ -10556,7 +10519,7 @@ jmp(Y,'xorlp#13')               #11
 ld([vTicks])                    #12
 
 # pc = 0x2429 Opcode = 0x29
-# Instruction CMPLPU (lb3361): compare vLAC and [vAC] unsigned. 22+72(max) cycles
+# Instruction CMPLPU (lb3361): compare vLAC and [vAC] unsigned. 18 + 72(max) cycles
 # On return vAC>0 (resp =0, <0) 
 label('CMPLPU')
 ld(hi('cmplpu#13'),Y)           #10
@@ -10564,12 +10527,90 @@ jmp(Y,'cmplpu#13')              #11
 ld([vTicks])                    #12
 
 # pc = 0x242c Opcode = 0x2c
-# Instruction CMPLPS (lb3361): compare vLAC and [vAC] signed. 22+72(max) cycles
+# Instruction CMPLPS (lb3361): compare vLAC and [vAC] signed. 18 + 72(max) cycles
 # On return vAC>0 (resp =0, <0) 
 label('CMPLPS')
 ld(hi('cmplps#13'),Y)           #10
 jmp(Y,'cmplps#13')              #11
 ld([vTicks])                    #12
+
+# pc = 0x242f Opcode = 0x2f
+# Instruction RANDW: vAC = rand(65535), uses Marcel's algorithm from SYS_Random_34, 18 + 30 cycles
+label('RANDW')
+ld(hi('randw#13'),Y)            #10
+jmp(Y,'randw#13')               #11
+# dummy                         #12 Overlap
+#
+# pc = 0x2431 Opcode = 0x31
+# Instruction LDPX: vAC = [vAC.xy], scanline table y taken into account, 18 + 28 cycles
+label('LDPX')
+ld(hi('ldpx#13'),Y)             #10 #12
+jmp(Y,'ldpx#13')                #11
+# dummy                         #12 Overlap
+#
+# pc = 0x2433 Opcode = 0x33
+# Instruction ABSW: vAC = abs(vAC), 18 + (18 or 28) cycles
+label('ABSW')
+ld(hi('absw#13'),Y)             #10 #12
+jmp(Y,'absw#13')                #11
+ld([vAC+1])                     #12
+
+# pc = 0x2436 Opcode = 0x36
+# Instruction SGNW: vAC = sgn(vAC), 18 + (20, 22 or 26) cycles
+label('SGNW')
+ld(hi('sgnw#13'),Y)             #10
+jmp(Y,'sgnw#13')                #11
+ld([vAC+1])                     #12
+
+# pc = 0x2439 Opcode = 0x39
+# Instruction MULB3: vAC = vAC.lo * 3, 18 + 24 cycles
+label('MULB3')
+ld(hi('mulb3#13'),Y)            #10
+jmp(Y,'mulb3#13')               #11
+# dummy                         #12 Overlap
+#
+# pc = 0x243b Opcode = 0x3b
+# Instruction MULB5: vAC = vAC.lo * 5, 18 + 24 cycles
+label('MULB5')
+ld(hi('mulb5#13'),Y)            #10 #12
+jmp(Y,'mulb5#13')               #11
+# dummy                         #12 Overlap
+#
+# pc = 0x243d Opcode = 0x3d
+# Instruction MULB6: vAC = vAC.lo * 6, 18 + 26 cycles
+label('MULB6')
+ld(hi('mulb6#13'),Y)            #10 #12
+jmp(Y,'mulb6#13')               #11
+# dummy                         #12 Overlap
+#
+# pc = 0x243f Opcode = 0x3f
+# Instruction MULB7: vAC = vAC.lo * 7, 18 + 26 cycles
+label('MULB7')
+ld(hi('mulb7#13'),Y)            #10 #12
+jmp(Y,'mulb7#13')               #11
+# dummy                         #12 Overlap
+#
+# pc = 0x2441 Opcode = 0x41
+# Instruction MULB8: vAC = vAC.lo * 8, 18 + 24 cycles
+label('MULB8')
+ld(hi('mulb8#13'),Y)            #10 #12
+jmp(Y,'mulb8#13')               #11
+# dummy                         #12 Overlap
+#
+# pc = 0x2443 Opcode = 0x43
+# Instruction MULB9: vAC = vAC.lo * 9, 18 + 26 cycles
+label('MULB9')
+ld(hi('mulb9#13'),Y)            #10 #12
+jmp(Y,'mulb9#13')               #11
+# dummy                         #12 Overlap
+#
+# pc = 0x2445 Opcode = 0x45
+# Instruction MULB10: vAC = vAC.lo * 10, 18 + 26 cycles
+label('MULB10')
+ld(hi('mulb10#13'),Y)           #10 #12
+jmp(Y,'mulb10#13')              #11
+# dummy                         #12 Overlap
+#
 
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
@@ -10744,6 +10785,36 @@ ld(hi('NEXTY'),Y)               #24
 jmp(Y,'NEXTY')                  #25
 ld(-28/2)                       #26
 
+# SUBIW implementation
+label('subiw#13')
+bmi('.subiw#15')                #13 is -ve?
+suba([vAC])                     #14 
+st([vTmp])                      #15 vAC.lo = imm.lo - vAC.lo
+ora([vAC])                      #16 borrow in bit 7
+anda(0x80,X)                    #17 move borrow to bit 0
+ld([vTmp])                      #18
+st([vAC])                       #19 vAC.lo
+ld([sysArgs+7])                 #20 imm.hi
+suba([X])                       #21
+suba([vAC+1])                   #22
+st([vAC+1])                     #23 vAC.hi = imm.hi - borrow - vAC.hi
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+label('.subiw#15')
+st([vTmp])                      #15 vAC.lo = imm.lo - vAC.lo
+anda([vAC])                     #16 borrow in bit 7
+anda(0x80,X)                    #17 move borrow to bit 0
+ld([vTmp])                      #18
+st([vAC])                       #19 vAC.lo
+ld([sysArgs+7])                 #20 imm.hi
+suba([X])                       #21
+suba([vAC+1])                   #22
+st([vAC+1])                     #23 vAC.hi = imm.hi - borrow - vAC.hi
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
 # ANDWI implementation
 label('andwi#13')
 anda([vAC])                     #13
@@ -10777,27 +10848,8 @@ ld(hi('NEXTY'),Y)               #18
 jmp(Y,'NEXTY')                  #19
 ld(-22/2)                       #20
 
-# LDPX implementation
-label('ldpx#13')
-adda(1,X)                       #13
-ld([X])                         #14 y
-adda([X])                       #15 y*2
-ld(AC,X)                        #16
-ld(1,Y)                         #17 Y,X = 0x0100 + 2*y, (0 >= y <= 127)
-ld([Y,X])                       #18
-ld(AC,Y)                        #19 Y = [Y,X]
-ld([vTmp],X)                    #20
-ld([X])                         #21
-ld(AC,X)                        #22 X = x
-ld([Y,X])                       #23 colour = [Y,X]
-ld([sysArgs+7],X)               #24
-st([X])                         #25 colour
-ld(hi('NEXTY'),Y)               #26
-jmp(Y,'NEXTY')                  #27
-ld(-30/2)                       #28
-
-# CONDI implementation
-label('condi#13')
+# CONDII implementation
+label('condii#13')
 st([vTmp])                      #13
 ld([vAC])                       #14
 ora([vAC+1])                    #15
@@ -10812,8 +10864,8 @@ ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
 
-# CONDB implementation
-label('condb#13')
+# CONDBB implementation
+label('condbb#13')
 ld([X])                         #13
 st([vTmp])                      #14
 ld([sysArgs+7],X)               #15 get result cond=0
@@ -10893,9 +10945,26 @@ adda(1,Y)                       #26 restart instruction
 jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
 
+# SEXT implementation
+label('sext#13')
+anda([vAC+1])                   #13
+bne('.sext#16')                 #14 check mask
+ld([sysArgs+7])                 #15
+ld(hi('NEXTY'),Y)               #16
+jmp(Y,'NEXTY')                  #17
+ld(-20/2)                       #18
+label('.sext#16')
+xora(255)                       #16
+adda(1)                         #17 mask = (~mask) + 1
+ora([vAC+1])                    #18
+st([vAC+1])                     #19 set sign bits
+ld(hi('NEXTY'),Y)               #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
 # NOTW implementation
 label('notw#13')
-ld([sysArgs+7],X)               #13
+ld([sysArgs+7],X)               #13 PREFX2 saves operand in [sysArgs+7]
 ld(0,Y)                         #14
 ld([X])                         #15
 xora(255)                       #16
@@ -10909,8 +10978,8 @@ ld(-26/2)                       #23
 
 # NEGW implementation
 label('negw#13')
-ld([sysArgs+7],X)               #13
-ld(0,Y)                         #14
+ld(0,Y)                         #13
+ld([sysArgs+7],X)               #14 var addr
 ld([X])                         #15
 xora(255)                       #16
 adda(1)                         #17
@@ -10930,23 +10999,6 @@ st([X])                         #23
 ld(hi('NEXTY'),Y)               #24
 jmp(Y,'NEXTY')                  #25
 ld(-28/2)                       #26
-
-# SEXT implementation
-label('sext#13')
-anda([vAC+1])                   #13
-bne('.sext#16')                 #14 check mask
-ld([sysArgs+7])                 #15
-ld(hi('NEXTY'),Y)               #16
-jmp(Y,'NEXTY')                  #17
-ld(-20/2)                       #18
-label('.sext#16')
-xora(255)                       #16
-adda(1)                         #17 mask = (~mask) + 1
-ora([vAC+1])                    #18
-st([vAC+1])                     #19 set sign bits
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
 
 # ANDBA implementation
 label('andba#13')
@@ -10979,7 +11031,7 @@ ld(-20/2)                       #18
 
 # FREQM implementation, (frequency control for static data in the correct format, i.e. MIDI)
 label('freqm#13')
-ld(AC,X)                        #13 chan var, (operand from PREFX2)
+ld([sysArgs+7],X)               #13 chan var, (operand from PREFX2)
 ld([X])                         #14
 anda(3)                         #15
 adda(1,Y)                       #16
@@ -11007,29 +11059,30 @@ ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
 
-# FREQZI implementation
-label('freqzi#13')
-adda(1,Y)                       #13
-ld(0xFC,X)                      #14
-ld(0)                           #15
-st([Y,Xpp])                     #16
-st([Y,X])                       #17
-ld(hi('NEXTY'),Y)               #18
-jmp(Y,'NEXTY')                  #19
-ld(-22/2)                       #20
-
-# VOLM implementation, (volume control for static data in the correct format, i.e. MIDI)
-label('volm#13')
-ld(AC,X)                        #13 chan var, (operand from PREFX2)
-ld([X])                         #14
-anda(3)                         #15
-adda(1,Y)                       #16
-ld(0xFA,X)                      #17
-ld([vAC])                       #18
+# FREQI implementation
+label('freqi#13')
+anda(3)                         #13 channel
+adda(1,Y)                       #14
+ld(0xFC,X)                      #15
+ld([vAC])                       #16
+st([Y,Xpp])                     #17
+ld([vAC+1])                     #18
 st([Y,X])                       #19
 ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
+
+# VOLM implementation, (volume control for static data in the correct format, i.e. MIDI)
+label('volm#13')
+ld([X])                         #13 chan var, (operand from PREFX2)
+anda(3)                         #14
+adda(1,Y)                       #15
+ld(0xFA,X)                      #16
+ld([vAC])                       #17
+st([Y,X])                       #18
+ld(hi('REENTER'),Y)             #19
+jmp(Y,'REENTER')                #20
+ld(-24/2)                       #21
 
 # VOLA implementation
 label('vola#13')
@@ -11052,25 +11105,35 @@ ld([X])                         #13
 suba(1)                         #14
 anda(3)                         #15
 adda(1,Y)                       #16 
-ld(0xFB,X)                      #17
+ld(0xFB,X)                      #17 
 ld([vAC])                       #18
 st([Y,X])                       #19
 ld(hi('NEXTY'),Y)               #20
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 
-# MODZI implementation
-label('modzi#13')
+# MODI implementation
+label('modi#13')
 anda(3)                         #13
 adda(1,Y)                       #14
 ld(0xFA,X)                      #15
-ld(0)                           #16
-st([Y,Xpp])                     #17
-ld(2)                           #18
-st([Y,X])                       #19
-ld(hi('NEXTY'),Y)               #20
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
+st(0,[Y,Xpp])                   #16
+ld([vAC])                       #17
+st([Y,X])                       #18
+ld(hi('REENTER'),Y)             #19
+jmp(Y,'REENTER')                #20
+ld(-24/2)                       #21
+
+# OSCZ implementation
+label('oscz#13')
+anda(3)                         #13 channel
+adda(1,Y)                       #14
+ld(0xFE,X)                      #15
+st(0,[Y,Xpp])                   #16
+st(0,[Y,X])                     #17
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
 
 
 # SMPCPY implementation
@@ -11142,64 +11205,88 @@ jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 
 
-# CMPWS implementation, vAC = vAC CMPWS var
-#           LDW   var0
-#           XORW  var1
-#           BGE   CMPWS_GE
-#           LDW   var0
-#           BRA   CMPWS_RT
-#CMPWS_GE   LDW   var0
-#           SUBW  var1
-#CMPWS_RT   RET
-#label('cmpws#13')
-#ld(min(0,maxTicks-38/2))        #13
-#adda([vTicks])                  #14
-#blt('.cmpws#17')                #15 not enough time left, so retry
-#ld(0,Y)                         #16
-#ld([X])                         #17
-#st([Y,Xpp])                     #18
-#st([0xB0])                      #19 cmp var.lo
-#ld([X])                         #20
-#st([0xB1])                      #21 cmp var.hi
-#xora([vAC+1])                   #22
-#blt('.cmpws#25')                #23 if < 0
-#ld([vAC])                       #24 Low byte
-#bmi('.cmpws#27')                #25
-#suba([0xB0])                    #26
-#st([vAC])                       #27 Store low result
-#ora([0xB0])                     #28 Carry in bit 7
-#anda(0x80,X)                    #29 Move carry to bit 0
-#ld([vAC+1])                     #30
-#suba([X])                       #31
-#suba([0xB1])                    #32 sub var.hi with carry
-#st([vAC+1])                     #33
-#ld(hi('NEXTY'),Y)               #34
-#jmp(Y,'NEXTY')                  #35
-#ld(-38/2)                       #36
+# -------------------------------------------------------------
+# vCPU instructions for comparisons between two 16-bit operands
+# -------------------------------------------------------------
 #
-#label('.cmpws#25')
-#ld(hi('REENTER'),Y)             #25
-#jmp(Y,'REENTER')                #26
-#ld(-30/2)                       #27
+# vCPU's conditional branching (BCC) always compares vAC against 0,
+# treating vAC as a two's complement 16-bit number. When we need to
+# compare two arbitrary numnbers we normally first take their difference
+# with SUBW.  However, when this difference is too large, the subtraction
+# overflows and we get the wrong outcome. To get it right over the
+# entire range, an elaborate sequence is needed. TinyBASIC uses this
+# blurp for its relational operators. (It compares stack variable $02
+# with zero page variable $3a.)
 #
-#label('.cmpws#27')
-#st([vAC])                       #27 Store low result
-#anda([0xB0])                    #28 Carry in bit 7
-#anda(0x80,X)                    #29 Move carry to bit 0
-#ld([vAC+1])                     #30
-#suba([X])                       #31
-#suba([0xB1])                    #32 sub var.hi with carry
-#st([vAC+1])                     #33
-#ld(hi('NEXTY'),Y)               #34
-#jmp(Y,'NEXTY')                  #35
-#ld(-38/2)                       #36
+#       0461  ee 02            LDLW  $02
+#       0463  fc 3a            XORW  $3a
+#       0465  35 53 6a         BGE   $046c
+#       0468  ee 02            LDLW  $02
+#       046a  90 6e            BRA   $0470
+#       046c  ee 02            LDLW  $02
+#       046e  b8 3a            SUBW  $3a
+#       0470  35 56 73         BLE   $0475
 #
-#label('.cmpws#17')
-#ld(hi('PREFX2_PAGE'))           #17 ENTER is at $(n-1)ff, where n = instruction page
-#st([vCpuSelect])                #18 restore PREFX2 instruction page
-#adda(1,Y)                       #19 retry instruction
-#jmp(Y,'REENTER')                #20
-#ld(-24/2)                       #21
+# The CMPHS and CMPHU instructions were introduced to simplify this.
+# They inspect both operands to see if there is an overflow risk. If
+# so, they modify vAC such that their difference gets smaller, while
+# preserving the relation between the two operands. After that, the
+# SUBW instruction can't overflow and we achieve a correct comparison.
+# Use CMPHS for signed comparisons and CMPHU for unsigned. With these,
+# the sequence above becomes:
+#
+#       0461  ee 02            LDLW  $02
+#       0463  1f 3b            CMPHS $3b        Note: high byte of operand
+#       0465  b8 3a            SUBW  $3a
+#       0467  35 56 73         BLE   $0475
+#
+# CMPHS/CMPHU don't make much sense other than in combination with
+# SUBW. These modify vACH, if needed, as given in the following table:
+#
+#       vACH  varH  |     vACH
+#       bit7  bit7  | CMPHS  CMPHU
+#       ---------------------------
+#         0     0   |  vACH   vACH      no change needed
+#         0     1   | varH+1 varH-1     narrowing the range
+#         1     0   | varH-1 varH+1     narrowing the range
+#         1     1   |  vACH   vACH      no change needed
+#       ---------------------------
+
+# CMPHS implementation
+label('cmphs#13')
+ld([X])                         #13
+xora([vAC+1])                   #14
+bpl('.cmphu#17')                #15 Skip if same sign
+ld([vAC+1])                     #16
+bmi(pc()+3)                     #17
+bra(pc()+3)                     #18
+
+label('.cmphs#19')
+ld(+1)                          #19    vAC < variable
+ld(-1)                          #19(!) vAC > variable
+
+label('.cmphs#20')
+adda([X])                       #20
+st([vAC+1])                     #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+
+# CMPHU implementation
+label('cmphu#13')
+ld([X])                         #13
+xora([vAC+1])                   #14
+bpl('.cmphu#17')                #15 Skip if same sign
+ld([vAC+1])                     #16
+bmi('.cmphs#19')                #17
+bra('.cmphs#20')                #18
+ld(-1)                          #19    vAC > variable
+
+# No-operation for CMPHS/CMPHU when high bits are equal
+label('.cmphu#17')
+ld(hi('REENTER'),Y)             #17
+jmp(Y,'REENTER')                #18
+ld(-22/2)                       #19
 
 
 fillers(until=0xff)
@@ -11272,7 +11359,7 @@ adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
 
-# XLA, implementation, (lb3361)
+# XLA implementation, (lb3361)
 label('xla#13')
 st([vTmp])                      #13
 ld([vLR])                       #14
@@ -11289,14 +11376,196 @@ ld(hi('NEXTY'),Y)               #24
 jmp(Y,'NEXTY')                  #25
 ld(-28/2)                       #26
 
-# JMPI implementation, (lb3361)
-label('jmpi#13')
-st([vPC])                       #13
-ld([sysArgs+7])                 #14
-st([vPC+1])                     #15
-ld(hi('NEXTY'),Y)               #16
+# RANDW implementation: uses Marcel's algorithm from SYS_Random_34
+label('randw#13')
+ld([frameCount])                #13
+xora([entropy+1])               #14
+xora([serialRaw])               #15
+adda([entropy+0])               #16
+st([entropy+0])                 #17
+st([vAC+0])                     #18
+adda([vPC])                     #19
+bmi(pc()+3)                     #20
+bra(pc()+3)                     #21
+xora(64+16+2+1)                 #22
+xora(64+32+8+4)                 #22(!)
+adda([entropy+1])               #23
+st([entropy+1])                 #24
+st([vAC+1])                     #25
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
+
+# LDPX implementation
+label('ldpx#13')
+ld([vAC+1])                     #13 y
+adda([vAC+1])                   #14 y*2
+ld(AC,X)                        #15
+ld(1,Y)                         #16 Y,X = 0x0100 + 2*y, (0 >= y <= 127)
+ld([Y,X])                       #17
+ld(AC,Y)                        #18 Y = [Y,X]
+ld([vAC],X)                     #19
+ld([Y,X])                       #20 colour = [Y,X]
+st([vAC])                       #21
+ld(0)                           #22
+st([vAC+1])                     #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
+
+# ABSW implementation
+label('absw#13')
+bmi('.absw#15')                 #13
+ld(hi('NEXTY'),Y)               #14
+jmp(Y,'NEXTY')                  #15
+ld(-18/2)                       #16
+
+label('.absw#15')
+ld([vAC])                       #15
+xora(0xFF)                      #16
+adda(1)                         #17
+beq('.absw#20')                 #18
+st([vAC])                       #19
+ld([vAC+1])                     #20
+xora(255)                       #21
+st([vAC+1])                     #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+
+label('.absw#20')
+ld([vAC+1])                     #20
+xora(255)                       #21
+adda(1)                         #22
+st([vAC+1])                     #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
+
+# SGNW implementation
+label('sgnw#13')
+bmi('.sgnw#15')                 #13
+ora([vAC])                      #14
+bne('.sgnw#17')                 #15
+ld(hi('NEXTY'),Y)               #16 sgn(vAC) = 0
 jmp(Y,'NEXTY')                  #17
 ld(-20/2)                       #18
+
+label('.sgnw#15')
+ld(0xFF)                        #15
+st([vAC])                       #16
+st([vAC+1])                     #17
+ld(hi('NEXTY'),Y)               #18 sgn(vAC) = -1
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
+
+label('.sgnw#17')
+ld(1)                           #17
+st([vAC])                       #18
+ld(0)                           #19
+st([vAC+1])                     #20
+ld(hi('REENTER'),Y)             #21 sgn(vAC) = 1
+jmp(Y,'REENTER')                #22
+ld(-26/2)                       #23
+
+
+# MULB3 implementation
+label('mulb3#13')
+ld([vAC])                       #13
+adda(AC)                        #14
+adda([vAC])                     #15
+st([vAC])                       #16
+ld(0)                           #17
+st([vAC+1])                     #18
+ld(hi('REENTER'),Y)             #19
+jmp(Y,'REENTER')                #20
+ld(-24/2)                       #21
+
+# MULB5 implementation
+label('mulb5#13')
+ld([vAC])                       #13
+adda(AC)                        #14
+adda(AC)                        #15
+adda([vAC])                     #16
+st([vAC])                       #17
+ld(0)                           #18
+st([vAC+1])                     #19
+ld(hi('NEXTY'),Y)               #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+# MULB6 implementation
+label('mulb6#13')
+ld([vAC])                       #13
+adda(AC)                        #14
+adda(AC)                        #15
+adda([vAC])                     #16
+adda([vAC])                     #17
+st([vAC])                       #18
+ld(0)                           #19
+st([vAC+1])                     #20
+ld(hi('REENTER'),Y)             #21
+jmp(Y,'REENTER')                #22
+ld(-26/2)                       #23
+
+# MULB7 implementation
+label('mulb7#13')
+ld([vAC])                       #13
+adda(AC)                        #14
+adda(AC)                        #15
+adda([vAC])                     #16
+adda([vAC])                     #17
+adda([vAC])                     #18
+st([vAC])                       #19
+ld(0)                           #20
+st([vAC+1])                     #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+
+# MULB8 implementation
+label('mulb8#13')
+ld([vAC])                       #13
+adda(AC)                        #14
+adda(AC)                        #15
+adda(AC)                        #16
+st([vAC])                       #17
+ld(0)                           #18
+st([vAC+1])                     #19
+ld(hi('NEXTY'),Y)               #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+# MULB9 implementation
+label('mulb9#13')
+ld([vAC])                       #13
+adda(AC)                        #14
+adda(AC)                        #15
+adda(AC)                        #16
+adda([vAC])                     #17
+st([vAC])                       #18
+ld(0)                           #19
+st([vAC+1])                     #20
+ld(hi('REENTER'),Y)             #21
+jmp(Y,'REENTER')                #22
+ld(-26/2)                       #23
+
+# MULB10 implementation
+label('mulb10#13')
+ld([vAC])                       #13
+adda(AC)                        #14
+adda(AC)                        #15
+adda(AC)                        #16
+adda([vAC])                     #17
+adda([vAC])                     #18
+st([vAC])                       #19
+ld(0)                           #20
+st([vAC+1])                     #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
 
 
 fillers(until=0xff)
@@ -11411,6 +11680,154 @@ jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
 
 
+# JMPI implementation, (lb3361)
+label('jmpi#13')
+st([vPC])                       #13
+ld([sysArgs+7])                 #14
+st([vPC+1])                     #15
+ld(hi('NEXTY'),Y)               #16
+jmp(Y,'NEXTY')                  #17
+ld(-20/2)                       #18
+
+
+# POKEA+ implementation
+label('pokea+#13')
+ld(AC,X)                        #13
+ld([X])                         #14 var.lo
+ld([vAC],X)                     #15
+ld([vAC+1],Y)                   #16
+st([Y,X])                       #17 poke [vAC], var.lo
+ld([vAC])                       #18
+adda(1)                         #19
+beq('.pokea+#22')               #20 if low byte is 0x00
+st([vAC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+
+label('.pokea+#22')
+ld([vAC+1])                     #22
+adda(1)                         #23
+st([vAC+1])                     #24
+ld(hi('REENTER'),Y)             #25
+jmp(Y,'REENTER')                #26
+ld(-30/2)                       #27
+
+
+# ARRW implementation
+label('arrw#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+st([Y,Xpp])                     #14 X++
+st([sysArgs+6])                 #15 imm.lo
+ld(min(0,maxTicks-48/2))        #16
+adda([vTicks])                  #17
+blt('.arrw#20')                 #18 not enough time left, so retry
+ld([Y,X])                       #19
+st([sysArgs+7])                 #20 imm.hi
+ld([vAC])                       #21 idx.lo
+anda(0x80,X)                    #22
+adda([vAC])                     #23
+st([vAC])                       #24 idx.lo*2
+ld([X])                         #25 msb idx.lo
+adda([vAC+1])                   #26
+adda([vAC+1])                   #27
+st([vAC+1])                     #28 idx.hi*2
+ld([vAC])                       #29
+adda([sysArgs+6])               #30
+st([vAC])                       #31 vAC = imm.lo + idx.lo
+bmi('.arrw#34')                 #32 check carry
+suba([sysArgs+6])               #33 restore idx.lo
+bra('.arrw#36')                 #34
+ora([sysArgs+6])                #35 carry in bit 7
+
+label('.arrw#34')
+anda([sysArgs+6])               #34 carry in bit 7
+nop()                           #35
+
+label('.arrw#36')
+anda(0x80,X)                    #36
+ld([X])                         #37 carry in bit 0
+adda([vAC+1])                   #38
+adda([sysArgs+7])               #39
+st([vAC+1])                     #40 vAC.hi = imm.hi + idx.hi + carry
+ld([vPC])                       #41
+adda(1)                         #42
+st([vPC])                       #43
+ld(hi('NEXTY'),Y)               #44
+jmp(Y,'NEXTY')                  #45
+ld(-48/2)                       #46
+
+label('.arrw#20')
+ld([vPC])                       #20 retry instruction
+suba(2)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+
+
+# ARRVW implementation
+label('arrvw#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+st([Y,Xpp])                     #14 X++
+st([vTmp])                      #15 var
+ld(min(0,maxTicks-58/2))        #16
+adda([vTicks])                  #17
+blt('.arrvw#20')                #18 not enough time left, so retry
+ld([Y,X])                       #19
+st([Y,Xpp])                     #20 X++
+st([vAC])                       #21 imm.lo
+ld([Y,X])                       #22
+st([vAC+1])                     #23 imm.hi
+ld(0,Y)                         #24
+ld([vTmp],X)                    #25
+ld([X])                         #26
+st([Y,Xpp])                     #27 X++
+st([sysArgs+6])                 #28 idx.lo
+ld([X])                         #29
+st([sysArgs+7])                 #30 idx.hi
+ld([sysArgs+6])                 #31
+anda(0x80,X)                    #32
+adda([sysArgs+6])               #33
+st([sysArgs+6])                 #34 idx.lo*2
+ld([X])                         #35 msb idx.lo
+adda([sysArgs+7])               #36
+adda([sysArgs+7])               #37
+st([sysArgs+7])                 #38 idx.hi*2
+ld([vAC])                       #39
+adda([sysArgs+6])               #40
+st([vAC])                       #41 vAC = vAC.lo + idx.lo
+bmi('.arrvw#44')                #42 check carry
+suba([sysArgs+6])               #43 restore vAC.lo
+bra('.arrvw#46')                #44
+ora([sysArgs+6])                #45 carry in bit 7
+
+label('.arrvw#44')
+anda([sysArgs+6])               #44 carry in bit 7
+nop()                           #45
+
+label('.arrvw#46')
+anda(0x80,X)                    #46
+ld([X])                         #47 carry in bit 0
+adda([vAC+1])                   #48
+adda([sysArgs+7])               #49
+st([vAC+1])                     #50 vAC.hi = vAC.hi + idx.hi + carry
+ld([vPC])                       #51
+adda(2)                         #52
+st([vPC])                       #53
+ld(hi('NEXTY'),Y)               #54
+jmp(Y,'NEXTY')                  #55
+ld(-58/2)                       #56
+
+label('.arrvw#20')
+ld([vPC])                       #20 retry instruction
+suba(2)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+
+
 # OSCPX implementation
 label('oscpx#13')
 st([sysArgs+6],X)               #13 sample address var
@@ -11427,7 +11844,7 @@ ld([X])                         #23
 ld(AC,Y)                        #24 sample address high byte
 ld([vTmp],X)                    #25
 ld([Y,X])                       #26
-anda(0xFC)                      #27 6bit sample in upper 8bits
+anda(0xfc)                      #27 6bit sample in upper 8bits
 ld(soundTable>>8,Y)             #28
 ora(0x03,X)                     #29 
 ld([Y,X])                       #30 6bit sample, (>>2)
@@ -11448,100 +11865,6 @@ st([vCpuSelect])                #19 restore PREFX3 instruction page
 adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
-
-
-# CMPWS implementation, vAC = vAC CMPWS var
-#           LDW   var0
-#           CMPHS var1.hi
-#           SUBW  var1
-label('cmpws#13')
-ld(-46/2)                       #13
-st([vTmp])                      #14
-ld(min(0,maxTicks-46/2))        #15
-adda([vTicks])                  #16
-blt('.cmpws#19')                #17 not enough time left, so retry
-ld(0,Y)                         #18
-ld([X])                         #19
-st([Y,Xpp])                     #20
-st([0xB0])                      #21 cmp var.lo
-ld([X])                         #22
-st([0xB1])                      #23 cmp var.hi
-xora([vAC+1])                   #24
-bpl('.cmpws#27')                #25 skip if same sign
-ld([vAC+1])                     #26
-bmi(pc()+3)                     #27
-bra(pc()+3)                     #28
-
-label('.cmpws#29')
-ld(+1)                          #29    vAC < variable
-ld(-1)                          #29(!) vAC > variable
-
-label('.cmpws#30')
-adda([X])                       #30
-st([vAC+1])                     #31
-
-label('.cmpws#32')
-ld([vAC])                       #32, #30 Low byte
-bmi('.cmpws#35')                #33, #31
-suba([0xB0])                    #34, #32
-st([vAC])                       #35, #33 Store low result
-ora([0xB0])                     #36, #34 Carry in bit 7
-anda(0x80,X)                    #37, #35 Move carry to bit 0
-ld([vAC+1])                     #38, #36
-suba([X])                       #39, #37
-suba([0xB1])                    #40, #38 sub var.hi with carry
-st([vAC+1])                     #41, #39
-ld(hi('NEXTY'),Y)               #42, #40
-jmp(Y,'NEXTY')                  #43, #41
-ld([vTmp])                      #44, #42
-
-label('.cmpws#27')
-ld(-44/2)                       #27
-bra('.cmpws#32')                #28
-st([vTmp])                      #29
-
-label('.cmpws#35')
-st([vAC])                       #35, #33 Store low result
-anda([0xB0])                    #36, #34 Carry in bit 7
-anda(0x80,X)                    #37, #35 Move carry to bit 0
-ld([vAC+1])                     #38, #36
-suba([X])                       #39, #37
-suba([0xB1])                    #40, #38 sub var.hi with carry
-st([vAC+1])                     #41, #39
-ld(hi('NEXTY'),Y)               #42, #40
-jmp(Y,'NEXTY')                  #43, #41
-ld([vTmp])                      #44, #42
-
-label('.cmpws#19')
-ld(hi('PREFX2_PAGE'))           #19 ENTER is at $(n-1)ff, where n = instruction page
-st([vCpuSelect])                #20 restore PREFX2 instruction page
-adda(1,Y)                       #21 retry instruction
-jmp(Y,'REENTER')                #22
-ld(-26/2)                       #23
-
-
-# CMPWU implementation, vAC = vAC CMPWU var
-#           LDW   var0
-#           CMPHU var1.hi
-#           SUBW  var1
-label('cmpwu#13')
-ld(-46/2)                       #13
-st([vTmp])                      #14
-ld(min(0,maxTicks-46/2))        #15
-adda([vTicks])                  #16
-blt('.cmpws#19')                #17 not enough time left, so retry, (use .cmpws#19)
-ld(0,Y)                         #18
-ld([X])                         #19
-st([Y,Xpp])                     #20
-st([0xB0])                      #21 cmp var.lo
-ld([X])                         #22
-st([0xB1])                      #23 cmp var.hi
-xora([vAC+1])                   #24
-bpl('.cmpws#27')                #25 skip if same sign, (use .cmpws#27)
-ld([vAC+1])                     #26
-bmi('.cmpws#29')                #27 use .cmpws#29
-bra('.cmpws#30')                #28 use .cmpws#30
-ld(-1)                          #29 vAC > variable
 
 
 fillers(until=0xff)
@@ -11654,7 +11977,7 @@ st([0xB3])                      #29
 ld([Y,X])                       #30 peek [vAC+4]
 st([0xB4])                      #31
 ld(0,Y)                         #32
-ld([vTmp],X)                    #33 dst var
+ld([sysArgs+7],X)               #33 dst var
 ld([0xB0])                      #34
 st([Y,Xpp])                     #35 [var.0] = peek [vAC]
 ld([0xB1])                      #36
@@ -11679,7 +12002,7 @@ ld(-24/2)                       #22
 
 # FOKEA implementation
 label('fokea#13')
-ld(AC,X)                        #13 var.0
+ld([sysArgs+7],X)               #13 var address
 ld(min(0,maxTicks-48/2))        #14
 adda([vTicks])                  #15
 blt('.fokea#18')                #16 not enough time left, so retry
@@ -11820,6 +12143,24 @@ jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
 
 
+# STPX implementation
+label('stpx#13')
+ld([X])                         #13
+st([vTmp])                      #14 colour
+ld([vAC+1])                     #15 y
+adda([vAC+1])                   #16 y*2
+ld(AC,X)                        #17
+ld(1,Y)                         #18 Y,X = 0x0100 + 2*y, (0 >= y <= 127)
+ld([Y,X])                       #19
+ld(AC,Y)                        #20 Y = [Y,X]
+ld([vAC],X)                     #21
+ld([vTmp])                      #22
+st([Y,X])                       #23 [Y,X] = colour
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
+
 fillers(until=0xff)
 align(0x100, size=0x100)
 
@@ -11890,7 +12231,7 @@ ld(-24/2)                       #22
 
 # MOKEA
 label('mokea#13')
-ld(AC,X)                        #13 var
+ld([sysArgs+7],X)               #13 var address
 ld(min(0,maxTicks-64/2))        #14
 adda([vTicks])                  #15
 blt('.mokea#18')                #16 not enough time left, so retry
@@ -12020,6 +12361,32 @@ adda(1,Y)                       #19 retry instruction
 jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
  
+
+# DBGE implementation
+label('dbge#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+st([vTmp])                      #14 branch offset
+st([Y,Xpp])                     #15 X++, address of counter
+ld([Y,X])                       #16
+ld(AC,X)                        #17 fetch counter
+ld([X])                         #18
+suba(1)                         #19 decrement counter
+blt('.dbge#22')                 #20 if < 0 BRA
+st([X])                         #21
+ld([vTmp])                      #22
+st([vPC])                       #23 BRA to branch offset
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
+label('.dbge#22')
+ld([vPC])                       #22
+adda(1)                         #23
+st([vPC])                       #24 advance vPC by 1
+ld(hi('REENTER'),Y)             #25
+jmp(Y,'REENTER')                #26
+ld(-30/2)                       #27
+
 
 # DJNE implementation
 label('djne#13')
@@ -12467,7 +12834,7 @@ ld(-24/2)                       #22
 
 # LSRV implementation
 label('lsrv#13')
-st([sysArgs+7],X)               #13 var
+st([sysArgs+7],X)               #13 var address
 ld(min(0,maxTicks-56/2))        #14
 adda([vTicks])                  #15
 blt('.lsrv#18')                 #16 not enough time left, so retry
@@ -12890,67 +13257,38 @@ ld(-24/2)                       #21
 # LOKEQI implementation
 label('lokeqi#13')
 ld([vPC+1],Y)                   #13
-st([Y,Xpp])                     #14 X++
-ld(min(0,maxTicks-34/2))        #15
-adda([vTicks])                  #16
-blt('.lokeqi#19')               #17 not enough time left, so retry
-ld([Y,X])                       #18 imm.0
-ld([vAC+1],Y)                   #19
-ld([vAC],X)                     #20
-st([Y,Xpp])                     #21 [vAC.0] = imm.0, X++
-ld([vTmp])                      #22
-st([Y,Xpp])                     #23 [vAC.1] = imm.1, X++
-ld(0)                           #24
-st([Y,Xpp])                     #25 [vAC.2] = 0, X++
-st([Y,X])                       #26 [vAC.3] = 0
-ld([vPC])                       #27 fix vPC for 3 byte instruction
-adda(1)                         #28
-st([vPC])                       #29
-ld(hi('NEXTY'),Y)               #30
-jmp(Y,'NEXTY')                  #31
-ld(-34/2)                       #32
-
-label('.lokeqi#19')
-ld([vPC])                       #19 retry
-suba(2)                         #20
-st([vPC])                       #21
-ld(hi('NEXTY'),Y)               #22
-jmp(Y,'NEXTY')                  #23
-ld(-26/2)                       #24
-
-
-# LOKEI implementation
-label('lokei#13')
-ld([vPC+1],Y)                   #13
-st([0xB0])                      #14 imm.3
+st([vTmp])                      #14 imm.1
 st([Y,Xpp])                     #15 X++
-ld(min(0,maxTicks-42/2))        #16
+ld(min(0,maxTicks-36/2))        #16
 adda([vTicks])                  #17
-blt('.lokei#20')                #18 not enough time left, so retry
-ld([Y,X])                       #19
-st([Y,Xpp])                     #20 X++
-st([0xB1])                      #21 imm.2
-ld([Y,X])                       #22
-st([Y,Xpp])                     #23 X++
-st([0xB2])                      #24 imm.1
-ld([Y,X])                       #25 imm.0
-ld([vAC+1],Y)                   #26
-ld([vAC],X)                     #27
-st([Y,Xpp])                     #28 [vAC.0] = imm.0, X++
-ld([0xB2])                      #29
-st([Y,Xpp])                     #30 [vAC.1] = imm.1, X++
-ld([0xB1])                      #31
-st([Y,Xpp])                     #32 [vAC.2] = imm.2, X++
-ld([0xB0])                      #33
-st([Y,X])                       #34 [vAC.3] = imm.3
-ld([vPC])                       #35 fix vPC for 5 byte instruction
-adda(3)                         #36
-st([vPC])                       #37
-ld(hi('NEXTY'),Y)               #38
-jmp(Y,'NEXTY')                  #39
-ld(-42/2)                       #40
+blt('.lokeqi#20')               #18 not enough time left, so retry
+ld([Y,X])                       #19 imm.0
+ld([vAC+1],Y)                   #20
+ld([vAC],X)                     #21
+st([Y,Xpp])                     #22 [vAC.0] = imm.0, X++
+ld([vTmp])                      #23
+bmi('.lokeqi#26')               #24 not enough time left, so retry
+st([Y,Xpp])                     #25 [vAC.1] = imm.1, X++
+st(0,[Y,Xpp])                   #26 [vAC.2] = 0, X++
+st(0,[Y,X])                     #27 [vAC.3] = 0
+ld([vPC])                       #28 fix vPC for 3 byte instruction
+adda(1)                         #29
+st([vPC])                       #30
+ld(hi('REENTER'),Y)             #31
+jmp(Y,'REENTER')                #32
+ld(-36/2)                       #33
 
-label('.lokei#20')
+label('.lokeqi#26')
+st(0xFF,[Y,Xpp])                #26 [vAC.2] = 0xFF, X++
+st(0xFF,[Y,X])                  #27 [vAC.3] = 0xFF
+ld([vPC])                       #28 fix vPC for 3 byte instruction
+adda(1)                         #29
+st([vPC])                       #30
+ld(hi('REENTER'),Y)             #31
+jmp(Y,'REENTER')                #32
+ld(-36/2)                       #33
+
+label('.lokeqi#20')
 ld([vPC])                       #20 retry
 suba(2)                         #21
 st([vPC])                       #22
@@ -12993,135 +13331,259 @@ ld(hi('NEXTY'),Y)               #16
 jmp(Y,'NEXTY')                  #17
 ld(-20/2)                       #18
 
+# ANDBK implementation
+label('andbk#13')
+ld([X])                         #13
+anda([sysArgs+7])               #14 immediate value 
+st([vAC])                       #15
+ld(0)                           #16
+st([vAC+1])                     #17 clear high result
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
+ 
+# ORBK implementation
+label('orbk#13')
+ld([X])                         #13
+ora([sysArgs+7])                #14 immediate value 
+st([vAC])                       #15
+ld(0)                           #16
+st([vAC+1])                     #17 clear high result
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
 
-# INCL implementation
-label('incl#13')
-ld(min(0,maxTicks-36/2))        #13
-adda([vTicks])                  #14
-blt('.incl#17')                 #15 not enough time left, so retry
-ld(0,Y)                         #16
-ld([X])                         #17
-label('incl#18')
-adda(1)                         #18
-beq('.incl#21')                 #19 if 0 byte is 0x00
-st([Y,Xpp])                     #20 inc 0 byte
-ld(hi('REENTER'),Y)             #21
-jmp(Y,'REENTER')                #22
-ld(-26/2)                       #23
+# XORBK implementation
+label('xorbk#13')
+ld([X])                         #13
+xora([sysArgs+7])               #14 immediate value 
+st([vAC])                       #15
+ld(0)                           #16
+st([vAC+1])                     #17 clear high result
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
 
-label('.incl#21')
-ld([X])                         #21
-adda(1)                         #22
-beq('.incl#25')                 #23 if 1 byte is 0x00
-st([Y,Xpp])                     #24 inc 1 byte
-ld(hi('REENTER'),Y)             #25
-jmp(Y,'REENTER')                #26
-ld(-30/2)                       #27
-
-label('.incl#25')
-ld([X])                         #25
-adda(1)                         #26
-beq('.incl#29')                 #27 if 2 byte is 0x00
-st([Y,Xpp])                     #28 inc 2 byte
-ld(hi('REENTER'),Y)             #29
-jmp(Y,'REENTER')                #30
-ld(-34/2)                       #31
-
-label('.incl#29')
-ld([X])                         #29
-adda(1)                         #30
-st([X])                         #31 inc high byte
-ld(hi('NEXTY'),Y)               #32
-jmp(Y,'NEXTY')                  #33
-ld(-36/2)                       #34
-
-label('.incl#17')
-ld(hi('PREFX2_PAGE'))           #17 ENTER is at $(n-1)ff, where n = instruction page
-st([vCpuSelect])                #18 restore PREFX2 instruction page
-adda(1,Y)                       #19 retry instruction
-jmp(Y,'REENTER')                #20
-ld(-24/2)                       #21
-
-
-# DECL implementation
-label('decl#13')
-ld(AC,X)                        #13 var
-ld(min(0,maxTicks-40/2))        #14
-adda([vTicks])                  #15
-blt('.decl#18')                 #16 not enough time left, so retry
-ld(0,Y)                         #17
-ld([X])                         #18
-suba(1)                         #19
-st([Y,Xpp])                     #20 dec 0 byte
-xora(0xff)                      #21 if 0 byte is 0xff
-beq('.decl#24')                 #22
-ld([X])                         #23
-ld(hi('NEXTY'),Y)               #24
-jmp(Y,'NEXTY')                  #25
-ld(-28/2)                       #26
-
-label('.decl#24')
-suba(1)                         #24
-st([Y,Xpp])                     #25 dec 1 byte
-xora(0xff)                      #26 if 1 byte is 0xff
-beq('.decl#29')                 #27
-ld([X])                         #28
-ld(hi('REENTER'),Y)             #29
-jmp(Y,'REENTER')                #30
-ld(-34/2)                       #31
-
-label('.decl#29')
-suba(1)                         #29
-st([Y,Xpp])                     #30 dec 2 byte
-xora(0xff)                      #31 if 2 byte is 0xff
-beq('.decl#34')                 #32
-ld([X])                         #33
-ld(hi('NEXTY'),Y)               #34
-jmp(Y,'NEXTY')                  #35
-ld(-38/2)                       #36
-
-label('.decl#34')
-suba(1)                         #34
-st([X])                         #35 dec 3 byte
-ld(hi('NEXTY'),Y)               #36
-jmp(Y,'NEXTY')                  #37
-ld(-40/2)                       #38
-
-label('.decl#18')
-ld(hi('PREFX2_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
-st([vCpuSelect])                #19 restore PREFX2 instruction page
-adda(1,Y)                       #20 retry instruction
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
-
-
-# NEGL implementation, (lb3361)
-# Complement then jumps into INCL
-label('negl#13')
+# VADDBW implementation
+label('vaddbw#13')
 ld(0,Y)                         #13
-ld(min(0,maxTicks-(40+18)/2))   #14
-adda([vTicks])                  #15
-blt('.decl#18')                 #16 restart
-ld([Y,X])                       #17
-xora(0xff)                      #18
-st([Y,Xpp])                     #19
-ld([Y,X])                       #20
-xora(0xff)                      #21
-st([Y,Xpp])                     #22
-ld([Y,X])                       #23
-xora(0xff)                      #24
-st([Y,Xpp])                     #25
-ld([Y,X])                       #26
-xora(0xff)                      #27
-st([Y,Xpp])                     #28
-nop()                           #29
-ld([vTicks])                    #30
-adda(-18/2)                     #13=31-18
-st([vTicks])                    #14
-ld([sysArgs+7],X)               #15
-bra('incl#18')                  #16
+ld([X])                         #14
+st([Y,Xpp])                     #15
+st([0xB0])                      #16 src.0
 ld([X])                         #17
+st([0xB1])                      #18 src.1
+ld([sysArgs+7],X)               #19
+ld([X])                         #20
+adda([0xB0])                    #21
+st([Y,Xpp])                     #22 dst.0 += src.0
+ld([X])                         #23
+adda([0xB1])                    #24
+st([X])                         #25 dst.1 += src.1
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
 
+# VSUBBW implementation
+label('vsubbw#13')
+ld(0,Y)                         #13
+ld([X])                         #14
+st([Y,Xpp])                     #15
+st([0xB0])                      #16 src.0
+ld([X])                         #17
+st([0xB1])                      #18 src.1
+ld([sysArgs+7],X)               #19
+ld([X])                         #20
+suba([0xB0])                    #21
+st([Y,Xpp])                     #22 dst.0 -= src.0
+ld([X])                         #23
+suba([0xB1])                    #24
+st([X])                         #25 dst.1 -= src.1
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
+
+# PACKVW implementation
+label('packvw#13')
+st([vTmp])                      #13 src1 addr
+ld([vPC+1],Y)                   #14
+st([Y,Xpp])                     #15
+ld([Y,X])                       #16 src0 addr
+ld(AC,X)                        #17
+ld([X])                         #18
+st([vAC])                       #19 vAC.lo = src0.lo
+ld([vTmp],X)                    #20
+ld([X])                         #21
+st([vAC+1])                     #22 vAC.hi = src1.lo
+ld([vPC])                       #23
+adda(1)                         #24
+st([vPC])                       #25 advance vPC by 1
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
+
+# LDWM implementation
+label('ldwm#13')
+st([vTmp])                      #13 addr.lo
+st([Y,Xpp])                     #14
+ld([Y,X])                       #15 
+ld(AC,Y)                        #16 addr.hi
+ld([vTmp],X)                    #17
+ld([Y,X])                       #18
+st([vAC])                       #19 vAC.lo = peek(addr + 0)
+st([Y,Xpp])                     #20
+ld([Y,X])                       #21
+st([vAC+1])                     #22 vAC.hi = peek(addr + 1)
+ld([vPC])                       #23
+adda(1)                         #24
+st([vPC])                       #25
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
+
+# STWM implementation
+label('stwm#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+st([vTmp])                      #14 addr.lo
+st([Y,Xpp])                     #15
+ld([Y,X])                       #16 
+ld(AC,Y)                        #17 addr.hi
+ld([vTmp],X)                    #18
+ld([vAC])                       #19
+st([Y,Xpp])                     #20
+ld([vAC+1])                     #21
+st([Y,X])                       #22
+ld([vPC])                       #23
+adda(1)                         #24
+st([vPC])                       #25
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
+
+
+# DEEKR implementation
+label('deekr#13')
+ld(0,Y)                         #13
+ld(AC,X)                        #14 index var
+ld(min(0,maxTicks-52/2))        #15
+adda([vTicks])                  #16
+blt('.deekr#19')                #17 not enough time left, so retry
+ld([X])                         #18
+st([Y,Xpp])                     #19
+st([sysArgs+6])                 #20 index.lo
+ld([X])                         #21
+st([sysArgs+7])                 #22 index.hi
+ld([sysArgs+6])                 #23
+anda(0x80,X)                    #24
+adda([sysArgs+6])               #25
+st([sysArgs+6])                 #26 index.lo*2
+ld([X])                         #27 msb index.lo
+adda([sysArgs+7])               #28
+adda([sysArgs+7])               #29
+st([sysArgs+7])                 #30 index.hi*2
+ld([vAC])                       #31
+adda([sysArgs+6])               #32
+st([vTmp])                      #33 vTmp = vAC.lo + index.lo
+bmi('.deekr#36')                #34 check carry
+suba([sysArgs+6])               #35 restore vAC.lo
+bra('.deekr#38')                #36
+ora([sysArgs+6])                #37 carry in bit 7
+
+label('.deekr#36')
+anda([sysArgs+6])               #36 carry in bit 7
+nop()                           #37
+
+label('.deekr#38')
+anda(0x80,X)                    #38
+ld([X])                         #39 carry in bit 0
+adda([vAC+1])                   #40
+adda([sysArgs+7],Y)             #41 Y = vAC.hi + index.hi + carry
+ld([vTmp],X)                    #42
+ld([Y,X])                       #43
+st([vAC])                       #44
+st([Y,Xpp])                     #45
+ld([Y,X])                       #46
+st([vAC+1])                     #47
+ld(hi('NEXTY'),Y)               #48
+jmp(Y,'NEXTY')                  #49
+ld(-52/2)                       #50
+
+label('.deekr#19')
+ld([vPC])                       #19 retry instruction
+suba(2)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+
+
+# DOKER implementation
+#label('doker#13')
+#ld([vPC+1],Y)                   #13 vPC.hi
+#st([vTmp])                      #14 var addr
+#st([Y,Xpp])                     #15
+#ld(min(0,maxTicks-62/2))        #16
+#adda([vTicks])                  #17
+#blt('.doker#20')                #18 not enough time left, so retry
+#ld([Y,X])                       #19
+#ld(AC,X)                        #20 idx addr
+#ld(0,Y)                         #21
+#ld([X])                         #22
+#st([sysArgs+6])                 #23 idx.lo
+#st([Y,Xpp])                     #24 X++
+#ld([X])                         #25 
+#st([sysArgs+7])                 #26 idx.hi
+#ld([sysArgs+6])                 #27
+#anda(0x80,X)                    #28
+#adda([sysArgs+6])               #29
+#st([sysArgs+6])                 #30 idx.lo*2
+#ld([X])                         #31 msb idx.lo
+#adda([sysArgs+7])               #32
+#adda([sysArgs+7])               #33
+#st([sysArgs+7])                 #34 idx.hi*2
+#ld([vAC])                       #35
+#adda([sysArgs+6])               #36
+#st([vAC])                       #37 vAC.lo = vAC.lo + index.lo
+#bmi('.doker#40')                #38 check carry
+#suba([sysArgs+6])               #39 restore vAC.lo
+#bra('.doker#42')                #40
+#ora([sysArgs+6])                #41 carry in bit 7
+#
+#label('.doker#40')
+#anda([sysArgs+6])               #40 carry in bit 7
+#nop()                           #41
+#
+#label('.doker#42')
+#anda(0x80,X)                    #42
+#ld([X])                         #43 carry in bit 0
+#adda([vAC+1])                   #44
+#adda([sysArgs+7],Y)             #45 Y = vAC.hi + index.hi + carry
+#st([vAC+1])                     #46 for consistancy
+#ld([vTmp],X)                    #47
+#ld([X])                         #48 var.lo
+#ld([vAC],X)                     #49
+#st([Y,X])                       #50 poke [vAC], var.lo
+#ld([vTmp])                      #51
+#adda(1,X)                       #52
+#ld([X])                         #53 var.hi
+#st([vTmp])                      #54
+#ld([vAC])                       #55
+#adda(1,X)                       #56
+#ld([vTmp])                      #57
+#st([Y,X])                       #58 poke [vAC+1], var.hi
+#ld([vPC])                       #59
+#adda(1)                         #60
+#st([vPC])                       #61
+#ld(hi('NEXTY'),Y)               #62
+#jmp(Y,'NEXTY')                  #63
+#ld(-66/2)                       #64
+#
+#label('.doker#20')
+#ld([vPC])                       #20 retry instruction
+#suba(2)                         #21
+#st([vPC])                       #22
+#ld(hi('REENTER'),Y)             #23
+#jmp(Y,'REENTER')                #24
+#ld(-28/2)                       #25
 
 
 fillers(until=0xff)
@@ -13469,7 +13931,7 @@ fillers(until=0x80)
 # sysArgs[4:5] (out), packet address, filled in automatically by the Sys call
 # No error checks are performed, (apart from checking protocol)
 # No checksums are performed
-label('SYS_LoadSerialIn_vX_58') 
+label('SYS_LoadSerialIn_vX_56') 
 ld([sysArgs+0],X)                   #15
 ld([videoY])                        #16
 xora([X])                           #17
@@ -13528,6 +13990,46 @@ ld(hi('NEXTY'),Y)                   #44
 jmp(Y,'NEXTY')                      #45
 ld(-48/2)                           #46
 
+# even videoY
+#label('.sysLsi#23')
+#ld([X])                             #23
+#adda(4)                             #24
+#st([X])                             #25
+#ld([sysArgs+2])                     #26 protocol
+#xora(ord('L'))                      #27 check valid load
+#bne('.sysLsi#30')                   #28 invalid packet
+#ld([sysArgs+3])                     #29 check length
+#beq('.sysLsi#32')                   #30 execute
+#suba(1)                             #31
+#st([sysArgs+3])                     #32 length--
+#ld([sysArgs+4],X)                   #33
+#ld([sysArgs+5],Y)                   #34
+#st(IN,[Y,X])                        #35
+#ld([sysArgs+3])                     #36 check length
+#beq('.sysLsi#39')                   #37 new packet
+#ld([sysArgs+4])                     #38
+#adda(1)                             #39
+#st([sysArgs+4])                     #40 address.lo++
+#adda(1)                             #41 254+1+1 = 0, 255+1+1 = 1
+#anda(0xfe)                          #42 will be zero only when writing to top 2 bytes of page
+#st([vTmp])                          #43 remember as first condition
+#ld([sysArgs+5])                     #44 address.hi
+#suba(1)                             #45
+#anda(0xfc)                          #46 will be zero only when writing to pages 1, 2, 3, 4
+#ora([vTmp])                         #47 combine second condition with first
+#bne(pc()+3)                         #48 condition is non zero, so do nothing
+#bra(pc()+3)                         #49 condition is zero, so disable channels 1, 2, 3
+#ld(0xfc);                           #50 disable channels 1, 2, 3
+#ld(0xff);                           #50 (!) do nothing
+#anda([channelMask])                 #51
+#st([channelMask])                   #52
+#ld([vPC])                           #53 restart
+#suba(2)                             #54
+#st([vPC])                           #55
+#ld(hi('NEXTY'),Y)                   #56
+#jmp(Y,'NEXTY')                      #57
+#ld(-60/2)                           #58
+
 # invalid packet
 label('.sysLsi#30')
 ld(2)                               #30
@@ -13540,11 +14042,10 @@ ld([vPC])                           #36 restart
 suba(2)                             #37
 st([vPC])                           #38
 ld(0)                               #39
-ld(0x01,Y)                          #40
-st([Y,0x01])                        #41 reset screen vibration
-ld(hi('NEXTY'),Y)                   #42
-jmp(Y,'NEXTY')                      #43
-ld(-46/2)                           #44
+st([xoutMask])                      #40
+ld(hi('REENTER'),Y)                 #41
+jmp(Y,'REENTER')                    #42
+ld(-46/2)                           #43
 
 # new packet
 label('.sysLsi#39')
@@ -13558,13 +14059,11 @@ ld([vPC])                           #45 restart
 suba(2)                             #46
 st([vPC])                           #47
 ld([sysArgs+5])                     #48 hi address
-anda(1)                             #49
-ld(0x01,Y)                          #50
-xora([Y,0x01])                      #51
-st([Y,0x01])                        #52 vibrate screen to show loading progress
-ld(hi('REENTER'),Y)                 #53
-jmp(Y,'REENTER')                    #54
-ld(-58/2)                           #55
+anda(0x0F)                          #49
+st([xoutMask])                      #50 
+ld(hi('REENTER'),Y)                 #51
+jmp(Y,'REENTER')                    #52
+ld(-56/2)                           #53
 
 # execute
 label('.sysLsi#32')
@@ -13576,11 +14075,10 @@ ld([sysArgs+5])                     #36 high execute address
 st([vPC+1])                         #37
 st([vLR+1])                         #38
 ld(0)                               #39
-ld(0x01,Y)                          #40
-st([Y,0x01])                        #41 reset screen vibration
-ld(hi('NEXTY'),Y)                   #42
-jmp(Y,'NEXTY')                      #43
-ld(-46/2)                           #44
+st([xoutMask])                      #40
+ld(hi('REENTER'),Y)                 #41
+jmp(Y,'REENTER')                    #42
+ld(-46/2)                           #43
 
  
 fillers(until=0xff)
@@ -13590,48 +14088,6 @@ align(0x100, size=0x100)
 #       More vCPU instruction implementations, (0x3100)
 #-----------------------------------------------------------------------
 #
-# PEEKV+ implementation
-label('peekv+#13')
-ld(AC,X)                        #13 var
-ld(min(0,maxTicks-42/2))        #14
-adda([vTicks])                  #15
-blt('.peekv+#18')               #16 not enough time left, so retry
-ld(0,Y)                         #17
-ld([X])                         #18 low byte peek address
-st([Y,Xpp])                     #19 X++
-st([sysArgs+6])                 #20
-ld([X])                         #21 high byte peek address
-st([sysArgs+7])                 #22
-ld(AC,Y)                        #23
-ld([sysArgs+6],X)               #24
-ld([Y,X])                       #25 peek byte
-st([vAC])                       #26
-ld(0)                           #27
-st([vAC+1])                     #28
-ld([sysArgs+6],X)               #29 address of low byte to be added
-ld([X])                         #30
-adda(1)                         #31
-beq('.peekv+#34')               #32 if low byte is 0x00
-st([X])                         #33 inc low byte
-ld(hi('NEXTY'),Y)               #34
-jmp(Y,'NEXTY')                  #35
-ld(-38/2)                       #36
-
-label('.peekv+#34')
-ld([sysArgs+7],X)               #34 address of high byte to be added
-ld([X])                         #35
-adda(1)                         #36
-st([X])                         #37 inc high byte
-ld(hi('NEXTY'),Y)               #38
-jmp(Y,'NEXTY')                  #39
-ld(-42/2)                       #40
-
-label('.peekv+#18')
-ld(hi('PREFX2_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
-st([vCpuSelect])                #19 restore PREFX2 instruction page
-adda(1,Y)                       #20 retry instruction
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
 
 
 fillers(until=0xff)
@@ -13675,7 +14131,7 @@ st([vCpuSelect])                #19 restore PREFX3 instruction page
 adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
-
+ 
 
 # MOVF implementation, (lb3361)
 label('movf#13')
@@ -14075,30 +14531,33 @@ ld([vAC])                       #14
 st([Y,Xpp])                     #15
 ld([vAC+1])                     #16
 st([Y,Xpp])                     #17
-ld(0)                           #18
-st([Y,Xpp])                     #19
-st([Y,X])                       #20
-ld(hi('REENTER'),Y)             #21
-jmp(Y,'REENTER')                #22
-ld(-26/2)                       #23
+st(0,[Y,Xpp])                   #18
+st(0,[Y,X])                     #19
+ld(hi('NEXTY'),Y)               #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
 
 
 # STLS implementation, (lb3361)
 label('stls#13')
-ld(0,Y)                         #13
-ld([vAC])                       #14
-st([Y,Xpp])                     #15
-ld([vAC+1])                     #16
-st([Y,Xpp])                     #17
-bmi(pc()+3)                     #18
-bra(pc()+3)                     #19
-ld(0)                           #20
-ld(0xff)                        #20
-st([Y,Xpp])                     #21
-st([Y,X])                       #22
-ld(hi('REENTER'),Y)             #23
-jmp(Y,'REENTER')                #24
-ld(-28/2)                       #25
+ld(AC,X)                        #13
+ld(0,Y)                         #14
+ld([vAC])                       #15
+st([Y,Xpp])                     #16
+ld([vAC+1])                     #17
+bmi('.stls#20')                 #18
+st([Y,Xpp])                     #19
+st(0,[Y,Xpp])                   #20
+st(0,[Y,X])                     #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+label('.stls#20')
+st(0xff,[Y,Xpp])                #20
+st(0xff,[Y,X])                  #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
 
 
 # CMPLPU/CMPLPS implementation, (lb3361)
@@ -14219,6 +14678,13 @@ blt('cmplp#lt')                 #27
 #dummy                          #28
 
 
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x3400)
+#-----------------------------------------------------------------------
+#
 # NOTL implementation, (lb3361)
 label('notl#13')
 ld(0,Y)                         #13
@@ -14239,13 +14705,6 @@ jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
 
 
-fillers(until=0xff)
-align(0x100, size=0x100)
-
-#-----------------------------------------------------------------------
-#  More vCPU instruction implementations, (0x3400)
-#-----------------------------------------------------------------------
-#
 # NROL implementation, (lb3361)
 label('nrol#13')
 ld([sysArgs+7],X)               #13
@@ -14319,6 +14778,221 @@ jmp(Y,AC)                       #30
 bra(255)                        #31 continues in page 0x600
 
 
+# INCL implementation
+label('incl#13')
+ld(min(0,maxTicks-36/2))        #13
+adda([vTicks])                  #14
+blt('.incl#17')                 #15 not enough time left, so retry
+ld(0,Y)                         #16
+ld([X])                         #17
+label('incl#18')
+adda(1)                         #18
+beq('.incl#21')                 #19 if 0 byte is 0x00
+st([Y,Xpp])                     #20 inc 0 byte
+ld(hi('REENTER'),Y)             #21
+jmp(Y,'REENTER')                #22
+ld(-26/2)                       #23
+
+label('.incl#21')
+ld([X])                         #21
+adda(1)                         #22
+beq('.incl#25')                 #23 if 1 byte is 0x00
+st([Y,Xpp])                     #24 inc 1 byte
+ld(hi('REENTER'),Y)             #25
+jmp(Y,'REENTER')                #26
+ld(-30/2)                       #27
+
+label('.incl#25')
+ld([X])                         #25
+adda(1)                         #26
+beq('.incl#29')                 #27 if 2 byte is 0x00
+st([Y,Xpp])                     #28 inc 2 byte
+ld(hi('REENTER'),Y)             #29
+jmp(Y,'REENTER')                #30
+ld(-34/2)                       #31
+
+label('.incl#29')
+ld([X])                         #29
+adda(1)                         #30
+st([X])                         #31 inc high byte
+ld(hi('NEXTY'),Y)               #32
+jmp(Y,'NEXTY')                  #33
+ld(-36/2)                       #34
+
+label('.incl#17')
+ld(hi('PREFX2_PAGE'))           #17 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #18 restore PREFX2 instruction page
+adda(1,Y)                       #19 retry instruction
+jmp(Y,'REENTER')                #20
+ld(-24/2)                       #21
+
+
+# DECL implementation
+label('decl#13')
+ld([sysArgs+7],X)               #13 var address
+ld(min(0,maxTicks-40/2))        #14
+adda([vTicks])                  #15
+blt('.decl#18')                 #16 not enough time left, so retry
+ld(0,Y)                         #17
+ld([X])                         #18
+suba(1)                         #19
+st([Y,Xpp])                     #20 dec 0 byte
+xora(0xff)                      #21 if 0 byte is 0xff
+beq('.decl#24')                 #22
+ld([X])                         #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
+label('.decl#24')
+suba(1)                         #24
+st([Y,Xpp])                     #25 dec 1 byte
+xora(0xff)                      #26 if 1 byte is 0xff
+beq('.decl#29')                 #27
+ld([X])                         #28
+ld(hi('REENTER'),Y)             #29
+jmp(Y,'REENTER')                #30
+ld(-34/2)                       #31
+
+label('.decl#29')
+suba(1)                         #29
+st([Y,Xpp])                     #30 dec 2 byte
+xora(0xff)                      #31 if 2 byte is 0xff
+beq('.decl#34')                 #32
+ld([X])                         #33
+ld(hi('NEXTY'),Y)               #34
+jmp(Y,'NEXTY')                  #35
+ld(-38/2)                       #36
+
+label('.decl#34')
+suba(1)                         #34
+st([X])                         #35 dec 3 byte
+ld(hi('NEXTY'),Y)               #36
+jmp(Y,'NEXTY')                  #37
+ld(-40/2)                       #38
+
+label('.decl#18')
+ld(hi('PREFX2_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX2 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+
+# NEGL implementation, (lb3361)
+# Complement then jumps into INCL
+label('negl#13')
+ld(0,Y)                         #13
+ld(min(0,maxTicks-(40+18)/2))   #14
+adda([vTicks])                  #15
+blt('.decl#18')                 #16 restart
+ld([Y,X])                       #17
+xora(0xff)                      #18
+st([Y,Xpp])                     #19
+ld([Y,X])                       #20
+xora(0xff)                      #21
+st([Y,Xpp])                     #22
+ld([Y,X])                       #23
+xora(0xff)                      #24
+st([Y,Xpp])                     #25
+ld([Y,X])                       #26
+xora(0xff)                      #27
+st([Y,Xpp])                     #28
+nop()                           #29
+ld([vTicks])                    #30
+adda(-18/2)                     #13=31-18
+st([vTicks])                    #14
+ld([sysArgs+7],X)               #15
+bra('incl#18')                  #16
+ld([X])                         #17
+
+
+# VADDBL implementation
+label('vaddbl#13')
+ld(0,Y)                         #13
+ld(min(0,maxTicks-46/2))        #14
+adda([vTicks])                  #15
+blt('.vaddbl#18')               #16 not enough time left, so retry
+ld([X])                         #17
+st([Y,Xpp])                     #18
+st([0xB0])                      #19 src.0
+ld([X])                         #20
+st([Y,Xpp])                     #21
+st([0xB1])                      #22 src.1
+ld([X])                         #23
+st([Y,Xpp])                     #24
+st([0xB2])                      #25 src.2
+ld([X])                         #26
+st([Y,Xpp])                     #27
+st([0xB3])                      #28 src.3
+ld([sysArgs+7],X)               #29
+ld([X])                         #30
+adda([0xB0])                    #31
+st([Y,Xpp])                     #32 dst.0 += src.0
+ld([X])                         #33
+adda([0xB1])                    #34
+st([Y,Xpp])                     #35 dst.1 += src.1
+ld([X])                         #36
+adda([0xB2])                    #37
+st([Y,Xpp])                     #38 dst.2 += src.2
+ld([X])                         #39
+adda([0xB3])                    #40
+st([X])                         #41 dst.3 += src.3
+ld(hi('NEXTY'),Y)               #42
+jmp(Y,'NEXTY')                  #43
+ld(-46/2)                       #44
+
+label('.vaddbl#18')
+ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX2 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+
+# VSUBBL implementation
+label('vsubbl#13')
+ld(0,Y)                         #13
+ld(min(0,maxTicks-46/2))        #14
+adda([vTicks])                  #15
+blt('.vsubbl#18')               #16 not enough time left, so retry
+ld([X])                         #17
+st([Y,Xpp])                     #18
+st([0xB0])                      #19 src.0
+ld([X])                         #20
+st([Y,Xpp])                     #21
+st([0xB1])                      #22 src.1
+ld([X])                         #23
+st([Y,Xpp])                     #24
+st([0xB2])                      #25 src.2
+ld([X])                         #26
+st([Y,Xpp])                     #27
+st([0xB3])                      #28 src.3
+ld([sysArgs+7],X)               #29
+ld([X])                         #30
+suba([0xB0])                    #31
+st([Y,Xpp])                     #32 dst.0 -= src.0
+ld([X])                         #33
+suba([0xB1])                    #34
+st([Y,Xpp])                     #35 dst.1 -= src.1
+ld([X])                         #36
+suba([0xB2])                    #37
+st([Y,Xpp])                     #38 dst.2 -= src.2
+ld([X])                         #39
+suba([0xB3])                    #40
+st([X])                         #41 dst.3 -= src.3
+ld(hi('NEXTY'),Y)               #42
+jmp(Y,'NEXTY')                  #43
+ld(-46/2)                       #44
+
+label('.vsubbl#18')
+ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX2 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+
 fillers(until=0xff)
 align(0x100, size=0x100)
 
@@ -14326,6 +15000,319 @@ align(0x100, size=0x100)
 #  More vCPU instruction implementations, (0x3500)
 #-----------------------------------------------------------------------
 #
+# CMPII implementation
+label('cmpii#13')
+st([sysArgs+6])                 #13 imm1
+ld(min(0,maxTicks-36/2))        #14
+adda([vTicks])                  #15
+blt('.cmpii#18')                #16 not enough time left, so retry
+ld([vAC])                       #17
+bmi('cmpii#20')                 #18
+suba([sysArgs+6])               #19 imm0
+bra('cmpii#22')                 #20
+ora([sysArgs+6])                #21
+
+label('cmpii#20')
+anda([sysArgs+6])               #20
+nop()                           #21
+
+label('cmpii#22')
+bpl('cmpii#24')                 #22
+ld([vAC])                       #23
+ld(0xFF)                        #24 vAC < imm0
+st([vAC])                       #25
+st([vAC+1])                     #26
+ld(hi('REENTER'),Y)             #27
+jmp(Y,'REENTER')                #28
+ld(-32/2)                       #29
+
+label('cmpii#24')
+bmi('cmpii#26')                 #24
+suba([sysArgs+7])               #25 imm1
+bra('cmpii#28')                 #26
+ora([sysArgs+7])                #27
+
+label('cmpii#26')
+anda([sysArgs+7])               #26
+nop()                           #27
+
+label('cmpii#28')
+bmi('cmpii#30')                 #28
+ld(0x01)                        #29 vAC >= imm1
+st([vAC])                       #30
+ld(hi('REENTER'),Y)             #31
+jmp(Y,'REENTER')                #32
+ld(-36/2)                       #33
+
+label('cmpii#30')
+ld(0x00)                        #30 imm0 >= vAC < imm1
+st([vAC])                       #31
+ld(hi('NEXTY'),Y)               #32
+jmp(Y,'NEXTY')                  #33
+ld(-36/2)                       #34
+
+label('.cmpii#18')
+ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX3 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+
+# FNT6X8 implementation
+label('fnt6x8#13')
+st([sysArgs+6])                 #13 fontChr addr
+ld(min(0,maxTicks-42/2))        #14
+adda([vTicks])                  #15
+blt('.fnt6x8#18')               #16 not enough time left, so retry
+ld([sysArgs+6],X)               #17
+ld([X])                         #18 fontChr
+bmi('fnt6x8#21')                #19
+suba(82)                        #20
+bra('fnt6x8#23')                #21
+ora(82)                         #22
+
+label('fnt6x8#21')
+anda(82)                        #21
+nop()                           #22
+
+label('fnt6x8#23')
+bmi('fnt6x8#25')                #23
+ld([X])                         #24 fontChr >= 82
+suba(82)                        #25
+st([X])                         #26
+st([vAC])                       #27 vAC.lo = fontChr - 82
+bra('fnt6x8#30')                #28 fontChr.lo = vAC.lo
+ld(hi('font82up'))              #29 vTmp = font82up.hi
+
+label('fnt6x8#25')
+suba(32)                        #25 fontChr < 82, (assumes fontChr is 32 to 130)
+st([vAC])                       #26 vAC.lo = fontChr - 32
+st([X])                         #27 fontChr.lo = vAC.lo
+ld(hi('font32up'))              #29 vTmp = font32up.hi
+nop()                           #29
+
+label('fnt6x8#30')
+st([vTmp])                      #30
+ld(0,Y)                         #31
+ld([sysArgs+7],X)               #32
+st(0,[Y,Xpp])                   #33 fontTable.lo = 0
+ld([vTmp])                      #34 fontTable.hi = vTmp
+st([X])                         #35
+ld(0)                           #36
+st([vAC+1])                     #37 vAC.hi = 0
+ld(hi('NEXTY'),Y)               #38
+jmp(Y,'NEXTY')                  #39
+ld(-42/2)                       #40
+
+label('.fnt6x8#18')
+ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX3 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+
+# FNT4X6 implementation
+label('fnt4x6#13')
+st([sysArgs+6])                 #13 fontChr addr
+ld(min(0,maxTicks-42/2))        #14
+adda([vTicks])                  #15
+blt('.fnt4x6#18')               #16 not enough time left, so retry
+ld([sysArgs+6],X)               #17
+ld([X])                         #18 fontChr
+bmi('fnt4x6#21')                #19
+suba(115)                       #20
+bra('fnt4x6#23')                #21
+ora(115)                        #22
+
+label('fnt4x6#21')
+anda(115)                       #21
+nop()                           #22
+
+label('fnt4x6#23')
+bmi('fnt4x6#25')                #23
+ld([X])                         #24 fontChr >= 82
+suba(115)                       #25
+st([X])                         #26
+st([vAC])                       #27 vAC.lo = fontChr - 82
+bra('fnt4x6#30')                #28 fontChr.lo = vAC.lo
+ld(hi('font4x6_115up'))         #29 vTmp = font4x6_115up.hi
+
+label('fnt4x6#25')
+suba(32)                        #25 fontChr < 82, (assumes fontChr is 32 to 130)
+st([vAC])                       #26 vAC.lo = fontChr - 32
+st([X])                         #27 fontChr.lo = vAC.lo
+ld(hi('font4x6_32up'))          #29 vTmp = font4x6_32up.hi
+nop()                           #29
+
+label('fnt4x6#30')
+st([vTmp])                      #30
+ld(0,Y)                         #31
+ld([sysArgs+7],X)               #32
+st(0,[Y,Xpp])                   #33 fontTable.lo = 0
+ld([vTmp])                      #34 fontTable.hi = vTmp
+st([X])                         #35
+ld(0)                           #36
+st([vAC+1])                     #37 vAC.hi = 0
+ld(hi('NEXTY'),Y)               #38
+jmp(Y,'NEXTY')                  #39
+ld(-42/2)                       #40
+
+label('.fnt4x6#18')
+ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX3 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+
+# FLT6X8 implementation
+label('flt6x8#13')
+adda(AC)                        #13
+adda(AC)                        #14
+adda([vAC])                     #15
+ld([sysArgs+7],X)               #16
+st([X])                         #17 fontTable.lo = vAC*5 + fontTable.lo
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
+
+# FLT4X6 implementation
+label('flt4x6#13')
+ld([vAC])                       #13
+adda(AC)                        #14
+adda([vAC])                     #15
+ld([sysArgs+7],X)               #16
+st([X])                         #17 fontTable.lo = vAC*3 + fontTable.lo
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
+
+
+# PRN4X6 implementation
+label('prn4x6#13')
+ld(min(0,maxTicks-106/2))       #13
+adda([vTicks])                  #14
+blt('.prn4x6#17')               #15 not enough time left, so retry
+ld(0,Y)                         #16
+ld([sysArgs+7],X)               #17 textFont addr
+ld([X])                         #18
+st([vTmp])                      #19
+st([Y,Xpp])                     #20
+ld([X])                         #21 LUP to $4E00 or $4F00
+ld(AC,Y)                        #22
+ld([vTmp])                      #23
+jmp(Y,AC)                       #24
+bra(0xFD)                       #25 branch to trampoline after fetching byte
+
+label('prn4x6Return') 
+bmi(pc()+3)                     #30
+bra(pc()+3)                     #31
+ld([sysArgs+0])                 #32
+ld([sysArgs+1])                 #32(!)
+ld([vAC+1],Y)                   #33
+ld([vAC],X)                     #34 dest addr
+st([Y,Xpp])                     #35 draw pixel0
+
+ld([vTmp])                      #36
+adda(AC)                        #37
+st([vTmp])                      #38
+bmi(pc()+3)                     #39
+bra(pc()+3)                     #40
+ld([sysArgs+0])                 #41
+ld([sysArgs+1])                 #41(!)
+st([Y,Xpp])                     #42 draw pixel1
+
+ld([vTmp])                      #43
+adda(AC)                        #44
+st([vTmp])                      #45
+bmi(pc()+3)                     #46
+bra(pc()+3)                     #47
+ld([sysArgs+0])                 #48
+ld([sysArgs+1])                 #48(!)
+st([Y,Xpp])                     #49 draw pixel2
+
+ld([vTmp])                      #50
+adda(AC)                        #51
+st([vTmp])                      #52
+bmi(pc()+3)                     #53
+bra(pc()+3)                     #54
+ld([sysArgs+0])                 #55
+ld([sysArgs+1])                 #55(!)
+st([Y,Xpp])                     #56 draw pixel3
+
+ld([vAC+1])                     #57
+adda(1)                         #58
+st([vAC+1],Y)                   #59
+ld([vAC],X)                     #60 next scanline addr
+
+ld([vTmp])                      #61
+adda(AC)                        #62
+st([vTmp])                      #63
+bmi(pc()+3)                     #64
+bra(pc()+3)                     #65
+ld([sysArgs+0])                 #66
+ld([sysArgs+1])                 #66(!)
+st([Y,Xpp])                     #67 draw pixel4
+
+ld([vTmp])                      #68
+adda(AC)                        #69
+st([vTmp])                      #70
+bmi(pc()+3)                     #71
+bra(pc()+3)                     #72
+ld([sysArgs+0])                 #73
+ld([sysArgs+1])                 #73(!)
+st([Y,Xpp])                     #74 draw pixel5
+
+ld([vTmp])                      #75
+adda(AC)                        #76
+st([vTmp])                      #77
+bmi(pc()+3)                     #78
+bra(pc()+3)                     #79
+ld([sysArgs+0])                 #80
+ld([sysArgs+1])                 #80(!)
+st([Y,Xpp])                     #81 draw pixel6
+
+ld([vTmp])                      #82
+adda(AC)                        #83
+st([vTmp])                      #84
+bmi(pc()+3)                     #85
+bra(pc()+3)                     #86
+ld([sysArgs+0])                 #87
+ld([sysArgs+1])                 #87(!)
+st([Y,Xpp])                     #88 draw pixel7
+
+ld([vAC+1])                     #89
+adda(1)                         #90
+st([vAC+1])                     #91
+
+ld([sysArgs+7],X)               #92 textFont addr
+ld([X])                         #93
+adda(1)                         #94
+st([X])                         #95 increment next byte address
+
+ld([sysArgs+2])                 #96 LUP counter, (3 LUP's per 4x6 char)
+suba(1)                         #97
+beq('.prn4x6#100')              #98
+st([sysArgs+2])                 #99
+ld(hi('PREFX2_PAGE'))           #100 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #101 restore PREFX2 instruction page
+adda(1,Y)                       #102 restart instruction
+jmp(Y,'NEXTY')                  #103
+ld(-106/2)                      #104
+
+label('.prn4x6#100')
+ld(hi('NEXTY'),Y)               #100
+jmp(Y,'NEXTY')                  #101
+ld(-104/2)                      #102
+
+label('.prn4x6#17')
+ld(hi('PREFX2_PAGE'))           #17 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #18 restore PREFX2 instruction page
+adda(1,Y)                       #19 retry instruction
+jmp(Y,'REENTER')                #20
+ld(-24/2)                       #21
 
 
 fillers(until=0xff)
@@ -14335,6 +15322,154 @@ align(0x100, size=0x100)
 #  More vCPU instruction implementations, (0x3600)
 #-----------------------------------------------------------------------
 #
+# VTBL implementation
+label('vtbl#13')
+adda([vAC+1])                   #13 y*2
+ld(AC,X)                        #14
+ld(1,Y)                         #15 Y,X = 0x0100 + 2*y, (0 >= y <= 127)
+ld([Y,X])                       #16
+st([vTmp])                      #17
+ld(0,Y)                         #18 
+ld([sysArgs+7],X)               #19
+ld([vAC])                       #20
+st([Y,Xpp])                     #21
+ld([vTmp])                      #22
+st([Y,X])                       #23
+ld(hi('NEXTY'),Y)               #24
+jmp(Y,'NEXTY')                  #25
+ld(-28/2)                       #26
+
+
+# LDARRW implementation
+label('ldarrw#13')
+st([Y,Xpp])                     #13 X++
+st([vTmp])                      #14 var
+ld(min(0,maxTicks-62/2))        #15
+adda([vTicks])                  #16
+blt('.ldarrw#19')               #17 not enough time left, so retry
+ld([Y,X])                       #18
+st([Y,Xpp])                     #19 X++
+st([0xB0])                      #20 imm.lo
+ld([Y,X])                       #21
+st([0xB1])                      #22 imm.hi
+ld(0,Y)                         #23
+ld([vTmp],X)                    #24
+ld([X])                         #25
+st([Y,Xpp])                     #26 X++
+st([sysArgs+6])                 #27 idx.lo
+ld([X])                         #28
+st([sysArgs+7])                 #29 idx.hi
+ld([sysArgs+6])                 #30
+anda(0x80,X)                    #31
+adda([sysArgs+6])               #32
+st([sysArgs+6])                 #33 idx.lo*2
+ld([X])                         #34 msb idx.lo
+adda([sysArgs+7])               #35
+adda([sysArgs+7])               #36
+st([sysArgs+7])                 #37 idx.hi*2
+ld([0xB0])                      #38
+adda([sysArgs+6])               #39
+st([0xB0])                      #40 [0xB0] = [0xB0] + idx.lo
+bmi('.ldarrw#43')               #41 check carry
+suba([sysArgs+6])               #42 restore [0xB0]
+bra('.ldarrw#45')               #43
+ora([sysArgs+6])                #44 carry in bit 7
+
+label('.ldarrw#43')
+anda([sysArgs+6])               #43 carry in bit 7
+nop()                           #44
+
+label('.ldarrw#45')
+anda(0x80,X)                    #45
+ld([X])                         #46 carry in bit 0
+adda([0xB1])                    #47
+adda([sysArgs+7],Y)             #48 Y = [0xB1] + idx.hi*2 + carry
+ld([0xB0],X)                    #49 X = [0xB0] + idx.lo*2
+ld([Y,X])                       #50
+st([Y,Xpp])                     #51
+st([vAC])                       #52
+ld([Y,X])                       #53
+st([vAC+1])                     #54
+ld([vPC])                       #55
+adda(2)                         #56
+st([vPC])                       #57
+ld(hi('NEXTY'),Y)               #58
+jmp(Y,'NEXTY')                  #59
+ld(-62/2)                       #60
+
+label('.ldarrw#19')
+ld([vPC])                       #19 retry instruction
+suba(2)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
+
+
+# STARRW implementation
+label('starrw#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+st([Y,Xpp])                     #14 X++
+st([vTmp])                      #15 var
+ld(min(0,maxTicks-62/2))        #16
+adda([vTicks])                  #17
+blt('.starrw#20')               #18 not enough time left, so retry
+ld([Y,X])                       #19
+st([Y,Xpp])                     #20 X++
+st([0xB0])                      #21 imm.lo
+ld([Y,X])                       #22
+st([0xB1])                      #23 imm.hi
+ld(0,Y)                         #24
+ld([vTmp],X)                    #25
+ld([X])                         #26
+st([Y,Xpp])                     #27 X++
+st([sysArgs+6])                 #28 idx.lo
+ld([X])                         #29
+st([sysArgs+7])                 #30 idx.hi
+ld([sysArgs+6])                 #31
+anda(0x80,X)                    #32
+adda([sysArgs+6])               #33
+st([sysArgs+6])                 #34 idx.lo*2
+ld([X])                         #35 msb idx.lo
+adda([sysArgs+7])               #36
+adda([sysArgs+7])               #37
+st([sysArgs+7])                 #38 idx.hi*2
+ld([0xB0])                      #39
+adda([sysArgs+6])               #40
+st([0xB0])                      #41 [0xB0] = [0xB0] + idx.lo
+bmi('.starrw#44')               #42 check carry
+suba([sysArgs+6])               #43 restore [0xB0]
+bra('.starrw#46')               #44
+ora([sysArgs+6])                #45 carry in bit 7
+
+label('.starrw#44')
+anda([sysArgs+6])               #44 carry in bit 7
+nop()                           #45
+
+label('.starrw#46')
+anda(0x80,X)                    #46
+ld([X])                         #47 carry in bit 0
+adda([0xB1])                    #48
+adda([sysArgs+7],Y)             #49 Y = [0xB1] + idx.hi*2 + carry
+ld([0xB0],X)                    #50 X = [0xB0] + idx.lo*2
+ld([vAC])                       #51
+st([Y,Xpp])                     #52
+ld([vAC+1])                     #53
+st([Y,X])                       #54
+ld([vPC])                       #55
+adda(2)                         #56
+st([vPC])                       #57
+ld(hi('NEXTY'),Y)               #58
+jmp(Y,'NEXTY')                  #59
+ld(-62/2)                       #60
+
+label('.starrw#20')
+ld([vPC])                       #20 retry instruction
+suba(2)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
 
 
 fillers(until=0xff)
@@ -14413,12 +15548,385 @@ fillers(until=0xff)
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------
-#  More vCPU instruction implementations, (0x3F00)
+#  Legacy branch springboards, (BCC), and vCPU instructions, (0x3F00)
+#-----------------------------------------------------------------------
+#
+# LDARRB implementation
+label('ldarrb#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+st([Y,Xpp])                     #14 X++
+st([vTmp])                      #15 var
+ld(min(0,maxTicks-54/2))        #16
+adda([vTicks])                  #17
+blt('.ldarrb#20')               #18 not enough time left, so retry
+ld([Y,X])                       #19
+st([Y,Xpp])                     #20 X++
+st([vAC])                       #21 imm.lo
+ld([Y,X])                       #22
+st([vAC+1])                     #23 imm.hi
+ld(0,Y)                         #24
+ld([vTmp],X)                    #25
+ld([X])                         #26
+st([Y,Xpp])                     #27 X++
+st([sysArgs+6])                 #28 idx.lo
+ld([X])                         #29
+st([sysArgs+7])                 #30 idx.hi
+ld([vAC])                       #31
+adda([sysArgs+6])               #32
+st([vTmp])                      #33 vTmp = vAC.lo + idx.lo
+bmi('.ldarrb#36')               #34 check carry
+suba([sysArgs+6])               #35 restore vAC.lo
+bra('.ldarrb#38')               #36
+ora([sysArgs+6])                #37 carry in bit 7
+
+label('.ldarrb#36')
+anda([sysArgs+6])               #36 carry in bit 7
+nop()                           #37
+
+label('.ldarrb#38')
+anda(0x80,X)                    #38
+ld([X])                         #39 carry in bit 0
+adda([vAC+1])                   #40
+adda([sysArgs+7],Y)             #41 Y = vAC.hi + idx.hi + carry
+ld([vTmp],X)                    #42
+ld([Y,X])                       #43
+st([vAC])                       #44
+ld(0)                           #45
+st([vAC+1])                     #46
+ld([vPC])                       #47
+adda(2)                         #48
+st([vPC])                       #49
+ld(hi('NEXTY'),Y)               #50
+jmp(Y,'NEXTY')                  #51
+ld(-54/2)                       #52
+
+label('.ldarrb#20')
+ld([vPC])                       #20 retry instruction
+suba(2)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+
+
+# pc = 0x3f3f, Opcode = 0x3f
+# Conditional EQ: Branch if zero (if(vACL==0)vPCL=D)
+fillers(until=0x3f)
+ld(hi('beq#17'),Y)              #14
+jmp(Y,'beq#17')                 #15
+ld([vPC+1],Y)                   #16 vPC.hi
+
+# pc = 0x3f4d, Opcode = 0x4d
+# Conditional GT: Branch if positive (if(vACL>0)vPCL=D)
+fillers(until=0x4d)
+ld(hi('bgt#17'),Y)              #13
+jmp(Y,'bgt#17')                 #14
+ld([vPC+1],Y)                   #15 vPC.hi
+
+# pc = 0x3f50, Opcode = 0x50
+# Conditional LT: Branch if negative (if(vACL<0)vPCL=D)
+ld(hi('blt#17'),Y)              #13
+jmp(Y,'blt#17')                 #14
+ld([vPC+1],Y)                   #15 vPC.hi
+
+# pc = 0x3f53, Opcode = 0x53
+# Conditional GE: Branch if positive or zero (if(vACL>=0)vPCL=D)
+ld(hi('bge#17'),Y)              #13
+jmp(Y,'bge#17')                 #14
+ld([vPC+1],Y)                   #15 vPC.hi
+
+# pc = 0x3f56, Opcode = 0x56
+# Conditional LE: Branch if negative or zero (if(vACL<=0)vPCL=D)
+ld(hi('ble#17'),Y)              #13
+jmp(Y,'ble#17')                 #14
+ld([vPC+1],Y)                   #15 vPC.hi
+
+# pc = 0x3f72, Opcode = 0x72
+# Conditional NE: Branch if not zero (if(vACL!=0)vPCL=D)
+fillers(until=0x72)
+ld(hi('bne#17'),Y)              #13
+jmp(Y,'bne#17')                 #14
+ld([vPC+1],Y)                   #15 vPC.hi
+
+
+# STARRB implementation
+label('starrb#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+st([Y,Xpp])                     #14 X++
+st([vTmp])                      #15 var
+ld(min(0,maxTicks-52/2))        #16
+adda([vTicks])                  #17
+blt('.starrb#20')               #18 not enough time left, so retry
+ld([Y,X])                       #19
+st([Y,Xpp])                     #20 X++
+st([0xB0])                      #21 imm.lo
+ld([Y,X])                       #22
+st([0xB1])                      #23 imm.hi
+ld(0,Y)                         #24
+ld([vTmp],X)                    #25
+ld([X])                         #26
+st([Y,Xpp])                     #27 X++
+st([sysArgs+6])                 #28 idx.lo
+ld([X])                         #29
+st([sysArgs+7])                 #30 idx.hi
+ld([0xB0])                      #31
+adda([sysArgs+6])               #32
+st([vTmp])                      #33 vTmp = vAC.lo + idx.lo
+bmi('.starrb#36')               #34 check carry
+suba([sysArgs+6])               #35 restore vAC.lo
+bra('.starrb#38')               #36
+ora([sysArgs+6])                #37 carry in bit 7
+
+label('.starrb#36')
+anda([sysArgs+6])               #36 carry in bit 7
+nop()                           #37
+
+label('.starrb#38')
+anda(0x80,X)                    #38
+ld([X])                         #39 carry in bit 0
+adda([0xB1])                    #40
+adda([sysArgs+7],Y)             #41 Y = vAC.hi + idx.hi + carry
+ld([vTmp],X)                    #42
+ld([vAC])                       #43
+st([Y,X])                       #44
+ld([vPC])                       #45
+adda(2)                         #46
+st([vPC])                       #47
+ld(hi('NEXTY'),Y)               #48
+jmp(Y,'NEXTY')                  #49
+ld(-52/2)                       #50
+
+label('.starrb#20')
+ld([vPC])                       #20 retry instruction
+suba(2)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+
+
+# STARRI implementation
+label('starri#13')
+ld([vPC+1],Y)                   #13 vPC.hi
+st([Y,Xpp])                     #14 X++
+st([vTmp])                      #15 var
+ld(min(0,maxTicks-56/2))        #16
+adda([vTicks])                  #17
+blt('.starri#20')               #18 not enough time left, so retry
+ld([Y,X])                       #19
+st([Y,Xpp])                     #20 X++
+st([0xB0])                      #21 addr imm.lo
+ld([Y,X])                       #22
+st([Y,Xpp])                     #23 X++
+st([0xB1])                      #24 addr imm.hi
+ld([Y,X])                       #25
+st([0xB2])                      #26 data imm
+ld(0,Y)                         #27
+ld([vTmp],X)                    #28
+ld([X])                         #29
+st([Y,Xpp])                     #30 X++
+st([sysArgs+6])                 #31 idx.lo
+ld([X])                         #32
+st([sysArgs+7])                 #33 idx.hi
+ld([0xB0])                      #34
+adda([sysArgs+6])               #35
+st([vTmp])                      #36 vTmp = vAC.lo + idx.lo
+bmi('.starri#39')               #37 check carry
+suba([sysArgs+6])               #38 restore vAC.lo
+bra('.starri#41')               #39
+ora([sysArgs+6])                #40 carry in bit 7
+
+label('.starri#39')
+anda([sysArgs+6])               #39 carry in bit 7
+nop()                           #40
+
+label('.starri#41')
+anda(0x80,X)                    #41
+ld([X])                         #42 carry in bit 0
+adda([0xB1])                    #43
+adda([sysArgs+7],Y)             #44 Y = vAC.hi + idx.hi + carry
+ld([vTmp],X)                    #45
+ld([0xB2])                      #46
+st([Y,X])                       #47
+ld([vPC])                       #48
+adda(3)                         #49
+st([vPC])                       #50
+ld(hi('REENTER'),Y)             #51
+jmp(Y,'REENTER')                #52
+ld(-56/2)                       #53
+
+label('.starri#20')
+ld([vPC])                       #20 retry instruction
+suba(2)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+
+
+fillers(until=0xff) 
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4000)
 #-----------------------------------------------------------------------
 #
 
 
-fillers(until=0xff) 
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4100)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4200)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4300)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4400)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4500)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4600)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4700)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4800)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4900)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4A00)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4B00)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4C00)
+#-----------------------------------------------------------------------
+#
+
+ 
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  More vCPU instruction implementations, (0x4D00)
+#-----------------------------------------------------------------------
+#
+
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  Gigatron font4x6 data, (0x4E00 )
+#-----------------------------------------------------------------------
+#
+label('font4x6_32up')
+for ch in range(32, 32+83):
+  comment = 'Char4x6 %s' % repr(chr(ch))
+  for byte in fontvX0.font4x6[ch-32]:
+    ld(byte)
+    comment = C(comment)
+
+fillers(until=0xfd)
+ld(hi('prn4x6Return'),Y)        #27 skip a cycle as byte is fetched from table
+jmp(Y,'prn4x6Return')           #28
+st([vTmp])                      #29
+
+align(0x100, size=0x100)
+
+#-----------------------------------------------------------------------
+#  Gigatron font4x6 data, (0x4F00 )
+#-----------------------------------------------------------------------
+#
+label('font4x6_115up')
+for ch in range(32+83, 132):
+  comment = 'Char4x6 %s' % repr(chr(ch))
+  for byte in fontvX0.font4x6[ch-32]:
+    ld(byte)
+    comment = C(comment)
+
+fillers(until=0xfd)
+ld(hi('prn4x6Return'),Y)        #27 skip a cycle as byte is fetched from table
+jmp(Y,'prn4x6Return')           #28
+st([vTmp])                      #29
+
 align(0x100, size=0x100)
 
 #-----------------------------------------------------------------------
@@ -14438,7 +15946,7 @@ disableListing()
 # These constants were already loaded from interface.json.
 # We're redefining them here to get a consistency check.
 define('memSize',    memSize)
-for i in range(3):
+for i in range(2):
   define('entropy%d' % i, entropy+i)
 define('videoY',     videoY)
 define('frameCount', frameCount)
@@ -14456,9 +15964,6 @@ define('sysFn',      sysFn)
 for i in range(8):
   define('sysArgs%d' % i, sysArgs+i)
 define('soundTimer', soundTimer)
-define('ledTimer',   ledTimer)
-define('ledState_v2',ledState_v2)
-define('ledTempo',   ledTempo)
 define('userVars',   userVars)
 define('videoTable', videoTable)
 define('vIRQ_v5',    vIRQ_v5)

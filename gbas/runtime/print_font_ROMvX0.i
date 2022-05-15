@@ -55,7 +55,7 @@ printText           PUSH
                     CALLI   printInit
                     INC     textStr                             ; skip length
 
-printT_char         PEEK+   textStr             
+printT_char         PEEKV+  textStr             
                     BEQ     printT_exit                         ; check for terminating zero
                     CALLI   printChar
                     BRA     printT_char
@@ -72,7 +72,7 @@ printLeft           PUSH
                     BEQ     printL_exit
                     INC     textStr                             ; skip length
                     
-printL_char         PEEK+   textStr             
+printL_char         PEEKV+  textStr             
                     CALLI   printChar
                     DBNE    textLen, printL_char
                     
@@ -92,7 +92,7 @@ printRight          PUSH
                     BEQ     printR_exit
                     INC     textStr                             ; skip length
                     
-printR_char         PEEK+   textStr             
+printR_char         PEEKV+  textStr             
                     CALLI   printChar
                     DBNE    textLen, printR_char
                     
@@ -109,7 +109,7 @@ printMid            PUSH
                     BEQ     printM_exit
                     INC     textStr                             ; skip length
     
-printM_char         PEEK+   textStr             
+printM_char         PEEKV+  textStr             
                     CALLI   printChar
                     DBNE    textLen, printM_char
                     
@@ -123,7 +123,7 @@ printLower          PUSH
                     CALLI   printInit
                     INC     textStr                             ; skip length
     
-printLo_next        PEEK+   textStr
+printLo_next        PEEKV+  textStr
                     BEQ     printLo_exit
                     ST      textChr
                     SUBI    65
@@ -146,7 +146,7 @@ printUpper          PUSH
                     CALLI   printInit
                     INC     textStr                             ; skip length
     
-printUp_next        PEEK+   textStr
+printUp_next        PEEKV+  textStr
                     BEQ     printUp_exit
                     ST      textChr
                     SUBI    97
@@ -257,17 +257,14 @@ printChar           SUBI    130                                 ; char can't be 
                     STW     textChr                             ; char-32                    
                     LDWI    _fontId_
                     PEEK
-                    STW     fontId
-                    LDWI    _fontsLut_                          ; fonts table
-                    ADDW    fontId
-                    ADDW    fontId
+                    ARRW    _fontsLut_                          ; fonts table
                     DEEKA   fontAddrs                           ; get font address table
-                    DEEK+   fontAddrs                           ; get font mapping table
+                    DEEKV+  fontAddrs                           ; get font mapping table
                     BEQ     printC_noMap                        ; no mapping table means font contains all chars 32 -> 127 in the correct order
                     ADDW    textChr
                     PEEKA   textChr                             ; get mapped char
                     
-printC_noMap        DEEK+   fontAddrs
+printC_noMap        DEEKV+  fontAddrs
                     STW     fontBase                            ; baseline address, shared by all chars in a font
                     LD      textChr
                     LSLW
@@ -277,8 +274,7 @@ printC_noMap        DEEK+   fontAddrs
                     SYS     64                                  ; draw char
                     STW     fontPosXY
                     
-                    LDW     fontBase
-                    STW     giga_sysArg0
+                    MOVWA   fontBase, giga_sysArg0
                     LDWI    0x0F00
                     ADDW    cursorXY
                     SYS     64                                  ; draw baseline for char

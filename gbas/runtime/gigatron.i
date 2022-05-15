@@ -51,6 +51,9 @@ giga_sysArg7                    EQU     0x2B
 giga_soundTimer                 EQU     0x2C
 giga_ledState                   EQU     0x2E
 giga_ledTempo                   EQU     0x2F
+giga_jiffiesTick                EQU     0x2D
+giga_secondsTickLo              EQU     0x2E
+giga_secondsTickHi              EQU     0x2F
 giga_User                       EQU     0x30
 giga_One                        EQU     0x80
 
@@ -138,7 +141,7 @@ SYS_DrawSpriteH_vX_140          EQU     0x2000
 SYS_ScrollVTableY_vX_38         EQU     0x20c0
 SYS_RestoreSprite_vX_126        EQU     0x2100
 SYS_ScrollRectVTableY_vX_44     EQU     0x21a0
-SYS_LoadSerialIn_vX_58          EQU     0x3080
+SYS_LoadSerialIn_vX_60          EQU     0x3080
 
 SYS_LoaderNextByteIn_32         EQU     0x1a6d
 SYS_LoaderProcessInput_64       EQU     0x1a82

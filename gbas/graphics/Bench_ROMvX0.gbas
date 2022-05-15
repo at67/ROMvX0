@@ -3,7 +3,7 @@ _codeRomType_ ROMvX0
 
 cls : mode 2
 
-init TIME
+'init TIME
 
 ' lines
 set TIMER, 0
@@ -16,7 +16,8 @@ for i=1 to 100
     line  0,   0,   159, 119
     line  0,   119, 159, 0
 next i
-timerL = get("TIMER")
+timerLS = get("TIMER")
+timerLJ = get("JIFFIES")
 
 ' filled rects
 cls
@@ -25,7 +26,8 @@ for i=1 to 100
     set FG_COLOUR, rnd(0) AND &h3F
     rectf 0, 0, 159, 119
 next i
-timerR = get("TIMER")
+timerRS = get("TIMER")
+timerRJ = get("JIFFIES")
 
 ' filled circles
 cls
@@ -34,10 +36,11 @@ for i=1 to 100
     set FG_COLOUR, rnd(0) AND &h3F
     circlef 80, 60, 60
 next i
-timerC = get("TIMER")
+timerCS = get("TIMER")
+timerCJ = get("JIFFIES")
 
 cls
 set FG_COLOUR, &h3F
-print "Lines: ";timerL/60;" ";timerL % 60;"/60"
-print "Rects: ";timerR/60;" ";timerR % 60;"/60"
-print "Circs: ";timerC/60;" ";timerC % 60;"/60"
+print "Lines: ";timerLS;" ";timerLJ;"/60"
+print "Rects: ";timerRS;" ";timerRJ;"/60"
+print "Circs: ";timerCS;" ";timerCJ;"/60"

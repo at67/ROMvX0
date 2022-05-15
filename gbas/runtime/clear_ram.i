@@ -16,6 +16,8 @@ clrWidth            EQU     register12
 clrStart            EQU     register13
 clrEnd              EQU     register14
 clrRem              EQU     register15
+ramAddr0            EQU     register14
+ramAddr1            EQU     register15
 
 
 %SUB                resetVars
@@ -26,6 +28,17 @@ resetVars           LDI     0
                     LD      varAddress
                     XORI    giga_One                            ; end of user vars
                     BNE     resetVars
+                    RET
+%ENDS
+
+%SUB                resetMem
+resetMem            LDI     0
+                    POKE    ramAddr0
+                    LDW     ramAddr0
+                    ADDI    1
+                    STW     ramAddr0
+                    SUBW    ramAddr1
+                    BLT     resetMem
                     RET
 %ENDS
 

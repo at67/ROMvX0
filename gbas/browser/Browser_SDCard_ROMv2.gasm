@@ -1,0 +1,2114 @@
+_startAddress_          EQU                     0x0200
+
+; Internal Variables
+serialRawPrev           EQU                     0x0081
+frameCountPrev          EQU                     0x00d6
+register0               EQU                     0x0082
+register1               EQU                     register0 + 0x02
+register2               EQU                     register0 + 0x04
+register3               EQU                     register0 + 0x06
+register4               EQU                     register0 + 0x08
+register5               EQU                     register0 + 0x0A
+register6               EQU                     register0 + 0x0C
+register7               EQU                     register0 + 0x0E
+register8               EQU                     register0 + 0x10
+register9               EQU                     register0 + 0x12
+register10              EQU                     register0 + 0x14
+register11              EQU                     register0 + 0x16
+register12              EQU                     register0 + 0x18
+register13              EQU                     register0 + 0x1A
+register14              EQU                     register0 + 0x1C
+register15              EQU                     register0 + 0x1E
+fgbgColour              EQU                     register0 + 0x20
+cursorXY                EQU                     register0 + 0x22
+midiStream              EQU                     register0 + 0x24
+midiDelay               EQU                     register0 + 0x26
+miscFlags               EQU                     register0 + 0x28
+timerTick               EQU                     register0 + 0x2A
+timerPrev               EQU                     register0 + 0x2C
+
+; Internal Constants
+MISC_WAIT_VBLANK_BIT    EQU                     0x01
+MISC_ENABLE_SCROLL_BIT  EQU                     0x02
+MISC_ON_BOTTOM_ROW_BIT  EQU                     0x04
+MISC_DISABLE_CLIP_BIT   EQU                     0x08
+MISC_WAIT_VBLANK_MSK    EQU                     0xfe
+MISC_ENABLE_SCROLL_MSK  EQU                     0xfd
+MISC_ON_BOTTOM_ROW_MSK  EQU                     0xfb
+MISC_DISABLE_CLIP_MSK   EQU                     0xf7
+
+; Internal Buffers
+regsWorkArea            EQU                     0x0000
+textWorkArea            EQU                     0x7ea0
+
+; Includes
+%includePath            "../runtime"
+%include                util.i
+%include                gigatron.i
+%include                macros.i
+
+; Labels
+_entryPoint_            EQU                     0x0200
+_restart                EQU                     0x0254
+_findLoader             EQU                     0x02a5
+_sendCommsCmd           EQU                     0x036c
+_loadDir                EQU                     0x0387
+_loadD0                 EQU                     0x038c
+_loadD1                 EQU                     0x03b6
+_fillBrowser            EQU                     0x03d9
+_printBrowser           EQU                     0x0440
+_updateBrowser          EQU                     0x0526
+_getRomType             EQU                     0x0613
+_openSDCard             EQU                     0x09a9
+_execApp                EQU                     0x0ac6
+_handleInput            EQU                     0x0be8
+_127                    EQU                     0x0cdb
+_10                     EQU                     0x0ce3
+_254                    EQU                     0x0ceb
+_253                    EQU                     0x0dc3
+_251                    EQU                     0x0de0
+_247                    EQU                     0x0eb0
+_execOrList             EQU                     0x0ed4
+_waitSDCard             EQU                     0x0fca
+_waitSD                 EQU                     0x0fcf
+_initSDComms            EQU                     0x0fe9
+_listSDCard             EQU                     0x10ae
+_closeSDCard            EQU                     0x10c3
+_beginSDCard            EQU                     0x10d8
+_initialise             EQU                     0x10f2
+_repeat_0x0263          EQU                     0x0268
+_repeat_0x028d          EQU                     0x028e
+_else_0x02a2            EQU                     0x029f
+_elseif_0x02cb          EQU                     0x02c2
+_elseif_0x02e5          EQU                     0x02d8
+_elseif_0x02ff          EQU                     0x02ee
+_page_0x0300            EQU                     0x0300
+_repeat_0x030a          EQU                     0x0305
+_next_0x032d            EQU                     0x0322
+_endif_0x036b           EQU                     0x0354
+_endif_0x0385           EQU                     0x036a
+_else_0x040c            EQU                     0x03e5
+_page_0x0400            EQU                     0x0400
+_repeat_0x041e          EQU                     0x0402
+_repeat_0x0422          EQU                     0x0406
+_else_0x0463            EQU                     0x0435
+_next_0x04c6            EQU                     0x0488
+_else_0x0518            EQU                     0x04bc
+_endif_0x051d           EQU                     0x04c1
+_else_0x0523            EQU                     0x04c7
+_else_0x0535            EQU                     0x04d5
+_endif_0x053a           EQU                     0x04da
+_page_0x0500            EQU                     0x0500
+_else_0x05ee            EQU                     0x0578
+_endif_0x05f3           EQU                     0x057d
+_else_0x0672            EQU                     0x05d8
+_endif_0x0677           EQU                     0x05dd
+_page_0x0600            EQU                     0x0600
+_else_0x06cd            EQU                     0x062b
+_page_0x08a0            EQU                     0x08a0
+_else_0x06dd            EQU                     0x08aa
+_else_0x06ed            EQU                     0x08b6
+_else_0x06fd            EQU                     0x08c2
+_else_0x070d            EQU                     0x08ce
+_endif_0x0728           EQU                     0x08e1
+_endif_0x0738           EQU                     0x08ed
+_page_0x09a0            EQU                     0x09a0
+_endif_0x074d           EQU                     0x09a7
+_next_0x0791            EQU                     0x09d9
+_page_0x0aa0            EQU                     0x0aa0
+_else_0x07b8            EQU                     0x0aa2
+_endif_0x07c1           EQU                     0x0aab
+_page_0x0ba0            EQU                     0x0ba0
+_next_0x0817            EQU                     0x0ba2
+_page_0x0ca0            EQU                     0x0ca0
+_endif_0x0897           EQU                     0x0cb7
+_endif_0x08c9           EQU                     0x0cd9
+_page_0x0da0            EQU                     0x0da0
+_page_0x0ea0            EQU                     0x0ea0
+_else_0x0959            EQU                     0x0ea9
+_else_0x0989            EQU                     0x0ecd
+_endif_0x09bf           EQU                     0x0ef5
+_page_0x0fa0            EQU                     0x0fa0
+_endif_0x09d3           EQU                     0x0fae
+_endif_0x09f1           EQU                     0x0fc8
+_page_0x10a0            EQU                     0x10a0
+_page_0x11a0            EQU                     0x11a0
+
+; Constants
+_sysArg0                EQU                     0x0024
+_sysArg7                EQU                     0x002b
+_MAX_FILES              EQU                     0x0064
+_PAYLOAD_SIZE           EQU                     0x003f
+_PROTOCOL_SIZE          EQU                     0x0041
+_PACKET_SIZE            EQU                     0x000f
+_CmdSDList              EQU                     0x0001
+_CmdSDExec              EQU                     0x0002
+_CmdSDOpen              EQU                     0x0003
+_CmdSDClose             EQU                     0x0004
+_CmdSDBegin             EQU                     0x0005
+_CmdSDInit              EQU                     0x0006
+_EntryFile              EQU                     0x0001
+_EntryDir               EQU                     0x0002
+_EntryError             EQU                     0x0003
+
+; Global Variables
+_execAddr               EQU                     0x0030
+_commsAddr              EQU                     0x0032
+_commsSize              EQU                     0x0034
+_commsRetn              EQU                     0x0036
+_browserIdx             EQU                     0x0038
+_browserY               EQU                     0x003a
+_cursorY                EQU                     0x003c
+_cursOldY               EQU                     0x003e
+_isLast                 EQU                     0x0040
+_length                 EQU                     0x0042
+_runStrAddr             EQU                     0x0044
+_execRtn                EQU                     0x0046
+_waitRtn                EQU                     0x0048
+_f                      EQU                     0x004a
+_kk                     EQU                     0x004c
+_romType                EQU                     0x004e
+_j                      EQU                     0x0050
+_bIdx                   EQU                     0x0052
+_cIdx                   EQU                     0x0054
+_char                   EQU                     0x0056
+_startY                 EQU                     0x0058
+_endY                   EQU                     0x005a
+_i                      EQU                     0x005c
+_strAddr                EQU                     0x005e
+_strLen                 EQU                     0x0060
+_isFile                 EQU                     0x0062
+_prevY                  EQU                     0x0064
+_prevAddr               EQU                     0x0066
+_prevLen                EQU                     0x0068
+_currY                  EQU                     0x006a
+_currAddr               EQU                     0x006c
+_currLen                EQU                     0x006e
+_NextByteIn_32          EQU                     0x0070
+_len                    EQU                     0x0072
+_k                      EQU                     0x0074
+_entry                  EQU                     0x0076
+
+; Local Variables
+
+; Arrays
+_commsCmd               EQU                     0x7cef
+_commsCmd               DB                      0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+_buffer                 EQU                     0x7cae
+_buffer                 DB                      0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
+_browser                EQU                     0x0638
+_browser                DW                      0x79f1 0x79e2 0x79d3 0x79c4 0x79b5 0x79a6 0x78f1 0x78e2 0x78d3 0x78c4 0x78b5 0x78a6 0x77f1 0x77e2 0x77d3 0x77c4 0x77b5 0x77a6 0x76f1 0x76e2 0x76d3 0x76c4 0x76b5 0x76a6 0x75f1 0x75e2 0x75d3 0x75c4 0x75b5 0x75a6 0x74f1 0x74e2 0x74d3 0x74c4 0x74b5 0x74a6 0x73f1 0x73e2 0x73d3 0x73c4 0x73b5 0x73a6 0x72f1 0x72e2 0x72d3 0x72c4 0x72b5 0x72a6 0x71f1 0x71e2 0x71d3 0x71c4 0x71b5 0x71a6 0x70f1 0x70e2 0x70d3 0x70c4 0x70b5 0x70a6 0x6ff1 0x6fe2 0x6fd3 0x6fc4 0x6fb5 0x6fa6 0x6ef1 0x6ee2 0x6ed3 0x6ec4 0x6eb5 0x6ea6 0x6df1 0x6de2 0x6dd3 0x6dc4 0x6db5 0x6da6 0x6cf1 0x6ce2 0x6cd3 0x6cc4 0x6cb5 0x6ca6 0x6bf1 0x6be2 0x6bd3 0x6bc4 0x6bb5 0x6ba6 0x6af1 0x6ae2 0x6ad3 0x6ac4 0x6ab5 0x6aa6 0x69f1 0x69e2 0x69d3 0x69c4 
+_browser_0x79f1         EQU                     0x79f1
+_browser_0x79e2         EQU                     0x79e2
+_browser_0x79d3         EQU                     0x79d3
+_browser_0x79c4         EQU                     0x79c4
+_browser_0x79b5         EQU                     0x79b5
+_browser_0x79a6         EQU                     0x79a6
+_browser_0x78f1         EQU                     0x78f1
+_browser_0x78e2         EQU                     0x78e2
+_browser_0x78d3         EQU                     0x78d3
+_browser_0x78c4         EQU                     0x78c4
+_browser_0x78b5         EQU                     0x78b5
+_browser_0x78a6         EQU                     0x78a6
+_browser_0x77f1         EQU                     0x77f1
+_browser_0x77e2         EQU                     0x77e2
+_browser_0x77d3         EQU                     0x77d3
+_browser_0x77c4         EQU                     0x77c4
+_browser_0x77b5         EQU                     0x77b5
+_browser_0x77a6         EQU                     0x77a6
+_browser_0x76f1         EQU                     0x76f1
+_browser_0x76e2         EQU                     0x76e2
+_browser_0x76d3         EQU                     0x76d3
+_browser_0x76c4         EQU                     0x76c4
+_browser_0x76b5         EQU                     0x76b5
+_browser_0x76a6         EQU                     0x76a6
+_browser_0x75f1         EQU                     0x75f1
+_browser_0x75e2         EQU                     0x75e2
+_browser_0x75d3         EQU                     0x75d3
+_browser_0x75c4         EQU                     0x75c4
+_browser_0x75b5         EQU                     0x75b5
+_browser_0x75a6         EQU                     0x75a6
+_browser_0x74f1         EQU                     0x74f1
+_browser_0x74e2         EQU                     0x74e2
+_browser_0x74d3         EQU                     0x74d3
+_browser_0x74c4         EQU                     0x74c4
+_browser_0x74b5         EQU                     0x74b5
+_browser_0x74a6         EQU                     0x74a6
+_browser_0x73f1         EQU                     0x73f1
+_browser_0x73e2         EQU                     0x73e2
+_browser_0x73d3         EQU                     0x73d3
+_browser_0x73c4         EQU                     0x73c4
+_browser_0x73b5         EQU                     0x73b5
+_browser_0x73a6         EQU                     0x73a6
+_browser_0x72f1         EQU                     0x72f1
+_browser_0x72e2         EQU                     0x72e2
+_browser_0x72d3         EQU                     0x72d3
+_browser_0x72c4         EQU                     0x72c4
+_browser_0x72b5         EQU                     0x72b5
+_browser_0x72a6         EQU                     0x72a6
+_browser_0x71f1         EQU                     0x71f1
+_browser_0x71e2         EQU                     0x71e2
+_browser_0x71d3         EQU                     0x71d3
+_browser_0x71c4         EQU                     0x71c4
+_browser_0x71b5         EQU                     0x71b5
+_browser_0x71a6         EQU                     0x71a6
+_browser_0x70f1         EQU                     0x70f1
+_browser_0x70e2         EQU                     0x70e2
+_browser_0x70d3         EQU                     0x70d3
+_browser_0x70c4         EQU                     0x70c4
+_browser_0x70b5         EQU                     0x70b5
+_browser_0x70a6         EQU                     0x70a6
+_browser_0x6ff1         EQU                     0x6ff1
+_browser_0x6fe2         EQU                     0x6fe2
+_browser_0x6fd3         EQU                     0x6fd3
+_browser_0x6fc4         EQU                     0x6fc4
+_browser_0x6fb5         EQU                     0x6fb5
+_browser_0x6fa6         EQU                     0x6fa6
+_browser_0x6ef1         EQU                     0x6ef1
+_browser_0x6ee2         EQU                     0x6ee2
+_browser_0x6ed3         EQU                     0x6ed3
+_browser_0x6ec4         EQU                     0x6ec4
+_browser_0x6eb5         EQU                     0x6eb5
+_browser_0x6ea6         EQU                     0x6ea6
+_browser_0x6df1         EQU                     0x6df1
+_browser_0x6de2         EQU                     0x6de2
+_browser_0x6dd3         EQU                     0x6dd3
+_browser_0x6dc4         EQU                     0x6dc4
+_browser_0x6db5         EQU                     0x6db5
+_browser_0x6da6         EQU                     0x6da6
+_browser_0x6cf1         EQU                     0x6cf1
+_browser_0x6ce2         EQU                     0x6ce2
+_browser_0x6cd3         EQU                     0x6cd3
+_browser_0x6cc4         EQU                     0x6cc4
+_browser_0x6cb5         EQU                     0x6cb5
+_browser_0x6ca6         EQU                     0x6ca6
+_browser_0x6bf1         EQU                     0x6bf1
+_browser_0x6be2         EQU                     0x6be2
+_browser_0x6bd3         EQU                     0x6bd3
+_browser_0x6bc4         EQU                     0x6bc4
+_browser_0x6bb5         EQU                     0x6bb5
+_browser_0x6ba6         EQU                     0x6ba6
+_browser_0x6af1         EQU                     0x6af1
+_browser_0x6ae2         EQU                     0x6ae2
+_browser_0x6ad3         EQU                     0x6ad3
+_browser_0x6ac4         EQU                     0x6ac4
+_browser_0x6ab5         EQU                     0x6ab5
+_browser_0x6aa6         EQU                     0x6aa6
+_browser_0x69f1         EQU                     0x69f1
+_browser_0x69e2         EQU                     0x69e2
+_browser_0x69d3         EQU                     0x69d3
+_browser_0x69c4         EQU                     0x69c4
+
+; Strings
+_runName$               EQU                     0x7da0
+_runName$               DB                      0 '' 0
+_execName$              EQU                     0x7ba0
+_execName$              DB                      0 '' 0
+_pathName$              EQU                     0x7aa0
+_pathName$              DB                      0 '' 0
+
+; Constant Strings
+_str_0x7cfe             EQU                     0x7cfe
+_str_0x7cfe             DB                      0 '' 0
+_str_0x7ca6             EQU                     0x7ca6
+_str_0x7ca6             DB                      6 'Loader' 0
+_str_0x69b1             EQU                     0x69b1
+_str_0x69b1             DB                      17 'Loader not found!' 0
+
+; Data
+
+; Time
+
+; Define Bytes
+
+; Define Words
+
+; Define Images
+
+; Define Loader Image Chunks
+
+; Define Midis
+
+; Define Blits
+
+; Define Fonts
+
+; Define Sprites
+
+; Define Patterns
+
+; Lookup Tables
+_lut_numericLabs        EQU                     0x69a3
+_lut_numericLabs        DW                      127 10 254 253 251 247 0x0000
+_lut_numericAddrs       EQU                     0x68f4
+_lut_numericAddrs       DW                      0x0cdb 0x0ce3 0x0ceb 0x0dc3 0x0de0 0x0eb0 
+
+; Lazy Constants
+
+; Code
+_entryPoint_            LDI                     0x20
+                        STW                     romUser
+                        RomCheck                
+                        Initialise              
+                        Init8Array2d                                                ; INIT
+
+                        LDWI                    0x7cfe
+                        STW                     strSrcAddr
+                        LDWI                    0x7da0
+                        StringCopy                                                  ; runName$ = ""
+
+                        LDWI                    0x7cfe
+                        STW                     strSrcAddr
+                        LDWI                    0x7ba0
+                        StringCopy                                                  ; execName$ = ""
+
+                        LDWI                    0x7cfe
+                        STW                     strSrcAddr
+                        LDWI                    0x7aa0
+                        StringCopy                                                  ; pathName$ = ""
+
+                        LDWI                    _findLoader
+                        CALL                    giga_vAC                            ; gosub findLoader
+
+_restart                LDWI                    _initialise
+                        CALL                    giga_vAC                            ; gosub initialise
+
+                        LDWI                    _initSDComms
+                        CALL                    giga_vAC                            ; gosub initSDComms
+
+                        LDWI                    _beginSDCard
+                        CALL                    giga_vAC                            ; gosub beginSDCard
+
+                        LDWI                    _openSDCard
+                        CALL                    giga_vAC                            ; gosub openSDCard
+
+_repeat_0x0263          LDWI                    _listSDCard
+                        CALL                    giga_vAC                            ; gosub listSDCard
+
+                        LDWI                    _loadDir
+                        CALL                    giga_vAC                            ; gosub loadDir
+
+                        LDWI                    _fillBrowser
+                        CALL                    giga_vAC                            ; gosub fillBrowser
+
+                        LDW                     _isLast
+                        BEQ                     _repeat_0x0263                      ; until &(isLast)
+
+                        LDWI                    _closeSDCard
+                        CALL                    giga_vAC                            ; gosub closeSDCard
+
+                        LDWI                    _printBrowser
+                        CALL                    giga_vAC                            ; gosub printBrowser
+
+                        LDI                     0
+                        STW                     _f                                  ; f = 0
+
+                        LDI                     255
+                        STW                     _kk                                 ; kk = 255
+
+_repeat_0x028d          WaitVBlank                                                  ; wait
+
+                        LDWI                    _handleInput
+                        CALL                    giga_vAC                            ; gosub handleInput
+
+                        LDW                     _execRtn
+                        BEQ                     _else_0x02a2
+                        BRA                     _restart                            ; if &(execRtn) then goto &restart
+
+_else_0x02a2            INC                     _f                                  ; inc f.lo
+
+                        BRA                     _repeat_0x028d                      ; &forever
+
+                        HALT                                                        ; end
+
+_findLoader             PUSH                    
+                        LD                      giga_romType
+                        ANDI                    0xFC
+                        STW                     _romType                            ; romType = get("ROM_TYPE")
+
+                        LDW                     _romType
+                        XORI                    32
+                        JumpEQ                  _elseif_0x02cb 1                    ; if romType     &= &h20
+
+                        LDWI                    -7618
+                        STW                     _execAddr
+                        LDWI                    _endif_0x0385
+                        CALL                    giga_vAC                            ; execAddr = &hE23E
+
+_elseif_0x02cb          LDW                     _romType
+                        XORI                    40
+                        JumpEQ                  _elseif_0x02e5 2                    ; elseif romType &= &h28
+
+                        LDWI                    -19288
+                        STW                     _execAddr
+                        LDWI                    _endif_0x0385
+                        CALL                    giga_vAC                            ; execAddr = &hB4A8
+
+_elseif_0x02e5          LDW                     _romType
+                        XORI                    56
+                        JumpEQ                  _elseif_0x02ff 3                    ; elseif romType &= &h38
+
+                        LDWI                    -21158
+                        STW                     _execAddr
+                        LDWI                    _endif_0x0385
+                        CALL                    giga_vAC                            ; execAddr = &hAD5A
+
+_elseif_0x02ff          LDW                     _romType
+                        SUBI                    64
+                        STLW                    0xFE
+                        LDWI                    _page_0x0300
+                        CALL                    giga_vAC
+_page_0x0300            LDLW                    0xFE
+                        BLT                     _endif_0x0385                       ; elseif romType &&>= &h40
+
+_repeat_0x030a          LDW                     _execAddr
+                        RomRead                 
+                        STW                     _execAddr                           ; execAddr = get("ROM_READ_DIR", execAddr)
+
+                        LDW                     _execAddr
+                        BEQ                     _endif_0x036b                       ; if &(execAddr)
+
+                        LDWI                    31648
+                        STW                     register0
+                        LDI                     6
+                        POKE                    register0                           ; poke @execName$, 6
+
+                        LDI                     36
+                        STW                     _j                                  ; for j=sysArg0 &to sysArg7
+
+_next_0x032d            LDWI                    31648
+                        ADDW                    _j
+                        SUBI                    35
+                        STW                     0xe8
+                        LDW                     _j
+                        PEEK                    
+                        POKE                    0xe8                                ; poke @execName$ + j - (sysArg0 - 1), peek(j)
+
+                        ForNextInc              _j _next_0x032d 43                  ; next j
+
+                        LDWI                    0x7ba0
+                        STW                     strSrcAddr
+                        LDWI                    0x7ca6
+                        StringCmp               
+                        ANDI                    1
+                        JumpFalse               _endif_0x036b 4
+                        Return                                                      ; if execName$ = "Loader" then return
+
+_endif_0x036b           LDW                     _execAddr
+                        BNE                     _repeat_0x030a                      ; until execAddr &&= 0
+
+                        PrintString             _str_0x69b1
+                        NewLine                                                     ; print "Loader not found!"
+
+                        HALT                                                        ; end
+
+_endif_0x0385           Return                                                      ; return
+
+_sendCommsCmd           PUSH                                                        ; asm
+
+                        LDWI                    SYS_SendSerial1_v3_80               ; LDWI    SYS_SendSerial1_v3_80
+                        STW                     giga_sysFn                          ; STW     giga_sysFn
+                        LDW                     _commsAddr                          ; LDW     _commsAddr
+                        STW                     giga_sysArg0                        ; STW     giga_sysArg0
+                        LDI                     1                                   ; LDI     1
+                        STW                     giga_sysArg2                        ; STW     giga_sysArg2
+                        LD                      _commsSize                          ; LD      _commsSize
+                        LSLW                                                        ; LSLW
+                        LSLW                                                        ; LSLW
+                        LSLW                                                        ; LSLW
+                        STW                     giga_sysArg3                        ; STW     giga_sysArg3
+                        SYS                     80                                  ; SYS     80
+                        STW                     _commsRetn                          ; STW     _commsRetn
+
+                        Return                                                      ; return
+
+_loadDir                PUSH                                                        ; asm
+
+                        LDW                     _NextByteIn_32                      ; LDW     _NextByteIn_32
+                        STW                     giga_sysFn                          ; STW     giga_sysFn
+
+_loadD0                 LDWI                    _buffer                             ; LDWI    _buffer
+                        STW                     giga_sysArg0                        ; STW     giga_sysArg0
+
+                        LDI                     207                                 ; LDI     207
+                        ST                      giga_sysArg3                        ; ST      giga_sysArg3
+                        SYS                     32                                  ; SYS     32
+
+                        LDWI                    _buffer                             ; LDWI    _buffer
+                        PEEK                                                        ; PEEK
+                        XORI                    255                                 ; XORI    255
+                        BEQ                     _loadD0                             ; BEQ     _loadD0
+
+                        LDI                     219                                 ; LDI     219
+                        ST                      giga_sysArg3                        ; ST      giga_sysArg3
+                        SYS                     32                                  ; SYS     32
+
+                        LDI                     235                                 ; LDI     235
+                        ST                      giga_sysArg3                        ; ST      giga_sysArg3
+                        SYS                     32                                  ; SYS     32
+
+                        LDI                     251                                 ; LDI     251
+                        ST                      giga_sysArg3                        ; ST      giga_sysArg3
+                        SYS                     32                                  ; SYS     32
+
+                        LDI                     2                                   ; LDI     2
+                        ST                      giga_sysArg3                        ; ST      giga_sysArg3
+
+_loadD1                 SYS                     32                                  ; SYS     32
+                        LD                      giga_sysArg3                        ; LD      giga_sysArg3
+                        ADDI                    4                                   ; ADDI    4
+                        ST                      giga_sysArg3                        ; ST      giga_sysArg3
+                        XORI                    242                                 ; XORI    242
+                        BNE                     _loadD1                             ; BNE     _loadD1
+                        LDI                     185                                 ; LDI     185
+                        ST                      giga_sysArg3                        ; ST      giga_sysArg3
+                        SYS                     32                                  ; SYS     32
+
+                        LDWI                    0x7cae
+                        PEEK                    
+                        STW                     _isLast                             ; isLast = peek(@buffer)
+
+                        LDWI                    0x7caf
+                        PEEK                    
+                        ANDI                    0x3f
+                        STW                     _length                             ; length = peek(@buffer + 1) AND 63
+
+                        Return                                                      ; return
+
+_fillBrowser            PUSH                    
+                        LDI                     2
+                        STW                     _bIdx                               ; bIdx = 2
+
+                        LDW                     _length
+                        BNE                     _else_0x040c
+                        Return                                                      ; if length &&= 0 then return
+
+_else_0x040c            LDW                     _browserIdx
+                        XORI                    100
+                        JumpEQ                  _repeat_0x041e 8
+                        Return                                                      ; if browserIdx &= MAX_FILES then return
+
+                        STLW                    0xFE
+                        LDWI                    _page_0x0400
+                        CALL                    giga_vAC
+_page_0x0400            LDLW                    0xFE
+_repeat_0x041e          LDI                     0
+                        STW                     _cIdx                               ; cIdx = 0
+
+_repeat_0x0422          LDWI                    31918
+                        ADDW                    _bIdx
+                        PEEK                    
+                        STW                     _char                               ; char = peek(@buffer + bIdx)
+
+                        LDW                     _browserIdx
+                        STW                     memIndex0
+                        LDW                     _cIdx
+                        STW                     memIndex1
+                        LDWI                    0x0638
+                        CALL                    convert8Arr2dAddr
+                        STW                     0xea
+                        LDW                     _char
+                        POKE                    0xea                                ; poke addr(browser(browserIdx, cIdx)), char
+
+                        INC                     _bIdx                               ; inc bIdx.lo
+
+                        INC                     _cIdx                               ; inc cIdx.lo
+
+                        LDW                     _char
+                        BNE                     _repeat_0x0422                      ; until char &&= 0
+
+                        INC                     _browserIdx                         ; inc browserIdx.lo
+
+                        LDW                     _browserIdx
+                        XORI                    100
+                        BNE                     _else_0x0463
+                        Return                                                      ; if browserIdx &&= MAX_FILES then return
+
+_else_0x0463            LDW                     _bIdx
+                        SUBI                    2
+                        XORW                    _length
+                        BNE                     _repeat_0x041e                      ; until (bIdx - 2) &&= length
+
+                        Return                                                      ; return
+
+_printBrowser           PUSH                    
+                        LDW                     _browserIdx
+                        SUBI                    15
+                        STW                     0xe8
+                        LDW                     _browserY
+                        STW                     intSrcA
+                        LDW                     0xe8
+                        IntMin                  
+                        STW                     intSrcA
+                        LDI                     0
+                        IntMax                  
+                        STW                     _startY                             ; startY = max(min(browserY, browserIdx-15), 0)
+
+                        LDW                     _browserY
+                        ADDI                    14
+                        STW                     0xe8
+                        LDW                     _browserIdx
+                        SUBI                    1
+                        STW                     0xea
+                        LDW                     0xe8
+                        STW                     intSrcA
+                        LDW                     0xea
+                        IntMin                  
+                        STW                     _endY                               ; endY = min(browserY+14, browserIdx-1)
+
+                        LDW                     _startY
+                        STW                     _i
+                        LDW                     _endY
+                        STW                     0xd8
+                        LDI                     1
+                        STW                     0xda                                ; for i=startY to endY
+
+_next_0x04c6            LDW                     _i
+                        STW                     memIndex0
+                        LDI                     0
+                        STW                     memIndex1
+                        LDWI                    0x0638
+                        CALL                    convert8Arr2dAddr
+                        ADDI                    1
+                        STW                     _strAddr                            ; strAddr = addr(browser(i, 0)) + 1
+
+                        LDW                     _strAddr
+                        PEEK                    
+                        STW                     _strLen                             ; strLen = peek(strAddr)
+
+                        LDW                     _strAddr
+                        SUBI                    1
+                        PEEK                    
+                        STW                     _isFile                             ; isFile = peek(strAddr - 1)
+
+                        LDW                     _i
+                        SUBW                    _browserY
+                        XORW                    _cursorY
+                        BNE                     _else_0x0523                        ; if (i-browserY) &&= cursorY
+
+                        LDW                     _isFile
+                        XORI                    1
+                        BNE                     _else_0x0518                        ; if isFile &&= 1
+
+                        LDWI                    8255
+                        STW                     fgbgColour
+                        BRA                     _endif_0x051d                       ; set FGBG_COLOUR, &h203F
+
+_else_0x0518            LDWI                    8234
+                        STW                     fgbgColour                          ; set FGBG_COLOUR, &h202A
+
+_endif_0x051d           LDW                     _strAddr
+                        STW                     _runStrAddr
+                        BRA                     _endif_0x053a                       ; runStrAddr = strAddr
+
+_else_0x0523            LDW                     _isFile
+                        XORI                    1
+                        BNE                     _else_0x0535                        ; if isFile &&= 1
+
+                        LDWI                    16160
+                        STW                     fgbgColour
+                        BRA                     _endif_0x053a                       ; set FGBG_COLOUR, &h3F20
+
+_else_0x0535            LDWI                    10784
+                        STW                     fgbgColour                          ; set FGBG_COLOUR, &h2A20
+
+_endif_0x053a           LDI                     2
+                        ST                      cursorXY
+                        LDW                     _i
+                        SUBW                    _browserY
+                        LSLW                    
+                        LSLW                    
+                        LSLW                    
+                        ST                      cursorXY + 1
+                        AtTextCursor                                                ; at 2, (i-browserY) LSL 3
+
+                        LDW                     _strAddr
+                        STLW                    0xFE
+                        LDWI                    _page_0x0500
+                        CALL                    giga_vAC
+_page_0x0500            LDLW                    0xFE
+                        PrintAcString           
+                        LDI                     12
+                        SUBW                    _strLen
+                        PrintSpc                                                    ; print string$(strAddr);spc$(12 - strLen);
+
+                        ForNextFarVarAdd        _i _next_0x04c6 0xd8 0xda           ; next i
+
+                        Return                                                      ; return
+
+_updateBrowser          PUSH                    
+                        LDW                     _browserIdx
+                        SUBI                    15
+                        STW                     0xe8
+                        LDW                     _browserY
+                        STW                     intSrcA
+                        LDW                     0xe8
+                        IntMin                  
+                        STW                     intSrcA
+                        LDI                     0
+                        IntMax                  
+                        STW                     _startY                             ; startY = max(min(browserY, browserIdx-15), 0)
+
+                        LDW                     _startY
+                        ADDW                    _cursOldY
+                        STW                     _prevY                              ; prevY = startY + cursOldY
+
+                        LDW                     _prevY
+                        STW                     memIndex0
+                        LDI                     0
+                        STW                     memIndex1
+                        LDWI                    0x0638
+                        CALL                    convert8Arr2dAddr
+                        ADDI                    1
+                        STW                     _prevAddr                           ; prevAddr = addr(browser(prevY, 0)) + 1
+
+                        LDW                     _prevAddr
+                        PEEK                    
+                        STW                     _prevLen                            ; prevLen = peek(prevAddr)
+
+                        LDW                     _prevAddr
+                        SUBI                    1
+                        PEEK                    
+                        STW                     _isFile                             ; isFile = peek(prevAddr - 1)
+
+                        LDW                     _isFile
+                        XORI                    1
+                        BNE                     _else_0x05ee                        ; if isFile &&= 1
+
+                        LDWI                    16160
+                        STW                     fgbgColour
+                        BRA                     _endif_0x05f3                       ; set FGBG_COLOUR, &h3F20
+
+_else_0x05ee            LDWI                    10784
+                        STW                     fgbgColour                          ; set FGBG_COLOUR, &h2A20
+
+_endif_0x05f3           LDI                     2
+                        ST                      cursorXY
+                        LDW                     _prevY
+                        SUBW                    _startY
+                        LSLW                    
+                        LSLW                    
+                        LSLW                    
+                        ST                      cursorXY + 1
+                        AtTextCursor                                                ; at 2, (prevY - startY) LSL 3
+
+                        LDW                     _prevAddr
+                        PrintAcString           
+                        LDI                     12
+                        SUBW                    _prevLen
+                        PrintSpc                                                    ; print string$(prevAddr);spc$(12 - prevLen);
+
+                        LDW                     _cursorY
+                        STW                     _cursOldY                           ; cursOldY = cursorY
+
+                        LDW                     _startY
+                        ADDW                    _cursorY
+                        STW                     _currY                              ; currY = startY + cursorY
+
+                        LDW                     _currY
+                        STW                     memIndex0
+                        LDI                     0
+                        STW                     memIndex1
+                        LDWI                    0x0638
+                        CALL                    convert8Arr2dAddr
+                        ADDI                    1
+                        STW                     _currAddr                           ; currAddr = addr(browser(currY, 0)) + 1
+
+                        LDW                     _currAddr
+                        PEEK                    
+                        STW                     _currLen                            ; currLen = peek(currAddr)
+
+                        LDW                     _currAddr
+                        SUBI                    1
+                        PEEK                    
+                        STW                     _isFile                             ; isFile = peek(currAddr - 1)
+
+                        LDW                     _isFile
+                        XORI                    1
+                        BNE                     _else_0x0672                        ; if isFile &&= 1
+
+                        LDWI                    8255
+                        STW                     fgbgColour
+                        BRA                     _endif_0x0677                       ; set FGBG_COLOUR, &h203F
+
+_else_0x0672            LDWI                    8234
+                        STW                     fgbgColour                          ; set FGBG_COLOUR, &h202A
+
+_endif_0x0677           LDI                     2
+                        ST                      cursorXY
+                        LDW                     _currY
+                        SUBW                    _startY
+                        LSLW                    
+                        LSLW                    
+                        LSLW                    
+                        ST                      cursorXY + 1
+                        AtTextCursor                                                ; at 2, (currY - startY) LSL 3
+
+                        LDW                     _currAddr
+                        PrintAcString           
+                        STLW                    0xFE
+                        LDWI                    _page_0x0600
+                        CALL                    giga_vAC
+_page_0x0600            LDLW                    0xFE
+                        LDI                     12
+                        SUBW                    _currLen
+                        PrintSpc                                                    ; print string$(currAddr);spc$(12 - currLen);
+
+                        LDW                     _currAddr
+                        STW                     _runStrAddr                         ; runStrAddr = currAddr
+
+                        Return                                                      ; return
+
+_getRomType             PUSH                    
+                        LD                      giga_romType
+                        ANDI                    0xFC
+                        STW                     _romType                            ; romType = get("ROM_TYPE")
+
+                        LDWI                    745
+                        STW                     _NextByteIn_32                      ; NextByteIn_32 = &h02E9
+
+                        LDW                     _romType
+                        XORI                    32
+                        BNE                     _else_0x06cd
+                        LDWI                    2993
+                        STW                     _NextByteIn_32                      ; if romType &&= &h20 then NextByteIn_32 = &h0BB1
+
+_else_0x06cd            LDW                     _romType
+                        XORI                    40
+                        STLW                    0xFE
+                        LDWI                    _page_0x08a0
+                        CALL                    giga_vAC
+_page_0x08a0            LDLW                    0xFE
+                        BNE                     _else_0x06dd
+                        LDWI                    3039
+                        STW                     _NextByteIn_32                      ; if romType &&= &h28 then NextByteIn_32 = &h0BDF
+
+_else_0x06dd            LDW                     _romType
+                        XORI                    56
+                        BNE                     _else_0x06ed
+                        LDWI                    -30159
+                        STW                     _NextByteIn_32                      ; if romType &&= &h38 then NextByteIn_32 = &h8A31
+
+_else_0x06ed            LDW                     _romType
+                        XORI                    64
+                        BNE                     _else_0x06fd
+                        LDWI                    22791
+                        STW                     _NextByteIn_32                      ; if romType &&= &h40 then NextByteIn_32 = &h5907
+
+_else_0x06fd            LDW                     _romType
+                        XORI                    240
+                        BNE                     _else_0x070d
+                        LDWI                    4864
+                        STW                     _NextByteIn_32                      ; if romType &&= &hf0 then NextByteIn_32 = &h1300
+
+_else_0x070d            LDW                     _romType
+                        XORI                    248
+                        BNE                     _endif_0x0738                       ; if romType &&= &hf8
+
+                        LD                      _execAddr + 1
+                        XORI                    90
+                        BNE                     _endif_0x0728                       ; if execAddr.hi &&= &h5A
+
+                        LDWI                    22791
+                        STW                     _NextByteIn_32                      ; NextByteIn_32 = &h5907
+
+_endif_0x0728           LD                      _execAddr + 1
+                        XORI                    92
+                        BNE                     _endif_0x0738                       ; if execAddr.hi &&= &h5C
+
+                        LDWI                    23303
+                        STW                     _NextByteIn_32                      ; NextByteIn_32 = &h5B07
+
+_endif_0x0738           LDW                     _romType
+                        XORI                    128
+                        JumpEQ                  _endif_0x074d 28                    ; if romType &= &h80
+
+                        STLW                    0xFE
+                        LDWI                    _page_0x09a0
+                        CALL                    giga_vAC
+_page_0x09a0            LDLW                    0xFE
+                        LDWI                    SYS_LoaderNextByteIn_32             ; LDWI    SYS_LoaderNextByteIn_32
+                        STW                     _NextByteIn_32                      ; STW     _NextByteIn_32
+
+_endif_0x074d           Return                                                      ; return
+
+_openSDCard             PUSH                    
+                        LDWI                    31983
+                        STW                     register0
+                        LDI                     3
+                        POKE                    register0                           ; poke @commsCmd, CmdSDOpen
+
+                        LDWI                    0x7aa0
+                        PEEK                    
+                        STW                     _len                                ; len = peek(@pathName$)
+
+                        LDI                     1
+                        ADDW                    _len
+                        ADDI                    1
+                        STW                     _commsSize                          ; commsSize = 1 + len + 1
+
+                        LDW                     _len
+                        JumpGT                  _else_0x07b8 29                     ; if len &> 0
+
+                        LDI                     1
+                        STW                     _i
+                        LDW                     _len
+                        ADDI                    1
+                        STW                     0xd8
+                        LDI                     1
+                        STW                     0xda                                ; for i=1 &to len + 1
+
+_next_0x0791            LDWI                    31983
+                        ADDW                    _i
+                        STW                     0xe8
+                        LDWI                    31392
+                        ADDW                    _i
+                        PEEK                    
+                        POKE                    0xe8                                ; poke @commsCmd + i, peek(@pathName$ + i)
+
+                        ForNextVarAdd           _i _next_0x0791 0xd8 0xda
+                        LDWI                    _endif_0x07c1
+                        CALL                    giga_vAC                            ; next i
+
+                        STLW                    0xFE
+                        LDWI                    _page_0x0aa0
+                        CALL                    giga_vAC
+_page_0x0aa0            LDLW                    0xFE
+_else_0x07b8            LDWI                    31984
+                        STW                     register0
+                        LDI                     0
+                        POKE                    register0                           ; poke @commsCmd + 1, 0
+
+_endif_0x07c1           LDWI                    _sendCommsCmd
+                        CALL                    giga_vAC                            ; gosub sendCommsCmd
+
+                        LDWI                    _waitSDCard
+                        CALL                    giga_vAC                            ; gosub waitSDCard
+
+                        LDWI                    0x7cfe
+                        STW                     strSrcAddr
+                        LDWI                    0x7aa0
+                        StringCopy                                                  ; pathName$ = ""
+
+                        Return                                                      ; return
+
+_execApp                PUSH                    
+                        LDWI                    _initSDComms
+                        CALL                    giga_vAC                            ; gosub initSDComms
+
+                        LDWI                    31983
+                        STW                     register0
+                        LDI                     2
+                        POKE                    register0                           ; poke @commsCmd, CmdSDExec
+
+                        LDW                     _runStrAddr
+                        STW                     strSrcAddr
+                        LDWI                    0x7da0
+                        StringCopy                                                  ; runName$ = string$(runStrAddr)
+
+                        LDWI                    0x7da0
+                        PEEK                    
+                        STW                     _len                                ; len = peek(@runName$)
+
+                        LDI                     1
+                        STW                     _i
+                        LDW                     _len
+                        ADDI                    1
+                        STW                     0xd8
+                        LDI                     1
+                        STW                     0xda                                ; for i=1 &to len + 1
+
+                        STLW                    0xFE
+                        LDWI                    _page_0x0ba0
+                        CALL                    giga_vAC
+_page_0x0ba0            LDLW                    0xFE
+_next_0x0817            LDWI                    31983
+                        ADDW                    _i
+                        STW                     0xe8
+                        LDWI                    32160
+                        ADDW                    _i
+                        PEEK                    
+                        POKE                    0xe8                                ; poke @commsCmd + i, peek(@runName$ + i)
+
+                        ForNextVarAdd           _i _next_0x0817 0xd8 0xda           ; next i
+
+                        LDWI                    3872
+                        STW                     fgbgColour
+                        ResetVideoTable         
+                        ClearVertBlinds                                             ; set FGBG_COLOUR, &h0F20 : cls INIT : cls
+
+                        LDI                     1
+                        ADDW                    _len
+                        ADDI                    1
+                        STW                     _commsSize                          ; commsSize = 1 + len + 1
+
+                        LDWI                    _sendCommsCmd
+                        CALL                    giga_vAC                            ; gosub sendCommsCmd
+
+                        LDW                     _execAddr
+                        STW                     giga_sysArg0
+                        LDWI                    0x0200
+                        RomExec                                                     ; exec execAddr
+
+                        Return                                                      ; return
+
+_handleInput            PUSH                    
+                        LD                      giga_serialRaw
+                        STW                     _k                                  ; k = get("SERIAL_RAW")
+
+                        LDW                     _k
+                        XORW                    _kk
+                        JumpNE                  _endif_0x0897 31                    ; if k &<> kk
+
+                        STLW                    0xFE
+                        LDWI                    _page_0x0ca0
+                        CALL                    giga_vAC
+_page_0x0ca0            LDLW                    0xFE
+                        LDI                     0
+                        STW                     _f                                  ; f = 0
+
+                        LDW                     _k
+                        STW                     _kk                                 ; kk = k
+
+                        LDW                     _k
+                        STW                     numericLabel
+                        LDI                     0
+                        STW                     defaultLabel
+                        GosubNumeric                                                ; gosub k
+
+_endif_0x0897           LDW                     _f
+                        SUBI                    20
+                        BLE                     _endif_0x08c9                       ; if f &&> 20
+
+                        LDW                     _f
+                        STW                     mathShift
+                        Lsr1bit                 
+                        ANDI                    0x01
+                        BEQ                     _endif_0x08c9                       ; if &((f LSR 1) AND 1)
+
+                        LDW                     _k
+                        STW                     numericLabel
+                        LDI                     0
+                        STW                     defaultLabel
+                        GosubNumeric                                                ; gosub k
+
+_endif_0x08c9           Return                                                      ; return
+
+_127                    PUSH                    
+                        LDWI                    _execOrList
+                        CALL                    giga_vAC                            ; gosub execOrList
+
+                        Return                                                      ; return
+
+_10                     PUSH                    
+                        LDWI                    _execOrList
+                        CALL                    giga_vAC                            ; gosub execOrList
+
+                        Return                                                      ; return
+
+_254                    PUSH                    
+                        LDW                     _browserY
+                        ADDI                    15
+                        STW                     _browserY                           ; browserY = browserY + 15
+
+                        LDW                     _browserIdx
+                        SUBI                    15
+                        STW                     0xe8
+                        STLW                    0xFE
+                        LDWI                    _page_0x0da0
+                        CALL                    giga_vAC
+_page_0x0da0            LDLW                    0xFE
+                        LDW                     _browserY
+                        STW                     intSrcA
+                        LDW                     0xe8
+                        IntMin                  
+                        STW                     intSrcA
+                        LDI                     0
+                        IntMax                  
+                        STW                     _browserY                           ; browserY = max(min(browserY, browserIdx-15), 0)
+
+                        LDWI                    _printBrowser
+                        CALL                    giga_vAC                            ; gosub printBrowser
+
+                        Return                                                      ; return
+
+_253                    PUSH                    
+                        LDW                     _browserY
+                        SUBI                    15
+                        STW                     _browserY                           ; browserY = browserY - 15
+
+                        LDW                     _browserY
+                        STW                     intSrcA
+                        LDI                     0
+                        IntMax                  
+                        STW                     _browserY                           ; browserY = max(browserY, 0)
+
+                        LDWI                    _printBrowser
+                        CALL                    giga_vAC                            ; gosub printBrowser
+
+                        Return                                                      ; return
+
+_251                    PUSH                    
+                        INC                     _cursorY                            ; inc cursorY.lo
+
+                        LDW                     _browserIdx
+                        SUBI                    1
+                        STW                     intSrcA
+                        LDI                     14
+                        IntMin                  
+                        STW                     0xea
+                        LDW                     _cursorY
+                        SUBW                    0xea
+                        STLW                    0xFE
+                        LDWI                    _page_0x0ea0
+                        CALL                    giga_vAC
+_page_0x0ea0            LDLW                    0xFE
+                        BLE                     _else_0x0959
+                        LDI                     0
+                        STW                     _cursorY                            ; if cursorY &&> min(browserIdx - 1, 14) then cursorY = 0
+
+_else_0x0959            LDWI                    _updateBrowser
+                        CALL                    giga_vAC                            ; gosub updateBrowser
+
+                        Return                                                      ; return
+
+_247                    PUSH                    
+                        LDW                     _cursorY
+                        SUBI                    1
+                        STW                     _cursorY                            ; dec cursorY
+
+                        LDW                     _cursorY
+                        BGE                     _else_0x0989
+                        LDW                     _browserIdx
+                        SUBI                    1
+                        STW                     intSrcA
+                        LDI                     14
+                        IntMin                  
+                        STW                     _cursorY                            ; if cursorY &&< 0 then cursorY = min(browserIdx - 1, 14)
+
+_else_0x0989            LDWI                    _updateBrowser
+                        CALL                    giga_vAC                            ; gosub updateBrowser
+
+                        Return                                                      ; return
+
+_execOrList             PUSH                    
+                        LDW                     _runStrAddr
+                        SUBI                    1
+                        PEEK                    
+                        STW                     _entry                              ; entry = peek(runStrAddr - 1)
+
+                        LDW                     _entry
+                        XORI                    2
+                        BNE                     _endif_0x09bf                       ; if entry &&= EntryDir
+
+                        LDI                     1
+                        STW                     _execRtn                            ; execRtn = 1
+
+                        LDW                     _runStrAddr
+                        STW                     strSrcAddr
+                        LDWI                    0x7aa0
+                        StringCopy                                                  ; pathName$ = string$(runStrAddr)
+
+_endif_0x09bf           LDW                     _entry
+                        XORI                    1
+                        STLW                    0xFE
+                        LDWI                    _page_0x0fa0
+                        CALL                    giga_vAC
+_page_0x0fa0            LDLW                    0xFE
+                        BNE                     _endif_0x09d3                       ; if entry &&= EntryFile
+
+                        LDI                     0
+                        STW                     _execRtn                            ; execRtn = 0
+
+                        LDWI                    _execApp
+                        CALL                    giga_vAC                            ; gosub execApp
+
+_endif_0x09d3           LDW                     _entry
+                        XORI                    3
+                        BNE                     _endif_0x09f1                       ; if entry &&= EntryError
+
+                        LDI                     2
+                        STW                     _execRtn                            ; execRtn = 2
+
+                        LDWI                    0x7cfe
+                        STW                     strSrcAddr
+                        LDWI                    0x7aa0
+                        StringCopy                                                  ; pathName$ = ""
+
+_endif_0x09f1           Return                                                      ; return
+
+_waitSDCard             PUSH                                                        ; asm
+
+                        LDW                     _NextByteIn_32                      ; LDW     _NextByteIn_32
+                        STW                     giga_sysFn                          ; STW     giga_sysFn
+
+_waitSD                 LDI                     _waitRtn                            ; LDI     _waitRtn
+                        STW                     giga_sysArg0                        ; STW     giga_sysArg0
+
+                        LDI                     207                                 ; LDI     207
+                        ST                      giga_sysArg3                        ; ST      giga_sysArg3
+                        SYS                     32                                  ; SYS     32
+
+                        LD                      _waitRtn                            ; LD      _waitRtn
+                        BNE                     _waitSD                             ; BNE     _waitSD
+
+                        LDI                     2
+                        STW                     waitVBlankNum
+                        WaitVBlanks                                                 ; wait 2
+
+                        Return                                                      ; return
+
+_initSDComms            PUSH                    
+                        LDI                     1
+                        STW                     _commsSize                          ; commsSize = 1
+
+                        LDWI                    31983
+                        STW                     register0
+                        LDI                     6
+                        POKE                    register0                           ; poke @commsCmd, CmdSDInit
+
+                        STLW                    0xFE
+                        LDWI                    _page_0x10a0
+                        CALL                    giga_vAC
+_page_0x10a0            LDLW                    0xFE
+                        LDWI                    _sendCommsCmd
+                        CALL                    giga_vAC                            ; gosub sendCommsCmd
+
+                        WaitVBlank                                                  ; wait
+
+                        Return                                                      ; return
+
+_listSDCard             PUSH                    
+                        LDI                     1
+                        STW                     _commsSize                          ; commsSize = 1
+
+                        LDWI                    31983
+                        STW                     register0
+                        LDI                     1
+                        POKE                    register0                           ; poke @commsCmd, CmdSDList
+
+                        LDWI                    _sendCommsCmd
+                        CALL                    giga_vAC                            ; gosub sendCommsCmd
+
+                        Return                                                      ; return
+
+_closeSDCard            PUSH                    
+                        LDI                     1
+                        STW                     _commsSize                          ; commsSize = 1
+
+                        LDWI                    31983
+                        STW                     register0
+                        LDI                     4
+                        POKE                    register0                           ; poke @commsCmd, CmdSDClose
+
+                        LDWI                    _sendCommsCmd
+                        CALL                    giga_vAC                            ; gosub sendCommsCmd
+
+                        Return                                                      ; return
+
+_beginSDCard            PUSH                    
+                        LDI                     1
+                        STW                     _commsSize                          ; commsSize = 1
+
+                        LDWI                    31983
+                        STW                     register0
+                        LDI                     5
+                        POKE                    register0                           ; poke @commsCmd, CmdSDBegin
+
+                        LDWI                    _sendCommsCmd
+                        CALL                    giga_vAC                            ; gosub sendCommsCmd
+
+                        LDWI                    _waitSDCard
+                        CALL                    giga_vAC                            ; gosub waitSDCard
+
+                        Return                                                      ; return
+
+_initialise             PUSH                    
+                        STLW                    0xFE
+                        LDWI                    _page_0x11a0
+                        CALL                    giga_vAC
+_page_0x11a0            LDLW                    0xFE
+                        ResetVars               0x34                                ; clear vars, @commsSize
+
+                        LDWI                    _getRomType
+                        CALL                    giga_vAC                            ; gosub getRomType
+
+                        LDWI                    31983
+                        STW                     _commsAddr                          ; commsAddr = @commsCmd
+
+                        LDI                     2
+                        STW                     graphicsMode
+                        ScanlineMode            
+                        LDWI                    16160
+                        STW                     fgbgColour
+                        ResetVideoTable         
+                        ClearVertBlinds                                             ; mode 2 : set FGBG_COLOUR, &h3F20 : cls INIT : cls
+
+                        Return                                                      ; return
+
+                        HALT                                                        ; END
+
+
+
+;****************************************************************************************************************************************
+;****************************************************************************************************************************************
+;* Internal runtime, DO NOT MODIFY PAST THIS POINT, modifications must be made in the original include files                            *
+;****************************************************************************************************************************************
+;****************************************************************************************************************************************
+
+romCheck                EQU     0x64a3
+romExec                 EQU     0x61a2
+romRead                 EQU     0x60d8
+convert8Arr2d           EQU     0x60f5
+resetVars               EQU     0x63a0
+integerMin              EQU     0x61d1
+integerMax              EQU     0x61c4
+lsr1bit                 EQU     0x60eb
+gosubNumericLabel       EQU     0x64cd
+scanlineMode            EQU     0x60e1
+waitVBlank              EQU     0x61de
+waitVBlanks             EQU     0x62a3
+resetVideoFlags         EQU     0x61ac
+resetVideoTable         EQU     0x65a3
+initClearFuncs          EQU     0x61ee
+clearVertBlinds         EQU     0x65c9
+clearCursorRow          EQU     0x63cf
+printInit               EQU     0x62b6
+printText               EQU     0x62cc
+printChar               EQU     0x68a2
+printClip               EQU     0x62e5
+printSpc                EQU     0x63b0
+atTextCursor            EQU     0x66a1
+newLineScroll           EQU     0x67a4
+stringCopy              EQU     0x61b7
+stringCmp               EQU     0x66c5
+convertEqOpAddr         EQU     0x00b0
+convertNeOpAddr         EQU     0x00b2
+convertLeOpAddr         EQU     0x00b4
+convertGeOpAddr         EQU     0x00b6
+convertLtOpAddr         EQU     0x00b8
+convertGtOpAddr         EQU     0x00ba
+convert8Arr2dAddr       EQU     0x00bc
+convert8Arr3dAddr       EQU     0x00be
+convert16Arr2dAddr      EQU     0x00c0
+convert16Arr3dAddr      EQU     0x00c2
+realTimeStubAddr        EQU     0x00d4
+
+
+; do *NOT* use register4 to register7 during time slicing
+realTimeAddr        EQU     register0
+realTimeProc0       EQU     register1
+realTimeProc1       EQU     register2
+realTimeProc2       EQU     register3
+numericLabel        EQU     register0
+defaultLabel        EQU     register1
+lutLabs             EQU     register2
+lutAddrs            EQU     register3
+lutIndex            EQU     register8
+romUser             EQU     register0                       ; user requested romType
+romType             EQU     register1                       ; actual romType
+romExec_vLR         EQU     register0
+romReadAddr         EQU     register0
+romErrAddr          EQU     0x7E                            ; loader happy constant address
+vramErrAddr         EQU     0x0101
+
+romErrAddr          DW      vramErrAddr
+
+
+; can't use any new instructions in romCheck
+romCheck            LD      giga_romType
+                    ANDI    0xFC
+                    STW     romType
+                    SUBW    romUser
+                    BEQ     romC_return                     ; romType = romUser, so ok
+                    LDW     romUser
+                    SUBI    0x80                            ; experimental ROM's must match exactly
+                    BNE     romC_check
+                    LDW     romType
+                    SUBW    romUser
+                    BEQ     romC_return                     ; romType = romUser, so ok
+                    BRA     romC_fail
+                    
+romC_check          LDW     romType                         ; non experimental ROM
+                    SUBW    romUser
+                    BGT     romC_return                     ; romType > romUser, so ok
+                    
+                    ; gprintf's are only shown in the emulator and always attached to the next instruction
+                    gprintf("Wrong ROM version, you asked for 0x%2X, you have 0x%2X", *romUser, *romType)
+romC_fail           LSLW                                    ; dummy instruction that gprintf can attach to
+
+romC_f0             LD      giga_rand0
+                    POKE    romErrAddr                      ; random horizontal scroll
+                    BRA     romC_f0
+                    
+romC_return         RET
+
+
+romExec             LDW     romExec_vLR
+                    STW     giga_vLR
+                    LDI     SYS_Exec_88                     ; address < 0x0100 so use LDI
+                    STW     giga_sysFn
+                    SYS     88                              ; doesn't return from here!
+
+
+romRead             LDI     SYS_ReadRomDir_v5_80            ; address < 0x0100 so use LDI
+                    STW     giga_sysFn
+                    LDW     romReadAddr
+                    SYS     80
+                    RET
+
+
+swpSrcAddr          EQU     register0
+swpDstAddr          EQU     register1
+swpTmpData          EQU     register2
+swapCount           EQU     register3
+cpySrcAddr          EQU     register0
+cpyDstAddr          EQU     register1
+cpyCount            EQU     register2
+cpyLoaderLut        EQU     register3
+regsWork            EQU     giga_sysArg4                        ; use SYS arg registers to stop conflicts with time slicing/vblanks
+regsAddr            EQU     giga_sysArg6                        ; use SYS arg registers to stop conflicts with time slicing/vblanks
+
+
+convert8Arr2d       ADDW    memIndex0
+                    ADDW    memIndex0
+                    DEEK
+                    ADDW    memIndex1
+                    STW     memAddr
+                    RET
+
+
+; do *NOT* use register4 to register7 during time slicing
+xreset              EQU     register0
+xcount              EQU     register1
+ycount              EQU     register2
+treset              EQU     register3
+breset              EQU     register8
+top                 EQU     register9
+bot                 EQU     register10
+vramAddr            EQU     register11
+evenAddr            EQU     register12
+clsAddress          EQU     register13
+clsLines            EQU     register14
+varAddress          EQU     register13
+clrAddress          EQU     register13
+clrLines            EQU     register14
+clrWidth            EQU     register15
+ramAddr0            EQU     register14
+ramAddr1            EQU     register15
+
+
+resetVars           LDI     0
+                    DOKE    varAddress
+                    INC     varAddress
+                    INC     varAddress
+                    LD      varAddress
+                    XORI    giga_One                        ; end of user vars
+                    BNE     resetVars
+                    RET
+
+
+; do *NOT* use register4 to register7 during time slicing
+intSrcA             EQU     register0
+intSrcB             EQU     register1
+intSrcX             EQU     register2
+intSwap             EQU     register3
+intSrcAddr          EQU     register8
+intDigit            EQU     register9
+intResult           EQU     register10
+intNegative         EQU     register11
+bcdLength           EQU     register8
+bcdSrcAddr          EQU     register9
+bcdDstAddr          EQU     register10
+bcdSrcData          EQU     register11
+bcdDstData          EQU     register11          ; alias to make code less confusing
+bcdCarry            EQU     register12
+bcdBorrow           EQU     register12          ; alias to make code less confusing
+bcdValue            EQU     register0
+bcdDigit            EQU     register1
+bcdMult             EQU     register2
+
+
+integerMin          LDW     intSrcA
+                    SUBW    intSrcB
+                    BLE     integerMi_A
+                    LDW     intSrcB
+                    RET
+
+integerMi_A         LDW     intSrcA
+                    RET
+
+
+integerMax          LDW     intSrcA
+                    SUBW    intSrcB
+                    BGE     integerMa_A
+                    LDW     intSrcB
+                    RET
+
+integerMa_A         LDW     intSrcA
+                    RET
+
+
+; do *NOT* use register4 to register7 during time slicing
+mathX               EQU     register8
+mathY               EQU     register9
+mathSum             EQU     register12
+mathRem             EQU     register12
+mathMask            EQU     register13
+mathSign            EQU     register14
+mathQuot            EQU     register15
+mathShift           EQU     register15
+mathBase            EQU     register10
+mathPow             EQU     register11
+mathResult          EQU     register14
+
+
+lsr1bit             LDWI    SYS_LSRW1_48
+                    STW     giga_sysFn
+                    LDW     mathShift
+                    SYS     48
+                    RET
+
+
+                    ; find numeric label and call it, (it had better return or welcome to lala land)
+gosubNumericLabel   PUSH
+                    LDWI    _lut_numericLabs
+                    STW     lutLabs
+                    STW     lutIndex
+                    LDWI    _lut_numericAddrs
+                    STW     lutAddrs
+                    
+gosubNL_loop        LDW     lutIndex
+                    DEEK
+                    BNE     gosubNL_cont                    ; check for 0
+                    LDW     defaultLabel
+                    BEQ     gosubNL_exit
+                    CALL    defaultLabel                    ; fetch default address and call
+                    
+gosubNL_exit        POP
+                    RET
+                    
+gosubNL_cont        SUBW    numericLabel
+                    BEQ     gosubNL_found
+                    INC     lutIndex
+                    INC     lutIndex
+                    BRA     gosubNL_loop                    ; loop through lut until found or 0
+                    
+gosubNL_found       LDW     lutIndex
+                    SUBW    lutLabs
+                    ADDW    lutAddrs
+                    DEEK
+                    CALL    giga_vAC                        ; fetch label address and call
+                    POP
+                    RET
+
+
+; do *NOT* use register4 to register7 during time slicing
+graphicsMode        EQU     register0
+waitVBlankNum       EQU     register0
+
+drawHLine_x1        EQU     register0
+drawHLine_y1        EQU     register1
+drawHLine_x2        EQU     register2
+
+drawVLine_x1        EQU     register0
+drawVLine_y1        EQU     register1
+drawVLine_y2        EQU     register2
+drawVLine_y8        EQU     register3
+
+drawLine_x1         EQU     register0
+drawLine_y1         EQU     register1
+drawLine_x2         EQU     register2
+drawLine_y2         EQU     register3
+drawLine_xy1        EQU     register0
+drawLine_xy2        EQU     register1
+drawLine_dxy1       EQU     register2
+drawLine_dxy2       EQU     register3
+drawLine_dx1        EQU     register8
+drawLine_dy1        EQU     register9
+drawLine_dx2        EQU     register10
+drawLine_dy2        EQU     register11
+drawLine_sx         EQU     register12
+drawLine_sy         EQU     register13
+drawLine_h          EQU     register14
+drawLine_num        EQU     register15
+drawLine_count      EQU     register14
+drawLine_tmp        EQU     register15
+drawLine_dx         EQU     register2
+drawLine_dy         EQU     register3
+drawLine_u          EQU     register8
+drawLine_v          EQU     register9
+drawLine_addr       EQU     register10
+drawLine_ddx        EQU     register11
+drawLine_cnt        EQU     register12
+drawLine_swp        EQU     register13
+
+drawPixel_xy        EQU     giga_sysArg6
+readPixel_xy        EQU     giga_sysArg6
+
+drawCircle_cx       EQU     register0
+drawCircle_cy       EQU     register1
+drawCircle_r        EQU     register2
+drawCircle_a        EQU     register3
+drawCircle_d        EQU     register8
+drawCircle_x        EQU     register9
+drawCircle_y        EQU     register10
+drawCircle_ch0      EQU     register11
+drawCircle_ch1      EQU     register12
+drawCircle_ch2      EQU     register13
+drawCircle_ch3      EQU     register14
+
+drawCircleF_x1      EQU     register0
+drawCircleF_y1      EQU     register1
+drawCircleF_x2      EQU     register2
+drawCircleF_cx      EQU     register15
+drawCircleF_cy      EQU     register10
+drawCircleF_r       EQU     register11
+drawCircleF_v       EQU     register8
+drawCircleF_w       EQU     register9
+
+drawRect_x1         EQU     register3
+drawRect_y1         EQU     register10
+drawRect_x2         EQU     register11
+drawRect_y2         EQU     register15
+
+drawRectF_x1        EQU     register0
+drawRectF_y1        EQU     register1
+drawRectF_x2        EQU     register2
+drawRectF_y2        EQU     register3
+
+drawPoly_mode       EQU     register14
+drawPoly_addr       EQU     giga_sysArg6                        ; TODO: find a better spot for this
+
+    
+scanlineMode        LDWI    SYS_SetMode_v2_80
+                    STW     giga_sysFn
+                    LDW     graphicsMode
+                    SYS     80
+                    RET
+
+
+waitVBlank          LD      giga_frameCount
+                    XORW    frameCountPrev
+                    BEQ     waitVBlank
+                    LD      giga_frameCount
+                    STW     frameCountPrev
+%if TIME_SLICING
+                    PUSH
+                    CALL    realTimeStubAddr
+                    POP
+%endif
+                    RET
+
+
+waitVBlanks         PUSH
+
+waitVB_loop         LDW     waitVBlankNum
+                    SUBI    0x01
+                    STW     waitVBlankNum
+                    BGE     waitVB_vblank
+                    POP
+                    RET
+    
+waitVB_vblank       LDWI    waitVBlank
+                    CALL    giga_vAC
+                    BRA     waitVB_loop
+
+
+resetVideoFlags     LDI     giga_CursorX                    ; cursor x start
+                    STW     cursorXY
+                    LD      miscFlags
+                    ANDI    MISC_ON_BOTTOM_ROW_MSK
+                    ST      miscFlags                       ; reset on bottom row flag
+                    RET
+
+
+                    ; resets video table pointers
+resetVideoTable     PUSH
+                    LDI     8
+                    STW     vramAddr
+                    LDWI    giga_videoTable
+                    STW     evenAddr
+
+%if TIME_SLICING
+resetVT_loop        CALL    realTimeStubAddr
+                    LDW     vramAddr
+%else
+resetVT_loop        LDW     vramAddr
+%endif
+                    DOKE    evenAddr
+                    INC     evenAddr
+                    INC     evenAddr
+                    INC     vramAddr
+                    LD      vramAddr
+                    SUBI    giga_yres + 8
+                    BLT     resetVT_loop
+                    
+                    LDWI    resetVideoFlags
+                    CALL    giga_vAC
+                    POP
+                    RET
+
+
+
+initClearFuncs      PUSH
+                    LDWI    resetVideoFlags
+                    CALL    giga_vAC
+                    LDWI    SYS_SetMemory_v2_54             ; setup fill memory SYS routine
+                    STW     giga_sysFn
+                    LD      fgbgColour
+                    ST      giga_sysArg1                    ; fill value
+                    POP
+                    RET
+
+
+                    ; clears the viewable screen using a vertical blinds effect
+clearVertBlinds     PUSH
+                    LDWI    initClearFuncs
+                    CALL    giga_vAC
+                    LDI     giga_vram >> 8
+                    STW     top  
+                    
+clearVB_loopy       LDI     giga_xres
+                    ST      giga_sysArg0
+                    LDI     0
+                    ST      giga_sysArg2                    ; low start address
+                    LD      top
+                    ST      giga_sysArg3                    ; top line
+                    SYS     54                              ; fill memory
+    
+                    LDI     giga_xres
+                    ST      giga_sysArg0
+                    LDI     0
+                    ST      giga_sysArg2                    ; low start address
+                    LDWI    giga_yres - 1 + 16
+                    SUBW    top
+                    ST      giga_sysArg3                    ; bottom line
+                    SYS     54                              ; fill memory
+                    INC     top                             ; next top line
+%if TIME_SLICING
+                    CALL    realTimeStubAddr
+%endif
+                    LD      top
+                    SUBI    giga_yres / 2 + 8
+                    BLT     clearVB_loopy
+                    POP
+                    RET
+
+
+
+; do *NOT* use register4 to register7 during time slicing
+textStr             EQU     register0
+textNum             EQU     register0
+textBak             EQU     register0
+textHex             EQU     register1
+textSpc             EQU     register1
+textLen             EQU     register2
+textOfs             EQU     register3
+textChr             EQU     register8
+textFont            EQU     register9
+textSlice           EQU     register10
+scanLine            EQU     register11
+digitMult           EQU     register12
+digitIndex          EQU     register13
+clearLoop           EQU     register14
+    
+    
+printInit           LDWI    SYS_VDrawBits_134
+                    STW     giga_sysFn
+                    LDW     fgbgColour
+                    STW     giga_sysArg0
+                    LD      cursorXY + 1                    ; xy = peek(256+2*y)*256 + x
+                    LSLW
+                    INC     giga_vAC + 1
+                    PEEK
+                    ST      giga_sysArg4 + 1
+                    LD      cursorXY
+                    ST      giga_sysArg4                    ; xy position
+                    RET
+
+
+
+                    ; prints text string pointed to by textStr
+printText           PUSH
+                    LDWI    printInit
+                    CALL    giga_vAC
+
+                    ; first byte is length
+printT_char         INC     textStr                         ; next char
+                    LDW     textStr             
+                    PEEK
+                    BEQ     printT_exit                     ; check for terminating zero
+                    ST      textChr
+                    LDWI    printChar
+                    CALL    giga_vAC
+                    BRA     printT_char
+                    
+printT_exit         POP
+                    RET
+
+
+
+                    ; prints char in textChr
+printChar           LD      textChr
+                    SUBI    130                             ; char can't be bigger than 130
+                    BGT     printC_exit
+                    ADDI    130
+                    SUBI    82
+                    BGE     printC_text82
+                    ADDI    50
+                    BLT     printC_exit                     ; char<32 exit
+                    STW     textChr                         ; char-32
+                    LDWI    giga_text32                     ; text font slice base address for chars 32-81
+                    BRA     printC_font
+                    
+printC_text82       STW     textChr                         ; char-82
+                    LDWI    giga_text82                     ; text font slice base address for chars 82+
+                    
+printC_font         STW     textFont
+                    LD      textChr
+                    LSLW    
+                    LSLW    
+                    ADDW    textChr
+                    ADDW    textFont
+                    STW     textFont                        ; char*5 + textFont
+                    LDI     0x05
+
+printC_slice        ST      textSlice
+                    LDW     textFont                        ; text font slice base address
+                    LUP     0x00                            ; get ROM slice
+                    ST      giga_sysArg2
+                    SYS     134                             ; draw vertical slice, SYS_VDrawBits_134, 270 - 134/2 = 0xCB
+                    INC     textFont                        ; next vertical slice
+                    INC     giga_sysArg4                    ; next x
+                    LD      textSlice
+                    SUBI    1
+                    BNE     printC_slice
+                    
+                    ST      giga_sysArg2                    ; result of printC_slice is 0
+                    SYS     134                             ; draw last blank slice
+                    INC     giga_sysArg4                    ; using sysArg4 as a temporary cursor address for multiple char prints
+                    
+                    PUSH
+%if TIME_SLICING
+                    CALL    realTimeStubAddr
+%endif
+                    LDWI    printClip
+                    CALL    giga_vAC
+                    POP
+                    
+printC_exit         RET
+
+
+printClip           LD      cursorXY
+                    ADDI    giga_xfont
+                    ST      cursorXY
+                    SUBI    giga_xres - giga_xfont          ; last possible char on line
+                    BLE     printCl_exit
+                    LD      miscFlags
+                    ANDI    MISC_DISABLE_CLIP_BIT
+                    BNE     printCl_exit                    ; is text clipping disabled?
+                    PUSH
+                    LDWI    newLineScroll                   ; next row, scroll at bottom
+                    CALL    giga_vAC
+                    POP
+                    
+printCl_exit        RET
+
+
+                    ; prints textSpc spaces
+printSpc            PUSH
+                    LD      textSpc
+                    BEQ     printS_exit
+                    LDWI    printInit
+                    CALL    giga_vAC
+                    
+printS_loop         LDI     32
+                    STW     textChr
+                    LDWI    printChar
+                    CALL    giga_vAC
+                    LD      textSpc
+                    SUBI    1
+                    ST      textSpc
+                    BNE     printS_loop
+                    
+printS_exit         POP
+                    RET
+
+
+atTextCursor        LD      cursorXY
+                    SUBI    giga_xres - giga_xfont
+                    BLE     atTC_checkY
+                    LDI     0
+                    ST      cursorXY
+                    
+atTC_checkY         LD      cursorXY + 1
+                    SUBI    giga_yres - giga_yfont
+                    BLT     atTC_resbot
+                    LDI     giga_yres - giga_yfont
+                    ST      cursorXY + 1
+                    LD      miscFlags
+                    ORI     MISC_ON_BOTTOM_ROW_BIT
+                    ST      miscFlags                       ; set on bottom row flag
+                    RET
+                    
+atTC_resbot         LD      miscFlags
+                    ANDI    MISC_ON_BOTTOM_ROW_MSK
+                    ST      miscFlags                       ; reset on bottom row flag
+                    RET
+
+
+
+                    ; clears the top giga_yfont lines of pixels in preparation of text scrolling
+clearCursorRow      PUSH
+                    LDWI    SYS_SetMemory_v2_54
+                    STW     giga_sysFn                      ; setup fill memory SYS routine
+                    LD      fgbgColour
+                    ST      giga_sysArg1                    ; fill value
+                    LDWI    giga_videoTable
+                    PEEK
+                    ST      giga_sysArg3                    ; row0 high byte address
+                    LDI     giga_yfont
+
+clearCR_loopy       ST      clearLoop                    
+                    LDI     giga_xres
+                    ST      giga_sysArg0
+                    LDI     0
+                    ST      giga_sysArg2                    ; low start address
+                    SYS     54                              ; fill memory
+                    INC     giga_sysArg3                    ; next line
+                    LD      clearLoop
+                    SUBI    1
+                    BNE     clearCR_loopy
+%if TIME_SLICING
+                    CALL    realTimeStubAddr
+%endif
+                    LDWI    printInit
+                    CALL    giga_vAC                        ; re-initialise the SYS registers
+                    POP
+                    RET
+
+
+                    ; print from top row to bottom row, then start scrolling 
+newLineScroll       LDI     giga_CursorX                    ; cursor x start
+                    ST      cursorXY
+                    ST      giga_sysArg4
+                    LD      miscFlags
+                    ANDI    MISC_ENABLE_SCROLL_BIT
+                    BNE     newLS_cont0                     ; is scroll on or off?
+                    RET
+                    
+newLS_cont0         PUSH
+                    LD      miscFlags
+                    ANDI    MISC_ON_BOTTOM_ROW_BIT
+                    BNE     newLS_cont1                     ; is on bottom row flag?
+                    LD      cursorXY + 1
+                    ADDI    giga_yfont
+                    ST      cursorXY + 1
+                    SUBI    giga_yres
+                    BLT     newLS_exit
+                    LDI     giga_yres - giga_yfont
+                    ST      cursorXY + 1
+                    
+newLS_cont1         LDWI    clearCursorRow
+                    CALL    giga_vAC
+                    LDWI    giga_videoTable
+                    STW     scanLine
+
+%if TIME_SLICING
+newLS_scroll        CALL    realTimeStubAddr
+                    LDW     scanLine
+%else
+newLS_scroll        LDW     scanLine
+%endif
+                    PEEK
+                    ADDI    giga_yfont
+                    SUBI    0x7F
+                    BLE     newLS_adjust
+                    ADDI    0x88
+                    
+newLS_adjust        ADDI    0x7F
+                    POKE    scanLine
+                    INC     scanLine                        ; scanline pointers are 16bits
+                    INC     scanLine
+                    LD      scanLine
+                    SUBI    0xF0                            ; scanline pointers end at 0x01EE
+                    BLT     newLS_scroll
+                    
+                    LD      miscFlags
+                    ORI     MISC_ON_BOTTOM_ROW_BIT
+                    ST      miscFlags                       ; set on bottom row flag
+                    
+newLS_exit          LDWI    printInit
+                    CALL    giga_vAC                        ; re-initialise the SYS registers
+                    POP
+                    RET
+
+
+; do *NOT* use register4 to register7 during time slicing
+strChr              EQU     register0
+strAddr             EQU     register0
+strHex              EQU     register1
+strLen              EQU     register2
+strDstLen           EQU     register0
+strFinish           EQU     register0
+strSrcAddr          EQU     register1
+strDstAddr          EQU     register2
+strSrcLen           EQU     register3
+strOffset           EQU     register8
+strSrcAddr2         EQU     register9
+strTmpAddr          EQU     register10
+strLutAddr          EQU     register11
+strBakAddr          EQU     register12
+strSrcLen2          EQU     register13
+strInteger          EQU     register0
+strDigit            EQU     register1
+strMult             EQU     register3
+
+
+                    ; copy one string to another
+stringCopy          LDW     strSrcAddr
+                    PEEK
+                    POKE    strDstAddr
+                    INC     strSrcAddr
+                    INC     strDstAddr
+                    BNE     stringCopy                          ; copy char until terminating char
+                    RET
+
+
+                    ; compares two strings: returns 0 for smaller, 1 for equal and 2 for larger
+stringCmp           LDW     strSrcAddr
+                    PEEK
+                    STW     strSrcLen                           ; save str length
+                    LDW     strSrcAddr2
+                    PEEK
+                    STW     strSrcLen2                          ; save str length
+                    INC     strSrcAddr
+                    INC     strSrcAddr2                         ; skip lengths
+                    
+stringC_loop        LDW     strSrcAddr
+                    PEEK
+                    BEQ     stringC_equal                       ; this assumes your strings are valid, (i.e. valid length and terminating bytes)
+                    STW     strChr
+                    LDW     strSrcAddr2
+                    PEEK
+                    SUBW    strChr
+                    BLT     stringC_larger
+                    BGT     stringC_smaller
+                    INC     strSrcAddr
+                    INC     strSrcAddr2
+                    BRA     stringC_loop
+
+stringC_smaller     LDI     0
+                    RET
+                    
+stringC_equal       LDW     strSrcLen
+                    SUBW    strSrcLen2
+                    BLT     stringC_smaller
+                    BGT     stringC_larger                      ; if strings are equal, choose based on length
+                    LDI     1
+                    RET
+                    
+stringC_larger      LDI     2
+                    RET
+

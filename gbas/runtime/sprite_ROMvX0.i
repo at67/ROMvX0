@@ -38,10 +38,7 @@ animateSprite       MOVQW   giga_sysFn, SYS_SpritePattern_vX_134
                     LDWI    _spritesLut_
                     ADDW    spriteId
                     PEEKA   giga_sysArg2
-                    LDWI    _patternsLut_
-                    ADDW    spatternId
-                    ADDW    spatternId
-                    DEEK
+                    LDARRW  spatternId, _patternsLut_
                     STW     giga_sysArg4
                     DEEKA   giga_sysArg0
                     SYS     134

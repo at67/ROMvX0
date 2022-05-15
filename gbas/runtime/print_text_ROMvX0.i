@@ -35,19 +35,44 @@ clearCR_loopy       MOVQB   giga_sysArg0, giga_xres
                     RET
 %ENDS
 
-%SUB                printInit
-printInit           LDWI    SYS_VDrawBits_134
-                    STW     giga_sysFn
-                    LDW     fgbgColour
-                    STW     giga_sysArg0
-                    LD      cursorXY + 1                        ; xy = peek(256+2*y)*256 + x
-                    LSLW
-                    INC     giga_vAC + 1
-                    PEEKA   giga_sysArg4 + 1
-                    MOVB    cursorXY, giga_sysArg4              ; xy position
+%SUB                clearCursorRow4x6
+                    ; clears the top giga_yfont lines of pixels in preparation of text scrolling
+clearCursorRow4x6   PUSH
+                    LDWI    SYS_SetMemory_v2_54
+                    STW     giga_sysFn                          ; setup fill memory SYS routine
+                    MOVB    fgbgColour, giga_sysArg1            ; fill value
+                    LDWI    giga_videoTable
+                    PEEKA   giga_sysArg3                        ; row0 high byte address
+                    MOVQW   clearLoop, 6
+
+clearCR46_loopy     MOVQB   giga_sysArg0, giga_xres
+                    MOVQB   giga_sysArg2, 0                     ; low start address
+                    SYS     54                                  ; fill memory
+                    INC     giga_sysArg3                        ; next line
+                    DBNE    clearLoop, clearCR46_loopy
+                    CALLI   printInit                           ; re-initialise the SYS registers
+                    POP
                     RET
 %ENDS
-                    
+
+%SUB                printInit
+printInit           ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
+                    JNE     printInit4x6                        ; is fnt4x6 enabled flag?
+                    LDWI    SYS_VDrawBits_134
+                    STW     giga_sysFn
+                    MOVWA   fgbgColour, giga_sysArg0
+                    LDW     cursorXY
+                    VTBL    giga_sysArg4                        ; convert xy to vtable address
+                    RET
+%ENDS
+
+%SUB                printInit4x6
+printInit4x6        MOVWA   fgbgColour, giga_sysArg0
+                    LDW     cursorXY
+                    VTBL    giga_sysArg4                        ; convert xy to vtable address
+                    RET
+%ENDS
+
 %SUB                printText
                     ; prints text string pointed to by the accumulator
 printText           PUSH
@@ -55,7 +80,7 @@ printText           PUSH
                     CALLI   printInit
                     INC     textStr                             ; skip length
 
-printT_char         PEEK+   textStr             
+printT_char         PEEKV+  textStr             
                     BEQ     printT_exit                         ; check for terminating zero
                     CALLI   printChar
                     BRA     printT_char
@@ -72,7 +97,7 @@ printLeft           LD      textLen
                     CALLI   printInit
                     INC     textStr                             ; skip length
     
-printL_char         PEEK+   textStr             
+printL_char         PEEKV+  textStr             
                     CALLI   printChar
                     DBNE    textLen, printL_char
                     POP
@@ -91,7 +116,7 @@ printRight          LD      textLen
                     STW     textStr                             ; text offset
                     INC     textStr                             ; skip length
     
-printR_char         PEEK+   textStr             
+printR_char         PEEKV+  textStr             
                     CALLI   printChar
                     DBNE    textLen, printR_char
                     POP
@@ -107,7 +132,7 @@ printMid            LD      textLen
                     ADDVW   textOfs, textStr                    ; textStr += textOfs
                     INC     textStr                             ; skip length
                     
-printM_char         PEEK+   textStr             
+printM_char         PEEKV+  textStr             
                     CALLI   printChar
                     DBNE    textLen, printM_char
                     POP
@@ -120,7 +145,7 @@ printLower          PUSH
                     CALLI   printInit
                     INC     textStr                             ; skip length
                     
-printLo_next        PEEK+   textStr
+printLo_next        PEEKV+  textStr
                     BEQ     printLo_exit
                     ST      textChr
                     SUBI    65
@@ -143,7 +168,7 @@ printUpper          PUSH
                     CALLI   printInit
                     INC     textStr                             ; skip length
                     
-printUp_next        PEEK+   textStr
+printUp_next        PEEKV+  textStr
                     BEQ     printUp_exit
                     ST      textChr
                     SUBI    97
@@ -246,27 +271,13 @@ printHex            PUSH
 
 %SUB                printChar
                     ; prints char in textChr
-printChar           SUBI    130                                 ; char can't be bigger than 130
-                    BGT     printC_exit
-                    ADDI    130
-                    SUBI    82
-                    BGE     printC_text82
-                    ADDI    50
-                    BLT     printC_exit                         ; char<32 exit
-                    STW     textChr                             ; char-32
-                    LDWI    giga_text32                         ; text font slice base address for chars 32-81
-                    BRA     printC_font
-                    
-printC_text82       STW     textChr                             ; char-82
-                    LDWI    giga_text82                         ; text font slice base address for chars 82+
-                    
-printC_font         STW     textFont
-                    LD      textChr
-                    LSLW    
-                    LSLW    
-                    ADDW    textChr
-                    ADDW    textFont
-                    STW     textFont                            ; char*5 + textFont
+printChar           STW     textChr
+                    CMPII   32, 132                             ; 32 <= textChr < 132
+                    BNE     printC_exit
+                    ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
+                    JNE     printChar4x6                        ; is fnt4x6 enabled flag?
+                    FNT6X8  textFont, textChr
+                    FLT6X8  textFont
                     MOVQB   textSlice, 0x05
 
 printC_slice        LDW     textFont                            ; text font slice base address
@@ -288,6 +299,21 @@ printC_slice        LDW     textFont                            ; text font slic
 printC_exit         RET
 %ENDS
 
+%SUB                printChar4x6
+                    ; prints char in textChr
+printChar4x6        FNT4X6  textFont, textChr
+                    FLT4X6  textFont
+                    MOVQB   giga_sysArg2, 3                     ; 3 LUP's per char
+                    LDW     giga_sysArg4
+                    PRN4X6  textFont
+                    ADDBI   giga_sysArg4, 4                     ; using sysArg4 as a temporary cursor address for multiple char prints
+                    PUSH
+                    CALLI   printClip4x6
+                    POP
+                    
+printC46_exit       RET
+%ENDS
+
 %SUB                printClip
 printClip           ADDBI   cursorXY, giga_xfont
                     CMPI    cursorXY, giga_xres - giga_xfont    ; last possible char on line
@@ -300,10 +326,25 @@ printClip           ADDBI   cursorXY, giga_xfont
                     
 printCl_exit        RET
 %ENDS
-    
+
+%SUB                printClip4x6
+printClip4x6        ADDBI   cursorXY, 4
+                    CMPI    cursorXY, giga_xres - 4             ; last possible char on line
+                    BLE     printCl46_exit
+                    ANDBK   miscFlags, MISC_DISABLE_CLIP_BIT
+                    BNE     printCl46_exit                      ; is text clipping disabled?
+                    PUSH
+                    CALLI   newLineScroll4x6                    ; next row, scroll at bottom
+                    POP
+                    
+printCl46_exit      RET
+%ENDS
+
 %SUB                newLineScroll
                     ; print from top row to bottom row, then start scrolling 
-newLineScroll       LDI     giga_CursorX                        ; cursor x start
+newLineScroll       ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
+                    JNE     newLineScroll4x6                    ; is fnt4x6 enabled flag?
+                    LDI     giga_CursorX                        ; cursor x start
                     ST      cursorXY
                     ST      giga_sysArg4
                     ANDBK   miscFlags, MISC_ENABLE_SCROLL_BIT
@@ -333,8 +374,42 @@ newLS_exit          CALLI   printInit                           ; re-initialise 
                     RET
 %ENDS   
 
+%SUB                newLineScroll4x6
+                    ; print from top row to bottom row, then start scrolling 
+newLineScroll4x6    LDI     0                                   ; cursor x start
+                    ST      cursorXY
+                    ST      giga_sysArg4
+                    ANDBK   miscFlags, MISC_ENABLE_SCROLL_BIT
+                    BNE     newLS46_cont0                       ; is scroll on or off?
+                    RET
+                    
+newLS46_cont0       PUSH
+                    ANDBK   miscFlags, MISC_ON_BOTTOM_ROW_BIT
+                    BNE     newLS46_cont1                       ; is on bottom row flag?
+                    ADDBI   cursorXY + 1, 6
+                    CMPI    cursorXY + 1, giga_yres
+                    BLT     newLS46_exit
+                    MOVQB   cursorXY + 1, giga_yres - 6
+                    
+newLS46_cont1       CALLI   clearCursorRow4x6
+                    LDWI    giga_videoTable
+                    STW     giga_sysArg2                        ; VTable
+                    MOVQB   giga_sysArg0, 6                     ; scroll offset
+                    MOVQB   giga_sysArg1, giga_yres             ; scanline count
+                    LDWI    SYS_ScrollVTableY_vX_38
+                    STW     giga_sysFn
+                    SYS     38
+                    ORBI    miscFlags, MISC_ON_BOTTOM_ROW_BIT   ; set on bottom row flag
+                    
+newLS46_exit        CALLI   printInit4x6                        ; re-initialise print
+                    POP
+                    RET
+%ENDS
+
 %SUB                atTextCursor
-atTextCursor        CMPI    cursorXY, giga_xres - giga_xfont
+atTextCursor        ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
+                    JNE     atTextCursor4x6                     ; is fnt4x6 enabled flag?
+                    CMPI    cursorXY, giga_xres - giga_xfont
                     BLE     atTC_checkY
                     MOVQB   cursorXY, 0
                     
@@ -345,5 +420,45 @@ atTC_checkY         CMPI    cursorXY + 1, giga_yres - giga_yfont
                     RET
                     
 atTC_resbot         ANDBI   miscFlags, MISC_ON_BOTTOM_ROW_MSK   ; reset on bottom row flag
+                    RET
+%ENDS
+
+%SUB                atTextCursor4x6
+atTextCursor4x6     CMPI    cursorXY, giga_xres - 4
+                    BLE     atTC46_checkY
+                    MOVQB   cursorXY, 0
+                    
+atTC46_checkY       CMPI    cursorXY + 1, giga_yres - 6
+                    BLT     atTC46_resbot
+                    MOVQB   cursorXY + 1, giga_yres - 6
+                    ORBI    miscFlags, MISC_ON_BOTTOM_ROW_BIT   ; set on bottom row flag
+                    RET
+                    
+atTC46_resbot       ANDBI   miscFlags, MISC_ON_BOTTOM_ROW_MSK   ; reset on bottom row flag
+                    RET
+%ENDS
+
+%SUB                textWidth
+textWidth           ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
+                    JNE     textWidth4x6                        ; is fnt4x6 enabled flag?
+                    CMPI    textLen, 26
+                    BLE     textW_mul6
+                    LDI     26*6
+                    RET
+
+textW_mul6          LD      textLen
+                    MULB6
+                    RET
+%ENDS
+
+%SUB                textWidth4x6
+textWidth4x6        CMPI    textLen, 40
+                    BLE     textW46_mul4
+                    LDI     40*4
+                    RET
+
+textW46_mul4        LD      textLen
+                    LSLW
+                    LSLW
                     RET
 %ENDS

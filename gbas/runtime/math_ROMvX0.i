@@ -1,6 +1,6 @@
 ; do *NOT* use register4 to register7 during time slicing
-mathX               EQU     register8
-mathY               EQU     register9
+mathX               EQU     giga_sysArg0
+mathY               EQU     giga_sysArg2
 mathSum             EQU     register12
 mathRem             EQU     register12
 mathMask            EQU     register13
@@ -13,15 +13,12 @@ mathResult          EQU     register14
 
 
 %SUB                sign
-sign                BLE     sign_le
-                    LDI     1
+sign                SGNW
                     RET
-                    
-sign_le             BLT     sign_lt
-                    LDI     0
-                    RET
-                    
-sign_lt             LDWI    0xFFFF
+%ENDS
+
+%SUB                absolute
+absolute            ABSW
                     RET
 %ENDS
 
@@ -47,10 +44,8 @@ power16_cont2       SUBI    1
                     LDW     mathX                               ; return mathX
                     RET
                     
-power16_cont3       LDW     mathX
-                    STW     mathBase
-                    LDW     mathY
-                    STW     mathPow
+power16_cont3       MOVWA   mathX, mathBase
+                    MOVWA   mathY, mathPow
                     MOVQW   mathResult, 1
                     PUSH
                     CALLI   power16bitExt
@@ -64,15 +59,12 @@ power16bitExt       PUSH
                     
 power16E_loop       ANDI    1
                     BEQ     power16E_skip
-                    LDW     mathBase
-                    STW     mathX
-                    LDW     mathResult
-                    STW     mathY
+                    MOVWA   mathBase, mathX
+                    MOVWA   mathResult, mathY
                     CALLI   multiply16bit
                     STW     mathResult                          ; mathResult = mathBase * mathResult                    
                     
-power16E_skip       LDW     mathBase
-                    STW     mathX
+power16E_skip       MOVWA   mathBase, mathX
                     STW     mathY
                     CALLI   multiply16bit
                     STW     mathBase                            ; mathBase = mathBase * mathBase

@@ -1,0 +1,33 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+
+_stringWorkArea_ &h77A0
+
+mode 2
+tscroll off
+tfnt4x6 on
+
+repeat
+    at 0, 0   : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 6   : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 12  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 18  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 24  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 30  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 36  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 42  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 48  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 54  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 60  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 66  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 72  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 78  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 84  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 90  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 96  : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 102 : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 108 : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    at 0, 114 : print "1;lkjngfdgslgkjsfd'glkjsdg'lkjsfg'l;mz;0"
+    wait 60
+forever

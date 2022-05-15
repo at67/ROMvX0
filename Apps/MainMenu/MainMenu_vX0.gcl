@@ -42,7 +42,6 @@ gcl0x
     9^ [if=0 Pos 18+ Pos= loop]         {Horizontal tab}
     3^ [if=0 Newline! loop]             {Newline 9^10=3}
     PrintChar!                          {Regular character}
-    {SoundDecay!}
     loop]
   pop ret
 ] PrintText=
@@ -51,7 +50,7 @@ gcl0x
 [def
  push
  $2d {'-'} Char=
- 26 [do j= PrintChar! {SoundDecay!} j 1- if>0loop]
+ 26 [do j= PrintChar! j 1- if>0loop]
  Newline!
  pop ret
 ] PrintDivider=
@@ -60,7 +59,7 @@ gcl0x
   push
   MenuItem 5- [if<0 $200b else $f859] Pos=
   MenuItem [do j= $800 Pos+ Pos= j 1- if>=0loop]
-  130 {'->'} Char= PrintChar! {SoundDecay!}
+  130 {'->'} Char= PrintChar!
   pop ret
 ] PrintArrow=
 
@@ -149,37 +148,14 @@ gcl0x
 ] HelpText=
 
 {-----------------------------------------------------------------------+
-|}>_vLR++ ret{          RAM page 5                                      |
-+-----------------------------------------------------------------------}
-*=$0500
-
-{SoundDecay}
-[def
-    \frameCount, framePrev- [if<>0
-        \frameCount, framePrev=
-        255 \soundTimer.                     {Continually play sound to avoid glitches}
-        volChan 126- [if<0
-            <volChan++ volChan volAddr0.
-                               volAddr1.
-                               volAddr2.
-                               volAddr3.
-            else
-            127 volAddr0.
-                volAddr1.
-                volAddr2.
-                volAddr3.]]
-    ret
-] SoundDecay=
-
-{-----------------------------------------------------------------------+
 |}>_vLR++ ret{          RAM page 6                                      |
 +-----------------------------------------------------------------------}
-*=$0600
-
+*=$0500
+ 
 [def
   push
   Pos 12- Pos=
-  $20 {space} Char= PrintChar! PrintChar! {SoundDecay!}
+  $20 {space} Char= PrintChar! PrintChar!
   pop ret
 ] WipeOutArrow=
 
@@ -194,21 +170,8 @@ gcl0x
 
 \channelMask_v4, 3|
 \channelMask_v4.                {Enable all 4 sound channels}
-255 \soundTimer.
+90 \soundTimer.
 $2002 Pos=
-
-\frameCount, framePrev 
-64 volChan=
-
-\channel1 volAddr0=
-\channel2 volAddr1=
-\channel3 volAddr2=
-\channel4 volAddr3=
-
-\wavA <volAddr0.
-      <volAddr1.
-      <volAddr2.
-      <volAddr3.
 
 PrintMenu!
 0 MenuItem=                     {Point at first item (SDCard)}
@@ -235,7 +198,7 @@ Pos 48+ j& q=                   {Box of current cursor}
   i+ \sysArgs4:
   255& 160^ if<>0loop]          {Next stripe}
 }
-
+ 
 { Load and start the selected program }
 \SYS_Exec_88 _sysFn=            {ROM loader}
 Program _sysArgs0=              {ROM image}

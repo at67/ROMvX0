@@ -1,0 +1,26 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+
+'not using strings
+free STRINGWORKAREA
+
+load image, ../../res/image/Venus.tga
+
+t = 0
+s = 1
+ss = 1
+repeat
+    wait
+    vscroll s
+        
+    if t = 15
+        t = 0
+        s = s + ss
+        if abs(s) = 3
+            ss = -ss
+        endif
+    endif
+
+    inc t
+&forever

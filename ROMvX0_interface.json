@@ -101,7 +101,7 @@
  "PUSH"                         : "0x0375",
  "LUP"                          : "0x037f",
  "ANDI"                         : "0x0382",
- "CALLI_v5"                     : "0x0385",
+ "CALLI"                        : "0x0385",
  "ORI"                          : "0x0388",
  "XORI"                         : "0x038c",
  "BRA"                          : "0x0390",
@@ -158,7 +158,7 @@
  "SYS_ScrollVTableY_vX_38"      : "0x20c0",
  "SYS_RestoreSprite_vX_126"     : "0x2100",
  "SYS_ScrollRectVTableY_vX_44"  : "0x21a0",
- "SYS_LoadSerialIn_vX_58"       : "0x3080",
+ "SYS_LoadSerialIn_vX_60"       : "0x3080",
  
  "SYS_Exec_88"                  : "0x00ad",
  "SYS_ScanMemoryExt_vX_50"      : "0x00e3",

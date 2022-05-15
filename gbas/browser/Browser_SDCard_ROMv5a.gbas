@@ -220,7 +220,7 @@ updateBrowser:
     prevAddr = addr(browser(prevY, 0)) + 1
     prevLen = peek(prevAddr)
     isFile = peek(prevAddr - 1)
-    if isFile &&= 1
+    if isFile &= 1
         set FGBG_COLOUR, &h3F20
     else
         set FGBG_COLOUR, &h2A20
@@ -295,7 +295,7 @@ execApp:
     poke @commsCmd, CmdSDExec
     runName$ = string$(runStrAddr)
     len = peek(@runName$)
-    for i=1 to len + 1
+    for i=1 &to len + 1
         poke @commsCmd + i, peek(@runName$ + i)
     next i
     set FGBG_COLOUR, &h0F20 : cls INIT : cls
@@ -308,7 +308,7 @@ return
 'repeat delay and auto repeat
 handleInput:
     k = get("SERIAL_RAW")
-    if k &&<> kk
+    if k &<> kk
         f = 0
         kk = k
         gosub k
@@ -357,7 +357,7 @@ return
 'execute files, list directories
 execOrList:
     entry = peek(runStrAddr - 1)
-    if entry &&= EntryFile
+    if entry &= EntryFile
         execRtn = 0
         gosub execApp
     endif
@@ -426,7 +426,7 @@ return
 
 
 initialise:
-    init vars @commsSize
+    clear vars, @commsSize
     gosub getRomType
     commsAddr = @commsCmd
 

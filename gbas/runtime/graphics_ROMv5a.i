@@ -5,7 +5,6 @@ waitVBlankNum       EQU     register0
 drawHLine_x1        EQU     register0
 drawHLine_y1        EQU     register1
 drawHLine_x2        EQU     register2
-drawHLine_x4        EQU     register3
 
 drawVLine_x1        EQU     register0
 drawVLine_y1        EQU     register1
@@ -38,9 +37,10 @@ drawLine_addr       EQU     register10
 drawLine_ddx        EQU     register11
 drawLine_cnt        EQU     register12
 drawLine_swp        EQU     register13
+drawLine_xy         EQU     register7
 
-drawPixel_xy        EQU     giga_sysArg6
-readPixel_xy        EQU     giga_sysArg6
+readPixel_xy        EQU     register0
+drawPixel_xy        EQU     register0
 
 drawCircle_cx       EQU     register0
 drawCircle_cy       EQU     register1
@@ -66,15 +66,15 @@ drawCircleF_w       EQU     register9
 drawRect_x1         EQU     register7
 drawRect_y1         EQU     register10
 drawRect_x2         EQU     register11
-drawRect_y2         EQU     register15
+drawRect_y2         EQU     register16
 
 drawRectF_x1        EQU     register0
 drawRectF_y1        EQU     register1
 drawRectF_x2        EQU     register2
-drawRectF_y2        EQU     register7
+drawRectF_y2        EQU     register8
 
+drawPoly_addr       EQU     register7
 drawPoly_mode       EQU     register14
-drawPoly_addr       EQU     giga_sysArg6                        ; TODO: find a better spot for this
 
     
 %SUB                scanlineMode
@@ -86,29 +86,28 @@ scanlineMode        LDWI    SYS_SetMode_v2_80
 %ENDS   
 
 %SUB                waitVBlanks
-waitVBlanks         PUSH
-
-waitVB_loop0        LDW     waitVBlankNum
+waitVBlanks         LDW     waitVBlankNum
                     SUBI    0x01
                     STW     waitVBlankNum
                     BGE     waitVB_vblank
-                    POP
                     RET
     
-waitVB_vblank       CALLI   waitVBlank
-                    BRA     waitVB_loop0
+waitVB_vblank       PUSH
+                    CALLI   waitVBlank
+                    POP
+                    BRA     waitVBlanks
 %ENDS
 
 %SUB                waitVBlank
 %if VBLANK_INTERRUPT
-waitVBlank          LD      timerPrev                           ; can't use giga_frameCount for VBlanks
+waitVBlank          LD      timerJiff + 1                       ; can't use giga_frameCount for VBlanks
 %else
 waitVBlank          LD      giga_frameCount
 %endif
                     XORW    frameCountPrev
                     BEQ     waitVBlank
 %if VBLANK_INTERRUPT
-                    LD      timerPrev                           ; can't use giga_frameCount for VBlanks
+                    LD      timerJiff + 1                       ; can't use giga_frameCount for VBlanks
 %else
                     LD      giga_frameCount
 %endif
@@ -117,8 +116,7 @@ waitVBlank          LD      giga_frameCount
 %ENDS
 
 %SUB                readPixel
-readPixel           STW     readPixel_xy
-                    LD      readPixel_xy + 1                    ; pixel = peek(peek(256 + 2*y)*256 + x)
+readPixel           LD      readPixel_xy + 1                    ; pixel = peek(peek(256 + 2*y)*256 + x)
                     LSLW
                     INC     giga_vAC + 1
                     PEEK
@@ -129,8 +127,7 @@ readPixel           STW     readPixel_xy
 %ENDS
 
 %SUB                drawPixel
-drawPixel           STW     drawPixel_xy
-                    LD      drawPixel_xy + 1                    ; poke peek(256 + 2*y)*256 + x, fg_colour
+drawPixel           LD      drawPixel_xy + 1                    ; poke peek(256 + 2*y)*256 + x, fg_colour
                     LSLW
                     INC     giga_vAC + 1
                     PEEK
@@ -522,10 +519,10 @@ drawVTL_num         LDWI    SYS_LSRW1_48
 
 %SUB                drawVTLineLoop
 drawVTLineLoop      LDW     drawLine_xy1
-                    CALLI   drawPixel                           ; plot start pixel
+                    CALLI   drawVTLinePixel                     ; plot start pixel
 
                     LDW     drawLine_xy2
-                    CALLI   drawPixel                           ; plot end pixel, (meet in middle)
+                    CALLI   drawVTLinePixel                     ; plot end pixel, (meet in middle)
                     
                     LDW     drawLine_num                        ; numerator += sy
                     ADDW    drawLine_sy
@@ -556,6 +553,16 @@ drawVTL_count       LDW     drawLine_count
                     STW     drawLine_count
                     BGT     drawVTLineLoop
                     POP                                         ; matches drawVTLine's PUSH
+                    RET
+
+drawVTLinePixel     STW     drawLine_xy
+                    LD      drawLine_xy + 1
+                    LSLW
+                    INC     giga_vAC + 1
+                    PEEK
+                    ST      drawLine_xy + 1
+                    LD      fgbgColour + 1
+                    POKE    drawLine_xy
                     RET
 %ENDS   
     
@@ -797,9 +804,7 @@ drawRectF           PUSH
                     LDW     drawLine_tmp
                     STW     drawRectF_y1                        ; if y2 < y1 then swap y2 with y1
                     
-drawRF_loop         LDW     drawRectF_y1
-                    STW     drawHLine_y1
-                    CALLI   drawHLine
+drawRF_loop         CALLI   drawHLine                           ;drawHLine_y1 = drawRectF_y1 = register0
                     INC     drawRectF_y1
                     LDW     drawRectF_y1
                     SUBW    drawRectF_y2

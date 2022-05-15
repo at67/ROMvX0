@@ -1,7 +1,6 @@
 ; do *NOT* use register4 to register7 during time slicing
 graphicsMode        EQU     register0
 waitVBlankNum       EQU     register0
-waitVBlankTmp       EQU     register1
 
 drawHLine_x1        EQU     register0
 drawHLine_y1        EQU     register1
@@ -36,9 +35,10 @@ drawLine_addr       EQU     register10
 drawLine_ddx        EQU     register11
 drawLine_cnt        EQU     register12
 drawLine_swp        EQU     register13
+drawLine_xy         EQU     register7
 
-drawPixel_xy        EQU     giga_sysArg6
-readPixel_xy        EQU     giga_sysArg6
+drawPixel_xy        EQU     register0
+readPixel_xy        EQU     register0
 
 drawCircle_cx       EQU     register0
 drawCircle_cy       EQU     register1
@@ -62,10 +62,10 @@ drawCircleF_r       EQU     register11
 drawCircleF_v       EQU     register8
 drawCircleF_w       EQU     register9
 
-drawRect_x1         EQU     register8
-drawRect_y1         EQU     register9
-drawRect_x2         EQU     register10
-drawRect_y2         EQU     register11
+drawRect_x1         EQU     register7
+drawRect_y1         EQU     register10
+drawRect_x2         EQU     register11
+drawRect_y2         EQU     register16
 
 drawRectF_x1        EQU     register0
 drawRectF_y1        EQU     register1
@@ -75,7 +75,7 @@ drawRectF_xcnt      EQU     register8
 drawRectF_ycnt      EQU     register9
 
 drawPoly_mode       EQU     register14
-drawPoly_addr       EQU     giga_sysArg4                        ; TODO: find a better spot for this
+drawPoly_addr       EQU     register7
 
     
 %SUB                scanlineMode
@@ -87,52 +87,33 @@ scanlineMode        LDWI    SYS_SetMode_v2_80
 %ENDS   
 
 %SUB                waitVBlanks
-waitVBlanks         PUSH
-
-waitVB_loop0        DECWA   waitVBlankNum
+waitVBlanks         DECWA   waitVBlankNum
                     BGE     waitVB_vblank
-                    POP
                     RET
     
-waitVB_vblank       CALLI   waitVBlank
-                    BRA     waitVB_loop0
+waitVB_vblank       PUSH
+                    CALLI   waitVBlank
+                    POP
+                    BRA     waitVBlanks
 %ENDS
 
 %SUB                waitVBlank
-%if VBLANK_INTERRUPT
-waitVBlank          LD      timerPrev                           ; can't use giga_frameCount for VBlanks
-%else
-waitVBlank          LD      giga_frameCount
-%endif
+waitVBlank          LD      giga_jiffiesTick
                     XORW    frameCountPrev
                     BEQ     waitVBlank
-%if VBLANK_INTERRUPT
-                    MOVB    timerPrev, frameCountPrev           ; can't use giga_frameCount for VBlanks
-%else
-                    MOVB    giga_frameCount, frameCountPrev
-%endif
+                    LD      giga_jiffiesTick
+                    STW     frameCountPrev
                     RET
 %ENDS
 
 %SUB                readPixel
-readPixel           STW     readPixel_xy
-                    LD      readPixel_xy + 1                    ; pixel = peek(peek(256 + 2*y)*256 + x)
-                    LSLW
-                    INC     giga_vAC + 1
-                    PEEKA   readPixel_xy + 1
-                    PEEKV   readPixel_xy
-                    RET
+                    ; dummy
+readPixel           RET
 %ENDS
 
 %SUB                drawPixel
-drawPixel           STW     drawPixel_xy
-                    LD      drawPixel_xy + 1                    ; poke peek(256 + 2*y)*256 + x, fg_colour
-                    LSLW
-                    INC     giga_vAC + 1
-                    PEEKA   drawPixel_xy + 1
-                    LD      fgbgColour + 1
-                    POKE    drawPixel_xy
-                    RET
+                    ; dummy
+drawPixel           RET
 %ENDS   
 
 %SUB                drawHLine
@@ -205,8 +186,7 @@ drawL_dy            LDW     drawLine_y2
                     LDW     drawLine_sy
                     SUBW    drawLine_sx
                     BLE     drawL_ext           
-                    LDW     drawLine_dy1
-                    STW     drawLine_dy2                        ; if(sx < sy) dy2 = -1
+                    MOVWA   drawLine_dy1, drawLine_dy2          ; if(sx < sy) dy2 = -1
     
 drawL_ext           CALLI   drawLineExt
 %ENDS   
@@ -310,6 +290,7 @@ drawLS_noswap       LDI     0
                     INC     drawLine_cnt
                     LSLV    drawLine_dx
                     LSLV    drawLine_dy
+                    LDW     drawLine_addr
                     CALLI   drawLineSlowLoop
 %ENDS
 
@@ -320,8 +301,7 @@ drawLineSlowSwap    XCHGW   drawLine_dx, drawLine_dy
 %ENDS
 
 %SUB                drawLineSlowLoop
-drawLineSlowLoop    LD      fgbgColour + 1
-                    POKE    drawLine_addr
+drawLineSlowLoop    POKEA   fgbgColour + 1 
                     ADDVW   drawLine_dy, drawLine_ddx
                     BLE     drawLLS_xy
                     SUBW    drawLine_dx
@@ -366,8 +346,7 @@ drawVTL_dy          LDW     drawLine_y2
                     LDW     drawLine_sy                         ; sy = (sy & 0x8000) ? 0 - sy : sy
                     SUBW    drawLine_sx
                     BLE     drawVTL_ext           
-                    LDW     drawLine_dy1
-                    STW     drawLine_dy2                        ; if(sx < sy) dy2 = -1
+                    MOVWA   drawLine_dy1, drawLine_dy2          ; if(sx < sy) dy2 = -1
     
 drawVTL_ext         CALLI   drawVTLineExt
 %ENDS   
@@ -408,10 +387,10 @@ drawVTL_num         LD      drawLine_sx
 
 %SUB                drawVTLineLoop
 drawVTLineLoop      LDW     drawLine_xy1
-                    CALLI   drawPixel                           ; plot start pixel
+                    CALLI   drawVTLinePixel                     ; plot start pixel
 
                     LDW     drawLine_xy2
-                    CALLI   drawPixel                           ; plot end pixel, (meet in middle)
+                    CALLI   drawVTLinePixel                     ; plot end pixel, (meet in middle)
                     
                     ADDVW   drawLine_sy, drawLine_num           ; numerator += sy
                     SUBW    drawLine_sx
@@ -428,6 +407,15 @@ drawVTL_flip        ADDVW   drawLine_dxy2, drawLine_xy1         ; xy1 += dxy2
 drawVTL_count       DBNE    drawLine_count, drawVTLineLoop
                     POP                                         ; matches drawVTLine's PUSH
                     RET
+                    
+drawVTLinePixel     STW     drawLine_xy
+                    LD      drawLine_xy + 1
+                    LSLW
+                    INC     giga_vAC + 1
+                    PEEKA   drawLine_xy + 1
+                    LD      fgbgColour + 1
+                    POKE    drawLine_xy
+                    RET
 %ENDS   
     
 %SUB                drawCircle
@@ -438,8 +426,7 @@ drawCircle          PUSH
                     STW     drawCircle_ch2
                     STW     drawCircle_ch3
                     STW     drawCircle_x
-                    LDW     drawCircle_r
-                    STW     drawCircle_y
+                    MOVWA   drawCircle_r, drawCircle_y
                     LDI     1
                     SUBW    drawCircle_r
                     STW     drawCircle_d
@@ -491,30 +478,22 @@ drawCircleExt1      PUSH
                     LDW     drawCircle_cx
                     ADDW    drawCircle_x
                     ADDW    drawCircle_ch0
-                    STW     drawCircle_a
-                    LD      fgbgColour + 1
-                    POKE    drawCircle_a
+                    POKEA   fgbgColour + 1
 
                     LDW     drawCircle_cx
                     SUBW    drawCircle_x
                     ADDW    drawCircle_ch0
-                    STW     drawCircle_a
-                    LD      fgbgColour + 1
-                    POKE    drawCircle_a
+                    POKEA   fgbgColour + 1
                     
                     LDW     drawCircle_cx
                     ADDW    drawCircle_x
                     ADDW    drawCircle_ch1
-                    STW     drawCircle_a
-                    LD      fgbgColour + 1
-                    POKE    drawCircle_a
+                    POKEA   fgbgColour + 1
 
                     LDW     drawCircle_cx
                     SUBW    drawCircle_x
                     ADDW    drawCircle_ch1
-                    STW     drawCircle_a
-                    LD      fgbgColour + 1
-                    POKE    drawCircle_a
+                    POKEA   fgbgColour + 1
                     
                     CALLI   drawCircleExt2                      ; doesn't return to here
 %ENDS
@@ -523,30 +502,22 @@ drawCircleExt1      PUSH
 drawCircleExt2      LDW     drawCircle_cx
                     ADDW    drawCircle_y
                     ADDW    drawCircle_ch2
-                    STW     drawCircle_a
-                    LD      fgbgColour + 1
-                    POKE    drawCircle_a
+                    POKEA   fgbgColour + 1
 
                     LDW     drawCircle_cx
                     SUBW    drawCircle_y
                     ADDW    drawCircle_ch2
-                    STW     drawCircle_a
-                    LD      fgbgColour + 1
-                    POKE    drawCircle_a
+                    POKEA   fgbgColour + 1
                     
                     LDW     drawCircle_cx
                     ADDW    drawCircle_y
                     ADDW    drawCircle_ch3
-                    STW     drawCircle_a
-                    LD      fgbgColour + 1
-                    POKE    drawCircle_a
+                    POKEA   fgbgColour + 1
 
                     LDW     drawCircle_cx
                     SUBW    drawCircle_y
                     ADDW    drawCircle_ch3
-                    STW     drawCircle_a
-                    LD      fgbgColour + 1
-                    POKE    drawCircle_a
+                    POKEA   fgbgColour + 1
 
                     POP
                     RET
@@ -602,30 +573,20 @@ drawCF_rloop        LDW     drawCircleF_w
 
 %SUB                drawRect
 drawRect            PUSH
-                    LDW     drawRect_x1
-                    STW     drawHLine_x1
-                    LDW     drawRect_y1
-                    STW     drawHLine_y1
-                    LDW     drawRect_x2
-                    STW     drawHLine_x2
+                    MOVWA   drawRect_x1, drawHLine_x1
+                    MOVWA   drawRect_y1, drawHLine_y1
+                    MOVWA   drawRect_x2, drawHLine_x2
                     CALLI   drawHLine
-                    LDW     drawRect_y2
-                    STW     drawHLine_y1
+                    MOVWA   drawRect_y2, drawHLine_y1
                     CALLI   drawHLine
 
-                    LDW     drawRect_x1
-                    STW     drawVLine_x1
-                    LDW     drawRect_y1
-                    STW     drawVLine_y1
-                    LDW     drawRect_y2
-                    STW     drawVLine_y2
+                    MOVWA   drawRect_x1, drawVLine_x1
+                    MOVWA   drawRect_y1, drawVLine_y1
+                    MOVWA   drawRect_y2, drawVLine_y2
                     CALLI   drawVLine
-                    LDW     drawRect_x2
-                    STW     drawVLine_x1
-                    LDW     drawRect_y1
-                    STW     drawVLine_y1
-                    LDW     drawRect_y2
-                    STW     drawVLine_y2
+                    MOVWA   drawRect_x2, drawVLine_x1
+                    MOVWA   drawRect_y1, drawVLine_y1
+                    MOVWA   drawRect_y2, drawVLine_y2
                     CALLI   drawVLine
 
                     POP
@@ -644,7 +605,6 @@ drawRectF           LDWI    SYS_SetMemory_v2_54
                     
 drawRFY_cont        ADDBI   drawRectF_y1, 8                     ; high start address
                     INC     drawRectF_ycnt                      ; line count++ for DBNE
-                    
                     LD      drawRectF_x2
                     SUBW    drawRectF_x1
                     BGE     drawRFX_cont                        ; x count if x2 > x1
@@ -671,13 +631,12 @@ drawP_loop          LD      cursorXY
                     STW     drawLine_x1
                     LD      cursorXY + 1
                     STW     drawLine_y1
-                    PEEK+   drawPoly_addr
+                    PEEKV+  drawPoly_addr
                     STW     drawLine_x2
                     SUBI    255
                     BEQ     drawP_exit
-                    LDW     drawLine_x2
-                    ST      cursorXY
-                    PEEK+   drawPoly_addr
+                    MOVB    drawLine_x2, cursorXY
+                    PEEKV+  drawPoly_addr
                     STW     drawLine_y2
                     ST      cursorXY + 1
                     CALLI   drawLine
@@ -694,7 +653,7 @@ drawPR_loop         LD      cursorXY
                     STW     drawLine_x1
                     LD      cursorXY + 1
                     STW     drawLine_y1
-                    DEEK+   drawPoly_addr
+                    DEEKV+  drawPoly_addr
                     STW     drawLine_x2
                     SUBI    255
                     BEQ     drawPR_exit
@@ -702,7 +661,7 @@ drawPR_loop         LD      cursorXY
 drawPR_x2           ADDW    drawLine_x2                         ;relative X mode
                     STW     drawLine_x2
                     ST      cursorXY
-                    DEEK+   drawPoly_addr
+                    DEEKV+  drawPoly_addr
                     STW     drawLine_y2
                     LDW     drawLine_y1
 drawPR_y2           ADDW    drawLine_y2                         ;relative Y mode
@@ -720,17 +679,13 @@ drawPR_exit         MOVQB   drawPoly_mode, 0x99                 ;ADDW
 
 %SUB                setPolyRelFlipX
 setPolyRelFlipX     LDWI    drawPR_x2
-                    STW     drawPoly_addr
-                    LDW     drawPoly_mode
-                    POKE    drawPoly_addr
+                    POKEA   drawPoly_mode
                     RET
 %ENDS
 
 %SUB                setPolyRelFlipY
 setPolyRelFlipY     LDWI    drawPR_y2
-                    STW     drawPoly_addr
-                    LD      drawPoly_mode
-                    POKE    drawPoly_addr
+                    POKEA   drawPoly_mode
                     RET
 %ENDS
 

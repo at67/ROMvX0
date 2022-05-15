@@ -208,6 +208,11 @@ _label_ CALLI   _label
         CALLI   atTextCursor
 %ENDM
 
+%MACRO  TextWidth
+        STW     textLen
+        CALLI   textWidth
+%ENDM
+
 %MACRO  Input
         CALLI   input
 %ENDM
@@ -501,12 +506,10 @@ _id_    LDW     v1
 %ENDM
 
 %MACRO  ReadPixel
-        LDW     drawPixel_xy
         CALLI   readPixel
 %ENDM
 
 %MACRO  DrawPixel
-        LDW     drawPixel_xy
         CALLI   drawPixel
 %ENDM
 
@@ -664,32 +667,37 @@ _id_    LDW     v1
 _id_    CALLI   _label
 %ENDM
 
-%MACRO  JumpEQ _label id
+%MACRO  JumpTrue _label id
+        BEQ     _id_ + 3                                ; unique id is used as an internal macro label
+_id_    CALLI   _label
+%ENDM
+
+%MACRO  JumpEQ _label id                                ; inverted logic
         BEQ     _id_ + 3
 _id_    CALLI   _label
 %ENDM
 
-%MACRO  JumpNE _label id
+%MACRO  JumpNE _label id                                ; inverted logic
         BNE     _id_ + 3
 _id_    CALLI   _label
 %ENDM
 
-%MACRO  JumpLE _label id
+%MACRO  JumpLE _label id                                ; inverted logic
         BLE     _id_ + 3
 _id_    CALLI   _label
 %ENDM
 
-%MACRO  JumpGE _label id
+%MACRO  JumpGE _label id                                ; inverted logic
         BGE     _id_ + 3
 _id_    CALLI   _label
 %ENDM
 
-%MACRO  JumpLT _label id
+%MACRO  JumpLT _label id                                ; inverted logic
         BLT     _id_ + 3
 _id_    CALLI   _label
 %ENDM
 
-%MACRO  JumpGT _label id
+%MACRO  JumpGT _label id                                ; inverted logic
         BGT     _id_ + 3
 _id_    CALLI   _label
 %ENDM
@@ -734,8 +742,18 @@ _id_    CALLI   _label
         CALLI   copyDWordsFar
 %ENDM
 
-%MACRO  ResetVars
+%MACRO  ResetVars _addr
+        LDI     _addr
+        STW     varAddress
         CALLI   resetVars
+%ENDM
+
+%MACRO  ResetMem _memAddr _memCount
+        LDWI    _memAddr
+        STW     ramAddr0
+        LDWI    _memAddr + _memCount
+        STW     ramAddr1
+        CALLI   resetMem
 %ENDM
 
 ; Can't use CALLI as this code can be run on ROM's < ROMv5a
@@ -757,11 +775,16 @@ _id_    CALLI   _label
         LDWI    0x0F20
         STW     fgbgColour                              ; yellow on blue
 
+        LD      giga_channelMask
+        ORI     0x03
+        ST      giga_channelMask                        ; enable 4 channel audio by default
+        
         LDI     MISC_ENABLE_SCROLL_BIT
         STW     miscFlags                               ; reset flags
         LDI     0
-        STW     frameCountPrev                          ; reset frameCount shadow var
         STW     midiStream                              ; reset MIDI
+        LD      giga_frameCount
+        STW     frameCountPrev                          ; reset frameCount shadow var
         
         CALLI   resetVideoFlags
 %ENDM

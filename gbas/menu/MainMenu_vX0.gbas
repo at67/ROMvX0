@@ -2,33 +2,50 @@ _runtimePath_ "../runtime"
 _runtimeStart_ &h7FFF
 _codeRomType_ ROMvX0
 
+_stringWorkArea_ &h77A0
+
+def byte(&h75a0) = &h90, &h3c, &h91, &h40, &h92, &h43, &h93, &h48, &h0c, &h80, &h81, &h82, &h83, &h01, &h90, &h3c,
+def byte         = &h91, &h40, &h92, &h43, &h93, &h48, &h24, &h80, &h81, &h82, &h83, &hd0, &h00, &h00
+
 module "../SymbolTable.m"
 
 const NUM_APPS = 10
-const DIV_X    =  2
+const DIV_X    =  0
 const DIV_Y0   = 24
-const DIV_Y1   = 80
-const LIST_X0  = 20
+const DIV_Y1   = 72
+const LIST_X0  = 24
 const LIST_X1  = 98
-const LIST_Y   = 32
+const LIST_Y   = 38
 const LIST_DY  =  8
-const CURS_DX  =  9
+const CURS_DX  =  6
 const CURS_X   = LIST_X0 - CURS_DX
-const CURS_Y   = 32
+const CURS_Y   = 38
 
-const divider$ = "--------------------------"
+const dim apps$(NUM_APPS-1) = {"SDCARD", "SNAKE", "MANDELBROT", "CREDITS", "RACER",
+                               "LOADER", "TICTACTOE", "BASIC", "MS BASIC", "APPLE-1"}
 
-const dim apps$(NUM_APPS-1) = {"SDCard", "Racer", "Mandelbrot", "Credits", "Loader",
-                               "Snake", "TicTacToe", "BASIC", "MS BASIC", "Apple-1"}
+dim execs(NUM_APPS-1) = {SDCard, Snake, Mandelbrot, Credits, Racer,
+                         Loader, TicTac, TinyBASIC, MSBASIC, Apple1}
 
-dim execs(NUM_APPS-1) = {SDCard, Racer, Mandelbrot, Credits, Loader,
-                         Snake, TicTac, TinyBASIC, MSBASIC, Apple1}
+init time, NORESET
+set TIME_MODE, 13
+set TIME_EPOCH, 1
 
 tscroll off
+tfnt4x6 on
 
-set FG_COLOUR, 42 : at DIV_X, DIV_Y0 : print divider$
+set FG_COLOUR, &h20 : rectf 0, 0, 159, 27
+set FG_COLOUR, &h10 : rectf 2, 2, 157, 25
 
-set FG_COLOUR, 15
+set FG_COLOUR, &h20 : rectf 0, 91, 159, 119
+set FG_COLOUR, &h10 : rectf 2, 93, 157, 117
+
+set FG_COLOUR, &h20 : rectf 0, 28, 1, 90
+set FG_COLOUR, &h20 : rectf 158, 28, 159, 90
+
+gosub drawGiga
+
+set FGBG_COLOUR, &h0C00
 y = LIST_Y
 for i=0 to 4
     at LIST_X0, y : print apps$(i)
@@ -36,91 +53,264 @@ for i=0 to 4
     y = y + LIST_DY
 next i
 
-set FG_COLOUR, 42 : at DIV_X, DIV_Y1 : print divider$
+const help0$ = " [ARROWS] "
+const help1$ = " [A] "
+const help2$ = " [START] "
 
-at 2, 88  : print "Use [Arrows] to select"
-at 2, 96  : print "Press [A] to start program"
-at 2, 112 : print "Hold [Start] for reset"
+set FGBG_COLOUR, &h2A10
+at 36, 95  : print "USE";   : call help, @help0$, &h3F : print "TO SELECT";
+at 28, 103 : print "PRESS"; : call help, @help1$, &h3F : print "TO START PROGRAM";
+at 36, 111 : print "HOLD";  : call help, @help2$, &h3F : print "FOR RESET"
+
+set FGBG_COLOUR, &h1500
+at 3, 85 : print "ROMvX0";
+at 142, 85 : print string$(&h79);"K";
 
 x = CURS_X : y = CURS_Y
-f = 0 : f0 = f : f1 = f0 : index = f1
-kk = 255
+t = 0 : index = t : seconds = index : leds = seconds
+src = &h1097 : dst = &h1797
+
+play music, &h75a0, 3
+gosub resetAudio
+gosub initStars
+
 
 repeat
     wait
-    set FG_COLOUR, get("FRAME_COUNT")
-    at x, y : print chr$(130)
-    gosub handleInput
-    f = f + 1
+    gosub get("BUTTON_STATE")
+
+    set FG_COLOUR, get("JIFFIES")
+    at x, y : put 62 '>
+
+    gosub printTime
+    gosub drawStars
+    gosub blinkenLights
+    
+    inc t
 forever
 
 
-handleInput:
-    k = get("SERIAL_RAW")
-    if k <> kk
-        f = 0
-        kk = k
-        gosub k
+proc help, text, colour
+    set FG_COLOUR, colour : print string$(text);
+    set FG_COLOUR, &h2A
+endproc
+
+
+printTime:
+    if get("TIME_S") <> seconds
+        seconds = get("TIME_S")
+        
+        'standard H:M:S time string
+        set FGBG_COLOUR, &h1500
+        at 64, 85 : print time$
     endif
-    if f > 30
-        f0 = (f LSR 3) AND 1
-        if f0 <> f1
-            f1 = f0
-            gosub k
+return
+
+
+const NUM_BLNKNS = 24
+const XOUT_MASK  = &h14
+dim blnkns%(NUM_BLNKNS - 1) = {&hF, &h7, &h3, &h1, &h2, &h4, &h8, &h4, &h2, &h1, &h3, &h7,
+                               &hF, &hE, &hC, &h8, &h4, &h2, &h1, &h2, &h4, &h8, &hC, &hE}
+
+blinkenLights:
+    if (t AND &h03) = 0
+        poke XOUT_MASK, blnkns(leds)
+        inc leds
+        if leds = 24 then leds = 0
+    endif
+return
+
+
+const NUM_STARS = 32
+const STARS_ORG_X = 80
+const STARS_ORG_Y = 60
+
+dim star(NUM_STARS-1) = 0
+dim xPrv(NUM_STARS-1) = 0
+dim yPrv(NUM_STARS-1) = 0
+dim xPos(NUM_STARS-1) = 0
+dim yPos(NUM_STARS-1) = 0
+dim xVel(NUM_STARS-1) = 0
+dim yVel(NUM_STARS-1) = 0
+
+drawStars:
+    for i=0 to NUM_STARS-1
+        xPrv(i) = xPos(i) : xr = xPrv(i)
+        yPrv(i) = yPos(i) : yr = yPrv(i)
+        
+        xPos(i) = xPos(i) + xVel(i) : xp = xPos(i)
+        yPos(i) = yPos(i) + yVel(i) : yp = yPos(i)
+        
+        if abs(xp) > 79*256 then gosub newStar
+        if abs(yp) > 31*256 then gosub newStar
+        
+        px = xr.hi + STARS_ORG_X : py = yr.hi + STARS_ORG_Y
+        if point(px, py) AND &h80
+            pset px, py, 0
         endif
-    endif
+                
+        ss = star(i)
+        px = xp.hi + STARS_ORG_X : py = yp.hi + STARS_ORG_Y
+        if point(px, py) = 0
+            if ss > 20
+                pset px, py, &h3F OR &h80 'white
+            elseif ss > 10
+                pset px, py, &h2A OR &h80 'yellow*2/3
+            elseif ss > 4
+                pset px, py, &h15 OR &h80 'white*1/3
+            endif
+            star(i) = ss + 1
+        endif
+    next i
+return
+
+newStar:
+    star(i) = 0
+    xPos(i) = 0
+    yPos(i) = 0
+    repeat
+        xVel(i) = (rnd(0) AND 2047) - 1024
+        yVel(i) = (rnd(0) AND 2047) - 1024
+    until abs(xVel(i)) > 200  OR  abs(yVel(i)) > 200
+return
+
+initStars:
+    for i=0 to NUM_STARS-1
+        gosub newStar
+    next i
+return
+
+
+dim GIGA_G(10)  = 15,0, 0,-12, -15,0, 0,8, 14,0, 255
+dim GIGA_I(2)   = 0,-8, 255
+dim GIGA_DOT(2) = 0,0, 255
+dim GIGA_A(10)  = 15,0, 0,8, -15,0, 0,-4, 14,0, 255
+dim GIGA_T(12)  = 0,0, 0,4, 15,0, -15,0, 0,8, 15,0, 255
+dim GIGA_R(4)  = 0,-8, 15,0, 255
+dim GIGA_O(8)  = 0,-8, 15,0, 0,8, -15,0, 255
+dim GIGA_N(6)  = 0,-8, 15,0, 0,8, 255
+
+const GIGA_ORGX = 13
+const GIGA_ORGY = 19
+const GIGA_NUM  = 8
+
+dim GIGA_XPOS(GIGA_NUM) = 0, 19,  19, 23,  42,  61, 80, 99, 118
+dim GIGA_YPOS(GIGA_NUM) = 0, -4, -16,  0, -12, -16, -4, -4,  -4
+dim GIGA_ADDR(GIGA_NUM) = @GIGA_G, @GIGA_I, @GIGA_DOT, @GIGA_G, @GIGA_A, @GIGA_T, @GIGA_R, @GIGA_O, @GIGA_N
+
+drawGiga:
+    for k=0 to GIGA_NUM
+        call drawLetter, GIGA_ADDR(k), &h00, 2, 2, GIGA_XPOS(k), GIGA_YPOS(k)
+        call drawLetter, GIGA_ADDR(k), &h3F, 0, 0, GIGA_XPOS(k), GIGA_YPOS(k)
+    next k
+
+    set FGBG_COLOUR, &h3F10
+    at 81, 19 : print "TTL microcomputer";
+return
+
+proc drawLetter, letter, colour, ofsx, ofsy, x, y
+    set FG_COLOUR, colour
+    for j = ofsy to ofsy + 1
+        for i = ofsx to ofsx + 1
+            at GIGA_ORGX + x + i, GIGA_ORGY + y + j
+            polyR letter
+        next i
+    next j
+endproc
+
+
+setTime:
+    t = 0
+    set FG_COLOUR, &h15
+    at 64, 85  : input H,"";2;
+    at 72      : input M,":";2;
+    at 84      : input S,":";2;
+    H = H % 13 : if H = 0 then H = 12
+    M = M % 60
+    S = S % 60
+    set TIME_H, H : set TIME_M, M : set TIME_S, S
+    tscroll off
 return
 
 
 execApp:
+    cls
+    doke &h01F6, 0 'disable VBlank interrupt
     execAddr = &h0200
     loadAddr = execs(index)
-    if index = 4 then execAddr = &h00A8
+    if index = 5 then execAddr = &h00A8
     exec loadAddr, execAddr
 return
 
 
-calcIndex:
-    im5 = index - 5
-    ip5 = index + 5
-    at x, y : print " "
+resetAudio:
+    asm
+        MOVQB   waveType + 1, 2
+        CALLI   resetAudio
+    endasm
 return
 
 
+proc beep, duration
+    asm
+        LDWI    8200
+        FREQI   0
+        MOVQB   giga_soundTimer, 2
+    endasm
+    
+    set BUTTON_STATE, &hEF
+endproc
+
+
 'button A
-127:    gosub execApp
+127:    call beep, 2
+        gosub execApp
         return
 
 'enter
-10:     gosub execApp
+10:     call beep, 2
+        gosub setTime
+        set BUTTON_STATE, &hEF
         return
 
 'right
-254:    gosub calcIndex
-        index = cond(x = LIST_X0 - CURS_DX, ip5, im5)
-        x = cond(x = LIST_X0 - CURS_DX, LIST_X1 - CURS_DX, LIST_X0 - CURS_DX)
+254:    at x, y : put 32
+        if x = (LIST_X1 - CURS_DX) then return
+        x = (LIST_X1 - CURS_DX)
+        call beep, 2
+        index = index + 5
         return
 
 'left
-253:    gosub calcIndex
-        index = cond(x = LIST_X1 - CURS_DX, im5, ip5)
-        x = cond(x = LIST_X1 - CURS_DX, LIST_X0 - CURS_DX, LIST_X1 - CURS_DX)
+253:    at x, y : put 32
+        if x = (LIST_X0 - CURS_DX) then return
+        x = (LIST_X0 - CURS_DX)
+        call beep, 2
+        index = index - 5
         return
      
 'down     
-251:    at x, y : print " "
+251:    at x, y : put 32
         y = y + LIST_DY
-        if y > (LIST_Y + 4*LIST_DY) then y = LIST_Y
+        if y > (LIST_Y + 4*LIST_DY)
+            y = (LIST_Y + 4*LIST_DY)
+            return
+        endif
+        call beep, 2
         index = index + 1
-        if (x = LIST_X0 - CURS_DX) AND index > 4 then index = 0
-        if (x = LIST_X1 - CURS_DX) AND index > 9 then index = 5
+        if (x = LIST_X0 - CURS_DX) AND index > 4 then index = 4
+        if (x = LIST_X1 - CURS_DX) AND index > 9 then index = 9
         return
 
 'up
-247:    at x, y : print " "
+247:    at x, y : put 32
         y = y - LIST_DY
-        if y < LIST_Y then y = (LIST_Y + 4*LIST_DY)
+        if y < LIST_Y
+            y = LIST_Y
+            return
+        endif
+        call beep, 2
         index = index - 1
-        if (x = LIST_X0 - CURS_DX) AND index < 0 then index = 4
-        if (x = LIST_X1 - CURS_DX) AND index < 5 then index = 9
+        if (x = LIST_X0 - CURS_DX) AND index < 0 then index = 0
+        if (x = LIST_X1 - CURS_DX) AND index < 5 then index = 5
         return
