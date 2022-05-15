@@ -250,4 +250,4 @@ const SDCard = &hd228
 const Loader = &hdb9c
 const Boot = &hdbc4
 const Main = &he73c
-const Reset = &hf8b5
+const Reset = &hf8b1

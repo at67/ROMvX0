@@ -214,16 +214,14 @@ copyDWords          MOVQW   giga_sysFn, SYS_MemCopyDWord_vX_58
 %SUB                copyBytesFar
 copyBytesFar        PEEKV+  cpySrcAddr
                     POKEV+  cpyDstAddr
-                    DECWA   cpyCount
-                    BNE     copyBytesFar
+                    DJNE    cpyCount, copyBytesFar
                     RET
 %ENDS
 
 %SUB                copyWordsFar
 copyWordsFar        DEEKV+  cpySrcAddr
                     DOKEV+  cpyDstAddr
-                    DECWA   cpyCount
-                    BNE     copyWordsFar
+                    DJNE    cpyCount, copyWordsFar
                     RET
 %ENDS
 
@@ -232,8 +230,7 @@ copyDWordsFar       DEEKV+  cpySrcAddr
                     DOKEV+  cpyDstAddr
                     DEEKV+  cpySrcAddr
                     DOKEV+  cpyDstAddr
-                    DECWA   cpyCount
-                    BNE     copyDWordsFar
+                    DJNE    cpyCount, copyDWordsFar
                     RET
 %ENDS
 

@@ -155,7 +155,7 @@ drawStars:
             if ss > 20
                 pset px, py, &h3F OR &h80 'white
             elseif ss > 10
-                pset px, py, &h2A OR &h80 'yellow*2/3
+                pset px, py, &h2A OR &h80 'white*2/3
             elseif ss > 4
                 pset px, py, &h15 OR &h80 'white*1/3
             endif

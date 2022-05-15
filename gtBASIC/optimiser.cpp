@@ -25,7 +25,7 @@ namespace Optimiser
         LdwSubiBcc, LdXoriBcc, LdwXoriBcc, LdwNotwStw, LdwNegwStw, LdNotwSt, LdwNotwSt, LdwiAddwStwLdwiAddw, LdwiAddw2StwLdwiAddw2, LdwiStwLdiPoke, LdwiStwLdiDoke, LdwiStwLdwiDoke, StwLdPoke, StwLdwPoke,
         StwLdwDoke, StwLdwDokeReg, StwLdwIncPoke, LdStwLdwPokea, LdStwLdwiPokea, LdStwLdwiAddiPokea, NegwArrayB, NegwArray, AddwArrayB, AddwArray, SubwArrayB, SubwArray, AndwArrayB, AndwArray, OrwArrayB,
         OrwArray, XorwArrayB, XorwArray, LdStwMovqbLdwStw, LdwStwMovqbLdwStw, LdwiStwMovqbLdwStw, LdStwMovqwLdwStw, LdwStwMovqwLdwStw, LdwiStwMovqwLdwStw, StwLdwiAddwAddw, LdwiAddwAddw, LdwArrw, StwStwArrvwDokea,
-        StwArrvwDokea, ArrvwDeek, AssignArray, StarrwLdarrw, AddwAddwDeek,
+        StwArrvwDokea, ArrvwDeek, AssignArray, StarrwLdarrw, StwLdiPokea, AddwAddwDeek,
 
         // Operands are NOT matched
         MovbSt, PeekSt, PeekVar, DeekStw, DeekVar, LdwiDeek, LdwDeekAddbi, DeekvAddbi, DokeAddbi, LdSt, LdwSt, StwPair, StwPairReg, ExtraStw, PeekArrayB, PeekArray, DeekArray, PokeArray,
@@ -845,6 +845,11 @@ namespace Optimiser
         // StarrwLdarrw
         {0, 1, {Expression::createPaddedString("STARRW", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("LDARRW", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // StwLdiPokea
+        {0, 2, {Expression::createPaddedString("STW",   OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("LDI",   OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("POKEA", OPCODE_TRUNC_SIZE, ' ') + ""}},
 
         // AddwAddwDeek
         {0, 1, {Expression::createPaddedString("ADDW", OPCODE_TRUNC_SIZE, ' ') + "",
@@ -3682,6 +3687,28 @@ namespace Optimiser
                                         linesDeleted = true;
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LDARRW"});
+                                    }
+                                    break;
+
+                                    // Match STW LDI POKEA, replace with ST using LDI's operand
+                                    case StwLdiPokea:
+                                    {
+                                        // Bail if wrong ROM version
+                                        if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+
+                                        // Bail if LDI or POKEA have labels
+                                        if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                        if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                        // Update STW to POKE
+                                        std::string ldiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                        updateVasm(codeLine, firstMatch + 0, "ST", ldiOperand);
+
+                                        // Delete LDI POKEA
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LDI", "POKEA"});
                                     }
                                     break;
 
