@@ -156,7 +156,7 @@ drawVL_cont         ADDI    1
 %ENDS
 
 %SUB                drawLine
-drawLine            PUSH                                        ; matches drawLineLoop's POP
+drawLine            PUSH                                        ; matches drawLineExt's POP
                     LDI     1
                     STW     drawLine_dx1
                     STW     drawLine_dx2
@@ -192,12 +192,10 @@ drawL_ext           CALLI   drawLineExt
 %ENDS   
                     
 %SUB                drawLineExt
-drawLineExt         MOVB    drawLine_x1, drawLine_xy1
-                    MOVB    drawLine_y1, drawLine_xy1 + 1
+drawLineExt         PACKVW  drawLine_x1, drawLine_y1, drawLine_xy1
                     ADDBI   drawLine_xy1 + 1, 8                 ; xy1 = x1 | ((y1+8)<<8)
                     
-                    MOVB    drawLine_x2, drawLine_xy2
-                    MOVB    drawLine_y2, drawLine_xy2 + 1
+                    PACKVW  drawLine_x2, drawLine_y2, drawLine_xy2
                     ADDBI   drawLine_xy2 + 1, 8                 ; xy2 = x2 | ((y2+8)<<8)
                     
                     LDW     drawLine_sy
@@ -215,45 +213,20 @@ drawL_num           LD      drawLine_sx
                     STW     drawLine_num                        ; numerator = sx>>1
                     STW     drawLine_count                      ; for(count=sx>>1; counti>=0; --i)
                     
-                    MOVB    drawLine_dy1, giga_vAC + 1
-                    MOVQB   giga_vAC, 0
+                    LSL8    drawLine_dy1
                     ADDW    drawLine_dx1
                     STW     drawLine_dxy1                       ; dxy1 = dx1 + (dy1<<8)
     
-                    MOVB    drawLine_dy2, giga_vAC + 1
-                    MOVQB   giga_vAC, 0
+                    LSL8    drawLine_dy2
                     ADDW    drawLine_dx2
                     STW     drawLine_dxy2                       ; dxy2 = dx2 + (dy2<<8)
                     
                     MOVQW   giga_sysFn, SYS_DrawLine_vX_86      ; self starting sys call, performs
                     SYS     86                                  ; the inner loop of drawLineLoop
                     POP                                         ; matches drawLine's PUSH
-                    ;CALLI   drawLineLoop
                     RET
 %ENDS
 
-%SUB                drawLineLoop
-drawLineLoop        LD      fgbgColour + 1
-                    POKE    drawLine_xy1                        ; plot start pixel
-                    POKE    drawLine_xy2                        ; plot end pixel, (meet in middle)
-                    
-                    ADDVW   drawLine_sy, drawLine_num           ; numerator += sy
-                    SUBW    drawLine_sx
-                    BLE     drawL_flip                          ; if(numerator <= sx) goto flip
-                    STW     drawLine_num                        ; numerator -= sx
-                    
-                    ADDVW   drawLine_dxy1, drawLine_xy1         ; xy1 += dxy1
-                    SUBVW   drawLine_dxy1, drawLine_xy2         ; xy2 -= dxy1
-                    BRA     drawL_count
-                    
-drawL_flip          ADDVW   drawLine_dxy2, drawLine_xy1         ; xy1 += dxy2
-                    SUBVW   drawLine_dxy2, drawLine_xy2         ; xy2 -= dxy2
-                    
-drawL_count         DBNE    drawLine_count, drawLineLoop
-                    POP                                         ; matches drawLine's PUSH
-                    RET
-%ENDS   
-    
 %SUB                drawLineSlow
 drawLineSlow        PUSH
                     MOVQW   drawLine_u, 1                   ; u = 1
@@ -274,8 +247,7 @@ drawLS_dxp          STW     drawLine_dx
                     
 drawLS_dyp          STW     drawLine_dy
                     
-                    MOVB    drawLine_x1, drawLine_addr
-                    MOVB    drawLine_y1, drawLine_addr + 1
+                    PACKVW  drawLine_x1, drawLine_y1, drawLine_addr
                     ADDBI   drawLine_addr + 1, 8
                     LDW     drawLine_dx
                     SUBW    drawLine_dy
@@ -352,10 +324,8 @@ drawVTL_ext         CALLI   drawVTLineExt
 %ENDS   
                     
 %SUB                drawVTLineExt
-drawVTLineExt       MOVB    drawLine_x1, drawLine_xy1
-                    MOVB    drawLine_y1, drawLine_xy1 + 1       ; xy1 = x1 | (y1<<8)
-                    MOVB    drawLine_x2, drawLine_xy2
-                    MOVB    drawLine_y2, drawLine_xy2 + 1       ; xy2 = x2 | (y2<<8)
+drawVTLineExt       PACKVW  drawLine_x1, drawLine_y1, drawLine_xy1
+                    PACKVW  drawLine_x2, drawLine_y2, drawLine_xy2
 
                     LDW     drawLine_sy
                     SUBW    drawLine_sx
@@ -373,13 +343,11 @@ drawVTL_num         LD      drawLine_sx
                     STW     drawLine_num                        ; numerator = sx>>1
                     STW     drawLine_count                      ; for(count=sx>>1; counti>=0; --i)
 
-                    MOVB    drawLine_dy1, giga_vAC + 1
-                    MOVQB   giga_vAC, 0
+                    LSL8    drawLine_dy1
                     ADDW    drawLine_dx1
                     STW     drawLine_dxy1                       ; dxy1 = dx1 + (dy1<<8)
     
-                    MOVB    drawLine_dy2, giga_vAC + 1
-                    MOVQB   giga_vAC, 0
+                    LSL8    drawLine_dy2
                     ADDW    drawLine_dx2
                     STW     drawLine_dxy2                       ; dxy2 = dx2 + (dy2<<8)
                     CALLI   drawVTLineLoop
@@ -692,8 +660,7 @@ setPolyRelFlipY     LDWI    drawPR_y2
 %SUB                parityFill
 parityFill          LDWI    SYS_ParityFill_vX_44
                     STW     giga_sysFn
-                    MOVB    giga_sysArg2, register0
-                    MOVB    giga_sysArg4, register0 + 1
+                    PACKVW  giga_sysArg2, giga_sysArg4, register0
                     MOVB    giga_sysArg6, register1
                     SYS     44
                     RET

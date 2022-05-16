@@ -2009,10 +2009,10 @@ jmp(Y,'deekr#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x03a2, Opcode = 0xa2
-# Instruction PACKVW: vAC = src0.lo | (src1.lo <<8), 30 cycles
-label('PACKVW')
-ld(hi('packvw#13'),Y)           #10 #12
-jmp(Y,'packvw#13')              #11
+# Instruction PACKAW: vAC = src0.lo | (src1.lo <<8), 30 cycles
+label('PACKAW')
+ld(hi('packaw#13'),Y)           #10 #12
+jmp(Y,'packaw#13')              #11
 # dummy                         #12 Overlap
 #
 # pc = 0x03a4, Opcode = 0xa4, 26 to 46 cycles
@@ -2230,10 +2230,10 @@ jmp(Y,'alloc#13')              #11
 # dummy                        #12 Overlap
 #
 # pc = 0x03e1, Opcode = 0xe1
-# Instruction SUBBI: var.lo -= imm, 28 cycles
-label('SUBBI')
-ld(hi('subbi#13'),Y)            #10 #12
-jmp(Y,'subbi#13')               #11
+# Instruction PACKVW: var = src0.lo | (src1.lo <<8), 42 cycles
+label('PACKVW')
+ld(hi('packvw#13'),Y)           #10 #12
+jmp(Y,'packvw#13')              #11
 # dummy                         #12 Overlap
 #
 # pc = 0x03e3, Opcode = 0xe3
@@ -6639,23 +6639,6 @@ ld(hi('NEXTY'),Y)               #26
 jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
 
-# SUBBI implementation, var.lo -= imm, does NOT modify var.hi
-label('subbi#13')
-ld([vPC+1],Y)                   #13
-st([vTmp])                      #14 immediate value
-st([Y,Xpp])                     #15 X++
-ld([Y,X])                       #16
-ld(AC,X)                        #17 address of var
-ld([X])                         #18
-suba([vTmp])                    #19
-st([X])                         #20
-ld([vPC])                       #21
-adda(1)                         #22
-st([vPC])                       #23 advance vPC by 1
-ld(hi('NEXTY'),Y)               #24
-jmp(Y,'NEXTY')                  #25
-ld(-28/2)                       #26
-
 # MOVQB implementation
 label('movqb#13')
 ld([vPC+1],Y)                   #13 vPC.hi
@@ -10070,12 +10053,18 @@ jmp(Y,'vsubbl#13')              #11
 ld(AC,X)                        #12 src var
 
 # pc = 0x2489 Opcode = 0x89
-# Instruction CMPII: if vAC < imm0 vAC=-1, if vAC >= imm1 vAC=1, else vAC=0, 18 + (28) cycles
+# Instruction CMPII: if vAC < imm0 vAC=-1, if vAC >= imm1 vAC=1, else vAC=0, 22 + 28 cycles
 label('CMPII')
 ld(hi('cmpii#13'),Y)            #10
 jmp(Y,'cmpii#13')               #11
 # dummy                         #12 Overlap
 #
+# pc = 0x248b Opcode = 0x8b
+# Instruction SUBBI: var.lo -= imm, 22 + 20 cycles
+label('SUBBI')
+ld(hi('subbi#13'),Y)            #10 #12
+jmp(Y,'subbi#13')               #11
+ld(AC,X)                        #12 address of var
 
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
@@ -10367,6 +10356,13 @@ ld([vAC+1])                     #12 y
 label('OSCZ')
 ld(hi('oscz#13'),Y)             #10 #12
 jmp(Y,'oscz#13')                #11
+# dummy                         #12 Overlap
+#
+# pc = 0x235e, Opcode = 0x5e
+# Instruction LSL8: vAC.hi = var.lo, vAC.lo = 0, 22 + 22 cycles
+label('LSL8')
+ld(hi('lsl8#13'),Y)             #10 #12
+jmp(Y,'lsl8#13')                #11
 # dummy                         #12 Overlap
 #
 
@@ -11554,6 +11550,17 @@ st([vAC+1])                     #21
 ld(hi('NEXTY'),Y)               #22
 jmp(Y,'NEXTY')                  #23
 ld(-26/2)                       #24
+
+# LSL8 implementation
+label('lsl8#13')
+ld(AC,X)                        #13
+ld([X])                         #14
+st([vAC+1])                     #15
+ld(0)                           #16
+st([vAC])                       #17
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
 
 
 fillers(until=0xff)
@@ -13390,8 +13397,8 @@ ld(hi('NEXTY'),Y)               #26
 jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
 
-# PACKVW implementation
-label('packvw#13')
+# PACKAW implementation
+label('packaw#13')
 st([vTmp])                      #13 src1 addr
 ld([vPC+1],Y)                   #14
 st([Y,Xpp])                     #15
@@ -13408,6 +13415,47 @@ st([vPC])                       #25 advance vPC by 1
 ld(hi('NEXTY'),Y)               #26
 jmp(Y,'NEXTY')                  #27
 ld(-30/2)                       #28
+
+
+# PACKVW implementation
+label('packvw#13')
+ld([vPC+1],Y)                   #13
+st([vTmp])                      #14 var addr
+st([Y,Xpp])                     #15
+ld(min(0,maxTicks-42/2))        #16
+adda([vTicks])                  #17
+blt('.packvw#20')               #18 not enough time left, so retry
+ld([Y,X])                       #19 src1 addr
+st([Y,Xpp])                     #20
+st([0xB1])                      #21 0xB1 = src1 addr
+ld([Y,X])                       #22 src0 addr
+ld(AC,X)                        #23 
+ld([X])                         #24
+st([0xB0])                      #25 src0.lo
+ld([0xB1],X)                    #26
+ld([X])                         #27
+st([0xB1])                      #28 src1.lo
+ld(0,Y)                         #29
+ld([vTmp],X)                    #30
+ld([0xB0])                      #31
+st([Y,Xpp])                     #32 var.lo = src0.lo
+ld([0xB1])                      #33
+st([X])                         #34 var.hi = src1.lo
+ld([vPC])                       #35
+adda(2)                         #36
+st([vPC])                       #37 advance vPC by 2
+ld(hi('NEXTY'),Y)               #38
+jmp(Y,'NEXTY')                  #39
+ld(-42/2)                       #40
+
+label('.packvw#20')
+ld([vPC])                       #20 retry instruction
+suba(2)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+
 
 # LDWM implementation
 label('ldwm#13')
@@ -15045,6 +15093,16 @@ st([vCpuSelect])                #19 restore PREFX3 instruction page
 adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
+
+
+# SUBBI implementation, var.lo -= imm, does NOT modify var.hi
+label('subbi#13')
+ld([X])                         #13
+suba([sysArgs+7])               #14
+st([X])                         #15
+ld(hi('NEXTY'),Y)               #16
+jmp(Y,'NEXTY')                  #17
+ld(-20/2)                       #18
 
 
 # FNT6X8 implementation

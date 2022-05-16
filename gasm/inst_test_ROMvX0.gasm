@@ -54,7 +54,7 @@ inst_loop       MOVQB   giga_soundTimer, 5
                 LDWI    (_test_equ >>8) + 1
                 LDI     50
                 STW     0x32
-                CALL    INS114 ;STACK_CHK
+                CALL    INS117 ;STACK_CHK
                 BRA     inst_loop
 
 STACK_CHK       PUSH
@@ -570,7 +570,7 @@ _breakpoint_
 INS94           MOVQW   0x30, 0xEF
                 MOVQW   0x32, 0xBE
 _breakpoint_
-                PACKVW  0x30, 0x32
+                PACKAW  0x30, 0x32
                 RET
 
 INS95           LDWI    11753
@@ -680,4 +680,10 @@ _breakpoint_
 INS116          LDWI    0x0850
 _breakpoint_
                 VTBL    0x30
+                RET
+
+INS117          MOVQB   0x30, 0x12
+                MOVQB   0x32, 0x34
+                PACKVW  0x30, 0x32, 0x34
+_breakpoint_
                 RET

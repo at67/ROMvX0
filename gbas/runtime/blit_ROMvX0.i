@@ -7,14 +7,15 @@ blitAddrs           EQU     register2
 %SUB                drawBlit_
 drawBlit_           ARRVW   blitId, _blitsLut_
                     DEEKA   blitAddrs                     ; get blit address table
+                    BRA     drawB_check
                     
-drawB_loop          DEEKV+  blitAddrs
-                    BEQ     drawB_exit
-                    STW     giga_sysArg0
+drawB_loop          STW     giga_sysArg0
                     DEEKV+  blitAddrs
                     ADDW    blitXY
                     SYS     64
-                    BRA     drawB_loop
+
+drawB_check         DEEKV+  blitAddrs
+                    BNE     drawB_loop
                     
 drawB_exit          RET
 %ENDS

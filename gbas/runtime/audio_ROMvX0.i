@@ -16,15 +16,9 @@ musicPtr            EQU     register11
 
 
 %SUB                resetAudio
-resetAudio          LDI     0
-                    FREQI   0                                   ; zero freq 0
-                    FREQI   1                                   ; zero freq 1
-                    FREQI   2                                   ; zero freq 2
-                    FREQI   3                                   ; zero freq 3
-                    OSCZ    0                                   ; turn off osc 0, (suppresses audio glitches)
-                    OSCZ    1                                   ; turn off osc 1, (suppresses audio glitches)
-                    OSCZ    2                                   ; turn off osc 2, (suppresses audio glitches)
-                    OSCZ    3                                   ; turn off osc 3, (suppresses audio glitches)
+resetAudio          PUSH
+                    CALLI   soundAllOff
+                    POP
                     LD      waveType + 1
                     MODI   0                                    ; vol = 0, wav = <wavType + 1> for channel 0
                     MODI   1                                    ; vol = 0, wav = <wavType + 1> for channel 1
@@ -112,7 +106,8 @@ playMV_process      PEEKV+  midiStream                          ; get midi strea
                     BNE     playMV_endnote
                     
                     CALLI   midiStartNote                       ; start note
-                    CALLI   midiSetVolume                       ; set note volume
+                    PEEKV+  midiStream                          ; note volume
+                    VOLM    midiCommand                         ; wavA address 0x01FA <-> 0x04FA
                     BRA     playMV_process
                     
 playMV_endnote      XORI    0x10                                ; check for end note
@@ -139,10 +134,6 @@ playMV_exit1        POP
 midiStartNote       PEEKV+  midiStream                          ; midi note
                     MIDI                                        ; ROM note
                     FREQM   midiCommand                         ; freq address 0x01FC <-> 0x04FC
-                    RET
-
-midiSetVolume       PEEKV+  midiStream
-                    VOLM    midiCommand                         ; wavA address 0x01FA <-> 0x04FA
                     RET
 %ENDS
 
@@ -203,6 +194,10 @@ soundAllOff         LDI     0
                     FREQI   1                                   ; turn off channel 1
                     FREQI   2                                   ; turn off channel 2
                     FREQI   3                                   ; turn off channel 3
+                    OSCZ    0                                   ; turn off osc 0, (suppresses audio glitches)
+                    OSCZ    1                                   ; turn off osc 1, (suppresses audio glitches)
+                    OSCZ    2                                   ; turn off osc 2, (suppresses audio glitches)
+                    OSCZ    3                                   ; turn off osc 3, (suppresses audio glitches)
                     RET
 %ENDS
 

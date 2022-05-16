@@ -127,7 +127,7 @@ sortSpritesLut      MOVQW   giga_sysFn, SYS_SortViaIndices_vX_44
                     STW     giga_sysArg2
                     LDWI    _spritesTmpLut_ + 3                 ; index 3
                     STW     giga_sysArg4
-                    MOVQB    giga_sysArg6, 4                     ; dst step
+                    MOVQB   giga_sysArg6, 4                     ; dst step
                     LD      spritesCount
                     SYS     44
                     
@@ -138,7 +138,7 @@ sortSpritesLut      MOVQW   giga_sysFn, SYS_SortViaIndices_vX_44
                     STW     giga_sysArg2
                     LDWI    _spritesTmpLut_ + 0                 ; index 0
                     STW     giga_sysArg4
-                    MOVQB    giga_sysArg6, 4                     ; dst step
+                    MOVQB   giga_sysArg6, 4                     ; dst step
                     LD      spritesCount
                     SYS     44
 
@@ -149,7 +149,7 @@ sortSpritesLut      MOVQW   giga_sysFn, SYS_SortViaIndices_vX_44
                     STW     giga_sysArg2
                     LDWI    _spritesTmpLut_ + 2                 ; index 2
                     STW     giga_sysArg4
-                    MOVQB    giga_sysArg6, 4                     ; dst step
+                    MOVQB   giga_sysArg6, 4                     ; dst step
                     LD      spritesCount
                     SYS     44
                     RET
@@ -161,8 +161,8 @@ sortSprites         LDWI    SYS_FillByteSeq_vX_36
                     STW     giga_sysFn
                     LDWI    _spritesIndicesLut_
                     STW     giga_sysArg0                        ; dst address
-                    MOVQB    giga_sysArg2, 0                     ; offset
-                    MOVQB    giga_sysArg3, 1                     ; step
+                    MOVQB   giga_sysArg2, 0                     ; offset
+                    MOVQB   giga_sysArg3, 1                     ; step
                     MOVB    spritesCount, giga_sysArg4          ; num sprites
                     SYS     36                                  ; reset indices
 
