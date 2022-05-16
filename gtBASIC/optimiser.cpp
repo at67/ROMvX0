@@ -32,7 +32,7 @@ namespace Optimiser
         DokeArray, PokeVarArrayB, PokeVarArray, DokeVarArray, PokeTmpArrayB, PokeTmpArray, DokeTmpArray, PokeaVarArrayB, PokeaVarArray, DokeaVarArray, PokeaTmpArrayB, PokeaTmpArray, DokeaTmpArray, MovwaLdwiPokea,
         MovwaLdwiAddwPeeka, MovqwLdwiAddiPokea, LdwiAddwPeek, LdwiAddwPeeka, MovwaLdarrbSt, StwLdwiAddwPokea, LdwiAddwPokea, LdwiAddwPokei, StwMovb, StwPokeArray, StwDokeArray, LdiSt, LdiStw, LdSubLoHi, LdiSubLoHi,
         LdwSubLoHi, LdiAddi, LdiSubi, LdiAndi, LdiOri, LdiXori, AddiPair, LdwStw, TeqStw, TneStw, TltStw, TgtStw, TleStw, TgeStw, TeqJump, TneJump, TltJump, TgtJump, TleJump, TgeJump, TeqCondii, TeqCondib, TeqCondbi,
-        TeqCondbb, MovbMovb0, MovbMovb1,
+        TeqCondbb, MovbMovb0, MovbMovb1, MovbMovb2, PackvwLdw,
 
         // Opcodes AND operands are manually matched
         MovwaStarrb, AddiZero, SubiZero, LdwiNeg, LdwiSml, NumOptimiseTypes
@@ -1252,6 +1252,14 @@ namespace Optimiser
         // MovbMovb1
         {0, 0, {Expression::createPaddedString("MOVB", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("MOVB", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // MovbMovb2
+        {0, 0, {Expression::createPaddedString("MOVB", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("MOVB", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // PackvwLdw
+        {0, 0, {Expression::createPaddedString("PACKVW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("LDW",    OPCODE_TRUNC_SIZE, ' ') + ""}},
 
         /******************************************************************************************/
         /* Opcodes are manually matched here on in
@@ -5045,7 +5053,7 @@ namespace Optimiser
                                 }
                                 break;
 
-                                // Match MOVBMOVB, replace with MOVWA, (TODO: this can fail if vAC must remain valid, compiler should not produce code that requires vAC to be valid, fix is to use MOVW instead)
+                                // Match MOVB MOVB, replace with MOVWA, (TODO: this can fail if vAC must remain valid, compiler should not produce code that requires vAC to be valid, fix is to use MOVW instead)
                                 case MovbMovb0:
                                 {
                                     // Bail if wrong ROM version or if second MOVB has a label
@@ -5072,7 +5080,7 @@ namespace Optimiser
                                 }
                                 break;
 
-                                // Match MOVBMOVB, replace with PACKVW
+                                // Match MOVB MOVB, replace with PACKAW
                                 case MovbMovb1:
                                 {
                                     // Bail if wrong ROM version or if second MOVB has a label
@@ -5086,13 +5094,62 @@ namespace Optimiser
                                     std::string movbOperand11 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 1);
                                     if(movbOperand01 != "giga_vAC"  ||  (movbOperand11 != "giga_vAC+1"  &&  movbOperand11 != "giga_vAC + 1")) break;
 
-                                    // Replace first MOVB with MOVWA
-                                    updateVasm(codeLine, firstMatch, "PACKVW", movbOperand00 + ", " + movbOperand10);
+                                    // Replace first MOVB with PACKAW
+                                    updateVasm(codeLine, firstMatch, "PACKAW", movbOperand00 + ", " + movbOperand10);
 
                                     // Delete second MOVB
                                     linesDeleted = true;
                                     itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                     adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"MOVB"});
+                                }
+                                break;
+
+                                // Match MOVB MOVB, replace with PACKVW
+                                case MovbMovb2:
+                                {
+                                    // Bail if wrong ROM version or if second MOVB has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+
+                                    // Bail if operands don't match corectly
+                                    std::string movbOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 0);
+                                    std::string movbOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 1);
+                                    std::string movbOperand10 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 0);
+                                    std::string movbOperand11 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 1);
+                                    if(movbOperand01 == "giga_vAC"  ||  movbOperand11.find(movbOperand01) == std::string::npos  ||  
+                                       (movbOperand11.find("+1") == std::string::npos  &&  movbOperand11.find(" + 1") == std::string::npos)) break;
+
+                                    // Replace first MOVB with PACKVW
+                                    updateVasm(codeLine, firstMatch, "PACKVW", movbOperand00 + ", " + movbOperand10 + ", " + movbOperand01);
+
+                                    // Delete second MOVB
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"MOVB"});
+                                }
+                                break;
+
+                                // Match PACKVW LDW, replace with PACKAW and delete LDW
+                                case PackvwLdw:
+                                {
+                                    // Bail if wrong ROM version or if second MOVB has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+
+                                    // Bail if operands don't match corectly
+                                    std::string pckOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 0);
+                                    std::string pckOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 1);
+                                    std::string pckOperand02 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 2);
+                                    std::string ldwOperand   = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 0);
+                                    if(pckOperand02 != ldwOperand) break;
+
+                                    // Replace PACKVW with PACKAW
+                                    updateVasm(codeLine, firstMatch, "PACKAW", pckOperand00 + ", " + pckOperand01);
+
+                                    // Delete LDW
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LDW"});
                                 }
                                 break;
 

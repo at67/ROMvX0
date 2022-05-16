@@ -1347,8 +1347,7 @@ namespace Operators
                     // Temporary variable address
                     case Expression::TmpVar:
                     {
-                        Compiler::emitVcpuAsm("MOVB", Expression::byteToHexString(uint8_t(std::lround(left._value))) + ", giga_vAC + 1", false);
-                        Compiler::emitVcpuAsm("MOVQB", "giga_vAC, 0", false);
+                        Compiler::emitVcpuAsm("LSL8", Expression::byteToHexString(uint8_t(std::lround(left._value))), false);
                     }
                     break;
 
@@ -1363,8 +1362,7 @@ namespace Operators
                             return left;
                         }
 
-                        Compiler::emitVcpuAsm("MOVB", "_" + left._name + ", giga_vAC + 1", false);
-                        Compiler::emitVcpuAsm("MOVQB", "giga_vAC, 0", false);
+                        Compiler::emitVcpuAsm("LSL8", "_" + left._name, false);
                     }
                     break;
 

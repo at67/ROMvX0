@@ -72,7 +72,7 @@
 #define OPCODE_V_BRA    0x90
 #define OPCODE_V_INCWA  0x95
 #define OPCODE_V_DBNE   0x9E
-#define OPCODE_V_PACKVW 0xA2
+#define OPCODE_V_PACKAW 0xA2
 #define OPCODE_V_DJNE   0xA4
 #define OPCODE_V_CMPI   0xA7
 #define OPCODE_V_ADDVW  0xA9
@@ -87,7 +87,7 @@
 #define OPCODE_V_PREFX3 0xC7
 #define OPCODE_V_CALL   0xCF
 #define OPCODE_V_DECWA  0xDD
-#define OPCODE_V_SUBBI  0xE1
+#define OPCODE_V_PACKVW 0xE1
 
 // PREFX1 instructions
 #define OPCODE_V_NOTE   0x11
@@ -134,9 +134,10 @@
 #define OPCODE_V_INCL   0x4F
 #define OPCODE_V_DECL   0x52
 #define OPCODE_V_STPX   0x54
-#define OPCODE_V_PRN4X6 0x5C
-#define OPCODE_V_VTBL   0x5E
-#define OPCODE_V_OSCZ   0x61
+#define OPCODE_V_PRN4X6 0x57
+#define OPCODE_V_VTBL   0x59
+#define OPCODE_V_OSCZ   0x5C
+#define OPCODE_V_LSL8   0x5E
 
 // PREFX3 instructions
 #define OPCODE_V_STB2   0x11
@@ -184,6 +185,7 @@
 #define OPCODE_V_VADDBL 0x83
 #define OPCODE_V_VSUBBL 0x86
 #define OPCODE_V_CMPII  0x89
+#define OPCODE_V_SUBBI  0x8B
 
 #define OPCODE_V_HALT   0xB4
 #define OPERAND_V_HALT  0x80

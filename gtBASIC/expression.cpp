@@ -322,15 +322,24 @@ namespace Expression
         return HasNumbers;
     }
 
-    // Assumes there is either 1 operand or 2 operands seperated by a comma
     std::string getVasmOperand(const std::string& operand, int index)
     {
         std::string opr = operand;
         Expression::stripWhitespace(opr);
-        std::size_t comma = opr.find(',');
-        if(comma == std::string::npos) return opr;
-        if(index  &&  comma + 1 < opr.size()) return opr.substr(comma + 1);
-        return opr.substr(0, comma);
+
+        size_t pos = 0;
+        std::vector<std::string> operands;
+        while((pos = opr.find(',')) != std::string::npos)
+        {
+            operands.push_back(opr.substr(0, pos));
+            opr.erase(0, pos + 1);
+        }
+
+        if(opr.size()) operands.push_back(opr);
+
+        if(index < int(operands.size())) return operands[index];
+
+        return "";
     }
 
     // First char must be alpha, all chars except first can be numerics, all chars except first and last can be underscores, can contain valid brackets as an array reference
