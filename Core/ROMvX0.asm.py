@@ -9069,9 +9069,11 @@ suba(2)                         #41
 st([vPC])                       #42
 ctrl(0b01111111)                #43 Expansion board: (1) reset signal.
 ctrl(0b01111100)                #44 (2) disable SPI slaves, enable RAM bank 1
-ld(hi('REENTER'),Y)             #45
-jmp(Y,'REENTER')                #46
-ld(-50/2)                       #47
+ld(0x0f)                        #45 default 4bit sound
+st([audioBitMask])              #46
+ld(hi('REENTER'),Y)             #47
+jmp(Y,'REENTER')                #48
+ld(-52/2)                       #49
 
 
 #-----------------------------------------------------------------------

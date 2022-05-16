@@ -270,7 +270,9 @@ execApp:
     set FGBG_COLOUR, &hFF00 : cls INIT : cls : tfnt4x6 off
     commsSize = 1 + len + 1
     gosub sendCommsCmd
-    'exec Loader, &h00A8
+    poke &h04, 00  'reset stack page
+    poke &h1C, 00  'reset stack     
+    exec Loader, &h00A8
 return
 
 
@@ -282,8 +284,8 @@ handleInput:
         kk = k
         gosub k
     endif
-    if f > 20
-        if ((f LSR 1) AND 1)
+    if f > 25
+        if ((f LSR 2) AND 1)
             gosub k
         endif
     endif

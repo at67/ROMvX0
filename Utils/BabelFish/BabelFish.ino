@@ -527,7 +527,7 @@ void loop()
                         cmdSDCard = CmdSDEnd;
 
                         // Need to delay to make sure Gigatron's ROM loader is active
-                        //delay(250); 
+                        delay(250); 
 
                         // Terminate string and reset pointer
                         *namePtr = 0;
@@ -536,7 +536,7 @@ void loop()
                         // Files in root and sub dirs are treated differently
                         String pathFile = (dirDepthSD == 0) ? pathSD + filename : pathSD + "/" + filename;
                         Serial.println(pathFile);
-                        doSDFileTransfer((char*)pathFile.c_str(), true, false);
+                        doSDFileTransfer((char*)pathFile.c_str(), false, false);
                     }
                 }
                 break;
@@ -961,7 +961,7 @@ void doLoader()
 #endif
 
     sendController(~buttonRight, 2);
-    delay(150);
+    delay(175);
 
     // Start 'Loader' application on Gigatron
     sendController(~buttonA & 255, 2);
