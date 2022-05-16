@@ -9823,251 +9823,251 @@ jmp(Y,'xorwi#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x2225, Opcode = 0x25
-# Instruction FNT6X8: vAC = FNT6X8(vAC), 22 + 42 cycles
+# Instruction FNT6X8: fontTable = FNT6X8(char), vAC = index(char), 22 + 42 cycles
 label('FNT6X8')
 ld(hi('fnt6x8#13'),Y)           #10
 jmp(Y,'fnt6x8#13')              #11
-# dummy                         #12 Overlap
-#
-# pc = 0x2227, Opcode = 0x27
-# Instruction FNT4X6: vAC = FNT4X6(vAC), 22 + 42 cycles
+st([sysArgs+6])                 #12 fontChr addr
+
+# pc = 0x2228, Opcode = 0x28
+# Instruction FNT4X6: fontTable = FNT4X6(char), vAC = index(char), 22 + 42 cycles
 label('FNT4X6')
 ld(hi('fnt4x6#13'),Y)           #10
 jmp(Y,'fnt4x6#13')              #11
 # dummy                         #12 Overlap
 #
-# pc = 0x2229, Opcode = 0x29
+# pc = 0x222a, Opcode = 0x2a
 # Instruction CONDII: chooses immediate operand based on condition, (vAC == 0), 22 + 26 cycles
 label('CONDII')
 ld(hi('condii#13'),Y)           #10 #12
 jmp(Y,'condii#13')              #11
 # dummy                         #12 Overlap
 #
-# pc = 0x222b, Opcode = 0x2b
+# pc = 0x222c, Opcode = 0x2c
 # Instruction CONDBB: chooses zero page byte var based on condition, (vAC == 0), 22 + 26 cycles
 label('CONDBB')
 ld(hi('condbb#13'),Y)           #10 #12
 jmp(Y,'condbb#13')              #11
 ld(AC,X)                        #12
 
-# pc = 0x222e, Opcode = 0x2e
+# pc = 0x222f, Opcode = 0x2f
 # Instruction CONDIB: chooses between imm and zero page byte var based on condition, (vAC == 0), 22 + 26 cycles
 label('CONDIB')
 ld(hi('condib#13'),Y)           #10
 jmp(Y,'condib#13')              #11
 st([vTmp])                      #12
 
-# pc = 0x2231, Opcode = 0x31
+# pc = 0x2232, Opcode = 0x32
 # Instruction CONDBI: chooses between zero page byte var and imm based on condition, (vAC == 0), 22 + 26 cycles
 label('CONDBI')
 ld(hi('condbi#13'),Y)           #10
 jmp(Y,'condbi#13')              #11
 # dummy                         #12 Overlap
 #
-# pc = 0x2233, Opcode = 0x33
+# pc = 0x2234, Opcode = 0x34
 # Instruction XCHGW: Exchange two zero word variables, 22 + 46 cycles
 label('XCHGW')
 ld(hi('xchgw#13'),Y)            #10 #12
 jmp(Y,'xchgw#13')               #11
 st([sysArgs+6])                 #12 var1
 
-# pc = 0x2236, Opcode = 0x36
+# pc = 0x2237, Opcode = 0x37
 # Instruction OSCPX:
 label('OSCPX')
 ld(hi('oscpx#13'),Y)            #10
 jmp(Y,'oscpx#13')               #11
 # dummy                         #12 Overlap
 # 
-# pc = 0x2238, Opcode = 0x38
+# pc = 0x2239, Opcode = 0x39
 # Instruction SWAPB: Swap two bytes in memory, 22 + 46 cycles
 label('SWAPB')
 ld(hi('swapb#13'),Y)            #10 #12
 jmp(Y,'swapb#13')               #11
 ld(AC,X)                        #12 var1
 # 
-# pc = 0x223b, Opcode = 0x3b
+# pc = 0x223c, Opcode = 0x3c
 # Instruction SWAPW: Swap two words in memory, 22 + 58 cycles
 label('SWAPW')
 ld(hi('swapw#13'),Y)            #10
 jmp(Y,'swapw#13')               #11
 ld(AC,X)                        #12 var1
 
-# pc = 0x223e, Opcode = 0x3e
+# pc = 0x223f, Opcode = 0x3f
 # Instruction NEEKA: Peek <n> bytes from [vAC] into [var], 22 + 34*n + 24 cycles
 label('NEEKA')
 ld(hi('neeka#13'),Y)            #10
 jmp(Y,'neeka#13')               #11
 st([sysArgs+6])                 #12 var
 
-# pc = 0x2241, Opcode = 0x41
+# pc = 0x2242, Opcode = 0x42
 # Instruction NOKEA: Poke <n> bytes from [var] into [vAC], 22 + 34*n + 24 cycles
 label('NOKEA')
 ld(hi('nokea#13'),Y)            #10
 jmp(Y,'nokea#13')               #11
 st([sysArgs+6])                 #12 var
 
-# pc = 0x2244, Opcode = 0x44
+# pc = 0x2245, Opcode = 0x45
 # Instruction ADDVL: Add two 32bit zero page vars, dst += src, 22 + 78 cycles
 label('ADDVL')
 ld(hi('addvl#13'),Y)            #10
 jmp(Y,'addvl#13')               #11
 st([sysArgs+6],X)               #12 src var
 
-# pc = 0x2247, Opcode = 0x47
+# pc = 0x2248, Opcode = 0x48
 # Instruction SUBVL: Subtract two 32bit zero page vars, dst -= src, 22 + 74 cycles
 label('SUBVL')
 ld(hi('subvl#13'),Y)            #10
 jmp(Y,'subvl#13')               #11
 st([sysArgs+6],X)               #12 src var
 
-# pc = 0x224a, Opcode = 0x4a
+# pc = 0x224c, Opcode = 0x4c
 # Instruction ANDVL: And two 32bit zero page vars, dst &= src, 22 + 46 cycles
 label('ANDVL')
 ld(hi('andvl#13'),Y)            #10
 jmp(Y,'andvl#13')               #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x224d, Opcode = 0x4d
+# pc = 0x224e, Opcode = 0x4e
 # Instruction ORVL: Or two 32bit zero page vars, dst |= src, 22 + 46 cycles
 label('ORVL')
 ld(hi('orvl#13'),Y)             #10
 jmp(Y,'orvl#13')                #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x2250, Opcode = 0x50
+# pc = 0x2251, Opcode = 0x51
 # Instruction XORVL: Xor two 32bit zero page vars, dst ^= src, 22 + 76 cycles
 label('XORVL')
 ld(hi('xorvl#13'),Y)            #10
 jmp(Y,'xorvl#13')               #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x2253, Opcode = 0x53
+# pc = 0x2254, Opcode = 0x54
 # Instruction JEQL: 22 + 40 cycles
 label('JEQL')
 ld(hi('jeql#13'),Y)             #10
 jmp(Y,'jeql#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x2256, Opcode = 0x56
+# pc = 0x2257, Opcode = 0x57
 # Instruction JNEL: 22 + 40 cycles
 label('JNEL')
 ld(hi('jnel#13'),Y)             #10
 jmp(Y,'jnel#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x2259, Opcode = 0x59
+# pc = 0x225a, Opcode = 0x5a
 # Instruction JLTL: 22 + 26 cycles
 label('JLTL')
 ld(hi('jltl#13'),Y)             #10
 jmp(Y,'jltl#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x225c, Opcode = 0x5c
+# pc = 0x225d, Opcode = 0x5d
 # Instruction JGTL: 22 + 42 cycles
 label('JGTL')
 ld(hi('jgtl#13'),Y)             #10
 jmp(Y,'jgtl#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x225f, Opcode = 0x5f
+# pc = 0x2260, Opcode = 0x60
 # Instruction JLEL: 22 + 42 cycles
 label('JLEL')
 ld(hi('jlel#13'),Y)             #10
 jmp(Y,'jlel#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x2262, Opcode = 0x62
+# pc = 0x2263, Opcode = 0x63
 # Instruction JGEL: 22 + 26 cycles
 label('JGEL')
 ld(hi('jgel#13'),Y)             #10
 jmp(Y,'jgel#13')                #11
 st([sysArgs+6])                 #12 jump.hi
 
-# pc = 0x2265, Opcode = 0x65
+# pc = 0x2266, Opcode = 0x66
 # Instruction ANDBI: And immediate byte with byte var, result in byte var, 22 + 20 cycles
 label('ANDBI')
 ld(hi('andbi#13'),Y)            #10
 jmp(Y,'andbi#13')               #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x2268, Opcode = 0x68
+# pc = 0x2269, Opcode = 0x69
 # Instruction ORBI: OR immediate byte with byte var, result in byte var, 22 + 20 cycles
 label('ORBI')
 ld(hi('orbi#13'),Y)             #10
 jmp(Y,'orbi#13')                #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x226b, Opcode = 0x6b
+# pc = 0x226c, Opcode = 0x6c
 # Instruction XORBI: var.lo ^= imm, 22 + 20 cycles
 label('XORBI')
 ld(hi('xorbi#13'),Y)            #10
 jmp(Y,'xorbi#13')               #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x226e, Opcode = 0x6e
+# pc = 0x226f, Opcode = 0x6f
 # Instruction ANDBK: vAC.hi = 0, vAC.lo = var.lo & imm, 22 + 22 cycles
 label('ANDBK')
 ld(hi('andbk#13'),Y)            #10
 jmp(Y,'andbk#13')               #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x2271, Opcode = 0x71
+# pc = 0x2272, Opcode = 0x72
 # Instruction ORBK: vAC.lo = var.lo | imm, 22 + 22 cycles
 label('ORBK')
 ld(hi('orbk#13'),Y)             #10
 jmp(Y,'orbk#13')                #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x2274, Opcode = 0x74
+# pc = 0x2275, Opcode = 0x75
 # Instruction XORBK: vAC.lo = var.lo ^ imm, 22 + 22 cycles
 label('XORBK')
 ld(hi('xorbk#13'),Y)            #10
 jmp(Y,'xorbk#13')               #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x2277, Opcode = 0x77
+# pc = 0x2278, Opcode = 0x78
 # Instruction JMPI, (lb3361): Jump to 16bit address, preserve vLR, 22 + 20 cycles
 label('JMPI')
 ld(hi('jmpi#13'),Y)             #10
 jmp(Y,'jmpi#13')                #11
 suba(2)                         #12
 
-# pc = 0x227a, Opcode = 0x7a
+# pc = 0x227b, Opcode = 0x7b
 # Instruction SUBIW: vAC = imm16 - vAC, 22 + 28 cycles
 label('SUBIW')
 ld(hi('subiw#13'),Y)            #10 #12
 jmp(Y,'subiw#13')               #11
 # dummy                         #12 Overlap
 #
-# pc = 0x227c, Opcode = 0x7c
+# pc = 0x227d, Opcode = 0x7d
 # Instruction VADDBW: dst.0 += src.0, dst.1 += src.1, 22 + 30 cycles
 label('VADDBW')
 ld(hi('vaddbw#13'),Y)           #10 overlap
 jmp(Y,'vaddbw#13')              #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x227f, Opcode = 0x7f
+# pc = 0x2280, Opcode = 0x80
 # Instruction VSUBBW: dst.0 -= src.0, dst.1 -= src.1, 22 + 30 cycles
 label('VSUBBW')
 ld(hi('vsubbw#13'),Y)           #10
 jmp(Y,'vsubbw#13')              #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x2282, Opcode = 0x82
+# pc = 0x2283, Opcode = 0x83
 # Instruction VADDBL: dst.0 += src.0, dst.1 += src.1, dst.2 += src.2, dst.3 += src.3, 22 + 46 cycles
 label('VADDBL')
 ld(hi('vaddbl#13'),Y)           #10
 jmp(Y,'vaddbl#13')              #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x2285, Opcode = 0x85
+# pc = 0x2286, Opcode = 0x86
 # Instruction VSUBBL: dst.0 -= src.0, dst.1 -= src.1, dst.2 -= src.2, dst.3 -= src.3, 22 + 46 cycles
 label('VSUBBL')
 ld(hi('vsubbl#13'),Y)           #10
 jmp(Y,'vsubbl#13')              #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x2488 Opcode = 0x88
+# pc = 0x2489 Opcode = 0x89
 # Instruction CMPII: if vAC < imm0 vAC=-1, if vAC >= imm1 vAC=1, else vAC=0, 18 + (28) cycles
 label('CMPII')
 ld(hi('cmpii#13'),Y)            #10
@@ -10346,20 +10346,6 @@ jmp(Y,'stpx#13')                #11
 ld(AC,X)                        #12
 
 # pc = 0x2357, Opcode = 0x57
-# Instruction FLT6X8: fontTable.lo = vAC*5 + fontTable.lo
-label('FLT6X8')
-ld(hi('flt6x8#13'),Y)           #10 #12
-jmp(Y,'flt6x8#13')              #11
-ld([vAC])                       #12
-
-# pc = 0x235a, Opcode = 0x5a
-# Instruction FLT4X6: fontTable.lo = vAC*3 + fontTable.lo
-label('FLT4X6')
-ld(hi('flt4x6#13'),Y)           #10
-jmp(Y,'flt4x6#13')              #11
-# dummy                         #12 Overlap
-#
-# pc = 0x235c, Opcode = 0x5c
 # Instruction PRN4X6: print 4x6 font char to screen from var, 22 + 102 cycles
 # sysArgs01 = FG/BG COLOUR, sysArgs2 = 3, (LUP count), var = textFont address, vAC = dest addr
 label('PRN4X6')
@@ -10367,14 +10353,14 @@ ld(hi('prn4x6#13'),Y)           #10 #12
 jmp(Y,'prn4x6#13')              #11
 # dummy                         #12 Overlap
 #
-# pc = 0x235e, Opcode = 0x5e
+# pc = 0x2359, Opcode = 0x59
 # Instruction VTBL: var = VTBL(vAC), 22 + 28 cycles
 label('VTBL')
 ld(hi('vtbl#13'),Y)             #10 #12
 jmp(Y,'vtbl#13')                #11
 ld([vAC+1])                     #12 y
 
-# pc = 0x2361, Opcode = 0x61
+# pc = 0x235c, Opcode = 0x5c
 # Instruction OSCZ: [(((imm & 3) + 1) <<8) | 0x00FE] = 0, chan imm = [0..3], 22 + 22 cycles
 label('OSCZ')
 ld(hi('oscz#13'),Y)             #10 #12
@@ -15061,56 +15047,55 @@ ld(-24/2)                       #22
 
 # FNT6X8 implementation
 label('fnt6x8#13')
-st([sysArgs+6])                 #13 fontChr addr
-ld(min(0,maxTicks-42/2))        #14
-adda([vTicks])                  #15
-blt('.fnt6x8#18')               #16 not enough time left, so retry
-ld([sysArgs+6],X)               #17
-ld([X])                         #18 fontChr
-bmi('fnt6x8#21')                #19
-suba(82)                        #20
-bra('fnt6x8#23')                #21
-ora(82)                         #22
+ld(min(0,maxTicks-42/2))        #13
+adda([vTicks])                  #14
+blt('.fnt6x8#17')               #15 not enough time left, so retry
+ld([sysArgs+6],X)               #16
+ld([X])                         #17 fontChr
+bmi('fnt6x8#20')                #18
+suba(82)                        #19
+bra('fnt6x8#22')                #20
+ora(82)                         #21
 
-label('fnt6x8#21')
-anda(82)                        #21
-nop()                           #22
+label('fnt6x8#20')
+anda(82)                        #20
+nop()                           #21
 
-label('fnt6x8#23')
-bmi('fnt6x8#25')                #23
-ld([X])                         #24 fontChr >= 82
-suba(82)                        #25
-st([X])                         #26
-st([vAC])                       #27 vAC.lo = fontChr - 82
-bra('fnt6x8#30')                #28 fontChr.lo = vAC.lo
-ld(hi('font82up'))              #29 vTmp = font82up.hi
+label('fnt6x8#22')
+bmi('fnt6x8#24')                #22
+ld([X])                         #23 fontChr >= 82
+suba(82)                        #24
+st([sysArgs+6])                 #25 sysArgs+6 = fontChr - 82
+bra('fnt6x8#28')                #26
+ld(hi('font82up'))              #27 vTmp = font82up.hi
 
-label('fnt6x8#25')
-suba(32)                        #25 fontChr < 82, (assumes fontChr is 32 to 130)
-st([vAC])                       #26 vAC.lo = fontChr - 32
-st([X])                         #27 fontChr.lo = vAC.lo
-ld(hi('font32up'))              #29 vTmp = font32up.hi
-nop()                           #29
+label('fnt6x8#24')
+suba(32)                        #24 fontChr < 82, (assumes fontChr is 32 to 130)
+st([sysArgs+6])                 #25 sysArgs+6 = fontChr - 32
+ld(hi('font32up'))              #26 vTmp = font32up.hi
+nop()                           #27
 
-label('fnt6x8#30')
-st([vTmp])                      #30
-ld(0,Y)                         #31
-ld([sysArgs+7],X)               #32
-st(0,[Y,Xpp])                   #33 fontTable.lo = 0
-ld([vTmp])                      #34 fontTable.hi = vTmp
-st([X])                         #35
-ld(0)                           #36
-st([vAC+1])                     #37 vAC.hi = 0
+label('fnt6x8#28')
+st([vTmp])                      #28
+ld(0,Y)                         #29
+ld([sysArgs+7],X)               #30
+ld([sysArgs+6])                 #31
+adda(AC)                        #32
+adda(AC)                        #33
+adda([sysArgs+6])               #34
+st([Y,Xpp])                     #35 fontTable.lo = sysArgs+6*5
+ld([vTmp])                      #36
+st([X])                         #37 fontTable.hi = vTmp
 ld(hi('NEXTY'),Y)               #38
 jmp(Y,'NEXTY')                  #39
 ld(-42/2)                       #40
 
-label('.fnt6x8#18')
-ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
-st([vCpuSelect])                #19 restore PREFX3 instruction page
-adda(1,Y)                       #20 retry instruction
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
+label('.fnt6x8#17')
+ld(hi('PREFX3_PAGE'))           #17 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #18 restore PREFX3 instruction page
+adda(1,Y)                       #19 retry instruction
+jmp(Y,'REENTER')                #20
+ld(-24/2)                       #21
 
 
 # FNT4X6 implementation
@@ -15134,27 +15119,26 @@ label('fnt4x6#23')
 bmi('fnt4x6#25')                #23
 ld([X])                         #24 fontChr >= 82
 suba(115)                       #25
-st([X])                         #26
-st([vAC])                       #27 vAC.lo = fontChr - 82
-bra('fnt4x6#30')                #28 fontChr.lo = vAC.lo
-ld(hi('font4x6_115up'))         #29 vTmp = font4x6_115up.hi
+st([sysArgs+6])                 #26 sysArgs+6 = fontChr - 82
+bra('fnt4x6#29')                #27
+ld(hi('font4x6_115up'))         #28 vTmp = font4x6_115up.hi
 
 label('fnt4x6#25')
 suba(32)                        #25 fontChr < 82, (assumes fontChr is 32 to 130)
-st([vAC])                       #26 vAC.lo = fontChr - 32
-st([X])                         #27 fontChr.lo = vAC.lo
-ld(hi('font4x6_32up'))          #29 vTmp = font4x6_32up.hi
-nop()                           #29
+st([sysArgs+6])                 #26 vAC.lo = fontChr - 32
+ld(hi('font4x6_32up'))          #27 vTmp = font4x6_32up.hi
+nop()                           #28
 
-label('fnt4x6#30')
-st([vTmp])                      #30
-ld(0,Y)                         #31
-ld([sysArgs+7],X)               #32
-st(0,[Y,Xpp])                   #33 fontTable.lo = 0
-ld([vTmp])                      #34 fontTable.hi = vTmp
-st([X])                         #35
-ld(0)                           #36
-st([vAC+1])                     #37 vAC.hi = 0
+label('fnt4x6#29')
+st([vTmp])                      #29
+ld(0,Y)                         #30
+ld([sysArgs+7],X)               #31
+ld([sysArgs+6])                 #32
+adda(AC)                        #33
+adda([sysArgs+6])               #34
+st([Y,Xpp])                     #35 fontTable.lo = sysArgs+6*3
+ld([vTmp])                      #36
+st([X])                         #37 fontTable.hi = vTmp
 ld(hi('NEXTY'),Y)               #38
 jmp(Y,'NEXTY')                  #39
 ld(-42/2)                       #40
@@ -15165,29 +15149,6 @@ st([vCpuSelect])                #19 restore PREFX3 instruction page
 adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
-
-
-# FLT6X8 implementation
-label('flt6x8#13')
-adda(AC)                        #13
-adda(AC)                        #14
-adda([vAC])                     #15
-ld([sysArgs+7],X)               #16
-st([X])                         #17 fontTable.lo = vAC*5 + fontTable.lo
-ld(hi('NEXTY'),Y)               #18
-jmp(Y,'NEXTY')                  #19
-ld(-22/2)                       #20
-
-# FLT4X6 implementation
-label('flt4x6#13')
-ld([vAC])                       #13
-adda(AC)                        #14
-adda([vAC])                     #15
-ld([sysArgs+7],X)               #16
-st([X])                         #17 fontTable.lo = vAC*3 + fontTable.lo
-ld(hi('NEXTY'),Y)               #18
-jmp(Y,'NEXTY')                  #19
-ld(-22/2)                       #20
 
 
 # PRN4X6 implementation

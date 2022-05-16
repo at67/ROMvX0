@@ -277,7 +277,6 @@ printChar           STW     textChr
                     ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
                     JNE     printChar4x6                        ; is fnt4x6 enabled flag?
                     FNT6X8  textFont, textChr
-                    FLT6X8  textFont
                     MOVQB   textSlice, 0x05
 
 printC_slice        LDW     textFont                            ; text font slice base address
@@ -302,7 +301,6 @@ printC_exit         RET
 %SUB                printChar4x6
                     ; prints char in textChr
 printChar4x6        FNT4X6  textFont, textChr
-                    FLT4X6  textFont
                     MOVQB   giga_sysArg2, 3                     ; 3 LUP's per char
                     LDW     giga_sysArg4
                     PRN4X6  textFont
