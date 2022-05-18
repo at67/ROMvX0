@@ -10018,21 +10018,21 @@ ld(hi('vsubbl#13'),Y)           #10
 jmp(Y,'vsubbl#13')              #11
 ld(AC,X)                        #12 src var
 
-# pc = 0x2489 Opcode = 0x89
+# pc = 0x2289 Opcode = 0x89
 # Instruction CMPII: if vAC < imm0 vAC=-1, if vAC >= imm1 vAC=1, else vAC=0, 22 + 28 cycles
 label('CMPII')
 ld(hi('cmpii#13'),Y)            #10
 jmp(Y,'cmpii#13')               #11
 # dummy                         #12 Overlap
 #
-# pc = 0x248b Opcode = 0x8b
+# pc = 0x228b Opcode = 0x8b
 # Instruction ADDBI: var.lo += imm, 22 + 20 cycles
 label('ADDBI')
 ld(hi('addbi#13'),Y)            #10 #12
 jmp(Y,'addbi#13')               #11
 ld(AC,X)                        #12 address of var
 
-# pc = 0x248e Opcode = 0x8e
+# pc = 0x228e Opcode = 0x8e
 # Instruction SUBBI: var.lo -= imm, 22 + 20 cycles
 label('SUBBI')
 ld(hi('subbi#13'),Y)            #10
