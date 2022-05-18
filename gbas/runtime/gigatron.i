@@ -3,6 +3,8 @@ giga_text32                     EQU     0x0700
 giga_text82                     EQU     0x0800
 giga_notesTable                 EQU     0x0900
 giga_invTable                   EQU     0x0A00
+giga_text4x6_32                 EQU     0x4E00
+giga_text4x6_115                EQU     0x4F00
 
 ; RAM
 giga_vram                       EQU     0x0800
@@ -19,6 +21,8 @@ giga_xres                       EQU     160
 giga_yres                       EQU     120
 giga_xfont                      EQU     6
 giga_yfont                      EQU     8
+giga_xfont4x6                   EQU     4
+giga_yfont4x6                   EQU     6
 
 ; page 0
 giga_Zero                       EQU     0x00
@@ -26,7 +30,7 @@ giga_memSize                    EQU     0x01
 giga_vSPH                       EQU     0x04
 giga_rand0                      EQU     0x06
 giga_rand1                      EQU     0x07
-giga_rand2                      EQU     0x08
+giga_audioBitMask               EQU     0x08
 giga_videoY                     EQU     0x09
 giga_frameCount                 EQU     0x0E
 giga_serialRaw                  EQU     0x0F
@@ -112,7 +116,6 @@ SYS_ReadRomDir_v5_80            EQU     0x00ef
 SYS_Multiply_s16_vX_66          EQU     0x009e
 SYS_Divide_s16_vX_80            EQU     0x00a1
 SYS_DrawLine_vX_86              EQU     0x00a4
-SYS_WaitVBlank_vX_28            EQU     0x00aa
 SYS_SpritePattern_vX_134        EQU     0x00b6
 SYS_SortUint8Array_vX_52        EQU     0x00b9
 SYS_SortSprites_vX_62           EQU     0x00bc
@@ -125,8 +128,6 @@ SYS_DrawSprite_vX_132           EQU     0x00ce
 SYS_DrawBullet_vX_140           EQU     0x00d1
 SYS_CmpByteBounds_vX_54         EQU     0x00d4
 SYS_Divide_u168_vX_56           EQU     0x00d7
-SYS_ReadPixel_vX_32             EQU     0x00da
-SYS_DrawPixel_vX_30             EQU     0x00dd
 SYS_ScanMemoryExt_vX_50         EQU     0x00e3
 SYS_ScanMemory_vX_50            EQU     0x00e6
 SYS_CopyMemory_vX_80            EQU     0x00e9
@@ -143,10 +144,10 @@ SYS_RestoreSprite_vX_126        EQU     0x2100
 SYS_ScrollRectVTableY_vX_44     EQU     0x21a0
 SYS_LoadSerialIn_vX_56          EQU     0x3080
 
-SYS_LoaderNextByteIn_32         EQU     0x1a6d
-SYS_LoaderProcessInput_64       EQU     0x1a82
-SYS_LoaderPayloadCopy_34        EQU     0x1ac0
-SYS_Unpack_56                   EQU     0x1ad4
+SYS_LoaderNextByteIn_32         EQU     0x1a00
+SYS_LoaderProcessInput_64       EQU     0x1a16
+SYS_LoaderPayloadCopy_34        EQU     0x1a54
+SYS_Unpack_56                   EQU     0x1a68
  
 giga_Black                      EQU     0x00
 giga_DarkRed                    EQU     0x01

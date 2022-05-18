@@ -109,8 +109,7 @@ restoreSpritesH     STW     spritesLut                          ; _spritesTmpLut
                     PEEKA+  spritesAdrHt                        ; height
                     PEEKA+  spritesAdrHt + 1                    ; data
             
-                    MOVQW   giga_sysFn, SYS_WaitVBlank_vX_28
-                    SYS     28
+                    WAITVB
                     
                     LDWI    SYS_RestoreSprite_vX_126
                     STW     giga_sysFn

@@ -42,8 +42,7 @@ drawLine_xy         EQU     register7
 readPixel_xy        EQU     register0
 drawPixel_xy        EQU     register0
 
-drawCircle_cx       EQU     register0
-drawCircle_cy       EQU     register1
+drawCircle_cycx     EQU     register0
 drawCircle_r        EQU     register2
 drawCircle_a        EQU     register3
 drawCircle_d        EQU     register8
@@ -57,8 +56,7 @@ drawCircle_ch3      EQU     register14
 drawCircleF_x1      EQU     register0
 drawCircleF_y1      EQU     register1
 drawCircleF_x2      EQU     register2
-drawCircleF_cx      EQU     register15
-drawCircleF_cy      EQU     register10
+drawCircleF_cycx    EQU     register10
 drawCircleF_r       EQU     register11
 drawCircleF_v       EQU     register8
 drawCircleF_w       EQU     register9
@@ -676,41 +674,41 @@ drawC_cont          INC     drawCircle_x
 
 %SUB                drawCircleExt1
 drawCircleExt1      PUSH
-                    LDW     drawCircle_cy
+                    LD      drawCircle_cycx + 1
                     ADDW    drawCircle_y
                     ST      drawCircle_ch0 + 1
-                    LDW     drawCircle_cy
+                    LD      drawCircle_cycx + 1
                     SUBW    drawCircle_y
                     ST      drawCircle_ch1 + 1
-                    LDW     drawCircle_cy
+                    LD      drawCircle_cycx + 1
                     ADDW    drawCircle_x
                     ST      drawCircle_ch2 + 1
-                    LDW     drawCircle_cy
+                    LD      drawCircle_cycx + 1
                     SUBW    drawCircle_x
                     ST      drawCircle_ch3 + 1
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     ADDW    drawCircle_x
                     ADDW    drawCircle_ch0
                     STW     drawCircle_a
                     LD      fgbgColour + 1
                     POKE    drawCircle_a
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     SUBW    drawCircle_x
                     ADDW    drawCircle_ch0
                     STW     drawCircle_a
                     LD      fgbgColour + 1
                     POKE    drawCircle_a
                     
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     ADDW    drawCircle_x
                     ADDW    drawCircle_ch1
                     STW     drawCircle_a
                     LD      fgbgColour + 1
                     POKE    drawCircle_a
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     SUBW    drawCircle_x
                     ADDW    drawCircle_ch1
                     STW     drawCircle_a
@@ -722,28 +720,28 @@ drawCircleExt1      PUSH
 %ENDS
                     
 %SUB                drawCircleExt2
-drawCircleExt2      LDW     drawCircle_cx
+drawCircleExt2      LD      drawCircle_cycx
                     ADDW    drawCircle_y
                     ADDW    drawCircle_ch2
                     STW     drawCircle_a
                     LD      fgbgColour + 1
                     POKE    drawCircle_a
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     SUBW    drawCircle_y
                     ADDW    drawCircle_ch2
                     STW     drawCircle_a
                     LD      fgbgColour + 1
                     POKE    drawCircle_a
                     
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     ADDW    drawCircle_y
                     ADDW    drawCircle_ch3
                     STW     drawCircle_a
                     LD      fgbgColour + 1
                     POKE    drawCircle_a
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     SUBW    drawCircle_y
                     ADDW    drawCircle_ch3
                     STW     drawCircle_a
@@ -760,18 +758,18 @@ drawCircleF         PUSH
                     STW     drawCircleF_v
                     STW     drawCircleF_w
                     
-drawCF_wloop        LDW     drawCircleF_cx
+drawCF_wloop        LD      drawCircleF_cycx
                     SUBW    drawCircleF_r
                     STW     drawCircleF_x1
-                    LDW     drawCircleF_cx
+                    LD      drawCircleF_cycx
                     ADDW    drawCircleF_r
                     STW     drawCircleF_x2
-                    LDW     drawCircleF_cy
+                    LD      drawCircleF_cycx + 1
                     SUBW    drawCircleF_v
                     STW     drawCircleF_y1
                     LDWI    drawHLine
                     CALL    giga_vAC
-                    LDW     drawCircleF_cy
+                    LD      drawCircleF_cycx + 1
                     ADDW    drawCircleF_v
                     STW     drawCircleF_y1
                     LDWI    drawHLine

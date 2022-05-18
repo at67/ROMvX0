@@ -40,8 +40,7 @@ drawLine_xy         EQU     register7
 drawPixel_xy        EQU     register0
 readPixel_xy        EQU     register0
 
-drawCircle_cx       EQU     register0
-drawCircle_cy       EQU     register1
+drawCircle_cycx     EQU     register0
 drawCircle_r        EQU     register2
 drawCircle_a        EQU     register3
 drawCircle_d        EQU     register8
@@ -56,8 +55,7 @@ drawCircleF_x1      EQU     register0
 drawCircleF_y1      EQU     register1
 drawCircleF_x2      EQU     register2
 drawCircleF_cnt     EQU     register3
-drawCircleF_cx      EQU     register15
-drawCircleF_cy      EQU     register10
+drawCircleF_cycx    EQU     register10
 drawCircleF_r       EQU     register11
 drawCircleF_v       EQU     register8
 drawCircleF_w       EQU     register9
@@ -117,19 +115,17 @@ drawPixel           RET
 %ENDS   
 
 %SUB                drawHLine
-drawHLine           MOVB    drawHLine_x1, giga_sysArg2          ; low start address
+drawHLine           CNVXY   drawHLine_x1, drawHLine_y1, giga_sysArg2
                     LD      drawHLine_x2
                     SUBW    drawHLine_x1
                     BGE     drawHL_cont
-                    MOVB    drawHLine_x2, giga_sysArg2          ; low start address
+                    CNVXY   drawHLine_x2, drawHLine_y1, giga_sysArg2
                     LD      drawHLine_x1
                     SUBW    drawHLine_x2
                     
 drawHL_cont         ADDI    1
                     ST      giga_sysArg0                        ; count
                     MOVB    fgbgColour + 1, giga_sysArg1        ; fill value
-                    MOVB    drawHLine_y1, giga_sysArg3
-                    ADDBI   giga_sysArg3, 8                     ; high start address
                     LDWI    SYS_SetMemory_v2_54                 ; not zero page sys
                     STW     giga_sysFn
                     SYS     54                                  ; fill memory
@@ -137,19 +133,17 @@ drawHL_cont         ADDI    1
 %ENDS
 
 %SUB                drawVLine
-drawVLine           MOVB    drawVLine_y1, giga_sysArg3          ; high start address
+drawVLine           CNVXY   drawVLine_x1, drawVLine_y1, giga_sysArg2
                     LD      drawVLine_y2
                     SUBW    drawVLine_y1
                     BGE     drawVL_cont
-                    MOVB    drawVLine_y2, giga_sysArg3          ; high start address
+                    CNVXY   drawVLine_x1, drawVLine_y2, giga_sysArg2
                     LD      drawVLine_y1
                     SUBW    drawVLine_y2
                     
 drawVL_cont         ADDI    1
                     ST      giga_sysArg0                        ; count
                     MOVB    fgbgColour + 1, giga_sysArg1        ; fill value
-                    MOVB    drawVLine_x1, giga_sysArg2
-                    ADDBI   giga_sysArg3, 8                     ; high start address
                     MOVQW   giga_sysFn, SYS_DrawVLine_vX_66     ; zero page sys
                     SYS     66                                  ; draw vertical line
                     RET
@@ -192,12 +186,8 @@ drawL_ext           CALLI   drawLineExt
 %ENDS   
                     
 %SUB                drawLineExt
-drawLineExt         PACKVW  drawLine_x1, drawLine_y1, drawLine_xy1
-                    ADDBI   drawLine_xy1 + 1, 8                 ; xy1 = x1 | ((y1+8)<<8)
-                    
-                    PACKVW  drawLine_x2, drawLine_y2, drawLine_xy2
-                    ADDBI   drawLine_xy2 + 1, 8                 ; xy2 = x2 | ((y2+8)<<8)
-                    
+drawLineExt         CNVXY   drawLine_x1, drawLine_y1, drawLine_xy1 ; xy1 = x1 | ((y1+8)<<8)
+                    CNVXY   drawLine_x2, drawLine_y2, drawLine_xy2 ; xy2 = x2 | ((y2+8)<<8)
                     LDW     drawLine_sy
                     SUBW    drawLine_sx
                     BLE     drawL_num
@@ -246,9 +236,7 @@ drawLS_dxp          STW     drawLine_dx
                     NEGW    giga_vAC                        ; sy = y1 - y2
                     
 drawLS_dyp          STW     drawLine_dy
-                    
-                    PACKVW  drawLine_x1, drawLine_y1, drawLine_addr
-                    ADDBI   drawLine_addr + 1, 8
+                    CNVXY   drawLine_x1, drawLine_y1, drawLine_addr ; addr = x1 | ((y1+8)<<8)
                     LDW     drawLine_dx
                     SUBW    drawLine_dy
                     BGE     drawLS_noswap
@@ -326,7 +314,6 @@ drawVTL_ext         CALLI   drawVTLineExt
 %SUB                drawVTLineExt
 drawVTLineExt       PACKVW  drawLine_x1, drawLine_y1, drawLine_xy1
                     PACKVW  drawLine_x2, drawLine_y2, drawLine_xy2
-
                     LDW     drawLine_sy
                     SUBW    drawLine_sx
                     BLE     drawVTL_num
@@ -430,35 +417,35 @@ drawC_cont          INCWA   drawCircle_x
 
 %SUB                drawCircleExt1
 drawCircleExt1      PUSH
-                    LDW     drawCircle_cy
+                    LD      drawCircle_cycx + 1
                     ADDW    drawCircle_y
                     ST      drawCircle_ch0 + 1
-                    LDW     drawCircle_cy
+                    LD      drawCircle_cycx + 1
                     SUBW    drawCircle_y
                     ST      drawCircle_ch1 + 1
-                    LDW     drawCircle_cy
+                    LD      drawCircle_cycx + 1
                     ADDW    drawCircle_x
                     ST      drawCircle_ch2 + 1
-                    LDW     drawCircle_cy
+                    LD      drawCircle_cycx + 1
                     SUBW    drawCircle_x
                     ST      drawCircle_ch3 + 1
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     ADDW    drawCircle_x
                     ADDW    drawCircle_ch0
                     POKEA   fgbgColour + 1
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     SUBW    drawCircle_x
                     ADDW    drawCircle_ch0
                     POKEA   fgbgColour + 1
                     
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     ADDW    drawCircle_x
                     ADDW    drawCircle_ch1
                     POKEA   fgbgColour + 1
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     SUBW    drawCircle_x
                     ADDW    drawCircle_ch1
                     POKEA   fgbgColour + 1
@@ -467,22 +454,22 @@ drawCircleExt1      PUSH
 %ENDS
                     
 %SUB                drawCircleExt2
-drawCircleExt2      LDW     drawCircle_cx
+drawCircleExt2      LD      drawCircle_cycx
                     ADDW    drawCircle_y
                     ADDW    drawCircle_ch2
                     POKEA   fgbgColour + 1
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     SUBW    drawCircle_y
                     ADDW    drawCircle_ch2
                     POKEA   fgbgColour + 1
                     
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     ADDW    drawCircle_y
                     ADDW    drawCircle_ch3
                     POKEA   fgbgColour + 1
 
-                    LDW     drawCircle_cx
+                    LD      drawCircle_cycx
                     SUBW    drawCircle_y
                     ADDW    drawCircle_ch3
                     POKEA   fgbgColour + 1
@@ -499,26 +486,22 @@ drawCircleF         LDWI    SYS_SetMemory_v2_54
                     STW     drawCircleF_v
                     STW     drawCircleF_w
                     
-drawCF_wloop        LDW     drawCircleF_cx
+drawCF_wloop        LD      drawCircleF_cycx
                     SUBW    drawCircleF_r
                     STW     drawCircleF_x1
-                    LDW     drawCircleF_cx
+                    LD      drawCircleF_cycx
                     ADDW    drawCircleF_r
                     STW     drawCircleF_x2
                     SUBW    drawCircleF_x1
                     STW     drawCircleF_cnt
-                    LDW     drawCircleF_cy
+                    LD      drawCircleF_cycx + 1
                     SUBW    drawCircleF_v
-                    STW     giga_sysArg3
-                    ADDBI   giga_sysArg3, 8                     ; high start address top
-                    MOVB    drawCircleF_x1, giga_sysArg2        ; low start address top
+                    CNVXY   drawCircleF_x1, giga_vAC, giga_sysArg2
                     MOVB    drawCircleF_cnt, giga_sysArg0       ; count top
                     SYS     54                                  ; fill memory
-                    LDW     drawCircleF_cy
+                    LD      drawCircleF_cycx + 1
                     ADDW    drawCircleF_v
-                    STW     giga_sysArg3
-                    ADDBI   giga_sysArg3, 8                     ; high start address bottom
-                    MOVB    drawCircleF_x1, giga_sysArg2        ; low start address bottom
+                    CNVXY   drawCircleF_x1, giga_vAC, giga_sysArg2
                     MOVB    drawCircleF_cnt, giga_sysArg0       ; count bottom
                     SYS     54                                  ; fill memory
                     LDW     drawCircleF_w
@@ -528,8 +511,7 @@ drawCF_wloop        LDW     drawCircleF_cx
                     STW     drawCircleF_w
                     INC     drawCircleF_v
                     
-drawCF_rloop        LDW     drawCircleF_w
-                    BLT     drawCF_wloop
+drawCF_rloop        BLT     drawCF_wloop
                     LDW     drawCircleF_w
                     SUBW    drawCircleF_r
                     SUBW    drawCircleF_r

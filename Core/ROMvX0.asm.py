@@ -779,10 +779,10 @@ ld(hi('REENTER'),Y)             #15 slot 0xa7
 jmp(Y,'REENTER')                #16
 ld(-20/2)                       #17
 
-label('SYS_WaitVBlank_vX_28')
-ld(hi('sys_WaitVBlank'),Y)      #15 slot 0xaa
-jmp(Y,'sys_WaitVBlank')         #16
-ld([videoY])                    #17 scanline Y
+ld(hi('REENTER'),Y)             #15 slot 0xaa
+jmp(Y,'REENTER')                #16
+ld(-20/2)                       #17
+
 
 #-----------------------------------------------------------------------
 # Extension SYS_Exec_88: Load code from ROM into memory and execute it
@@ -1652,10 +1652,10 @@ jmp(Y,'stw#13')                 #11
 # dummy                         #12 Overlap
 #
 # pc = 0x032d, Opcode = 0x2d
-# Instruction ADDBI: var.lo += imm, 28 cycles
-label('ADDBI') 
-ld(hi('addbi#13'),Y)            #10 #12
-jmp(Y,'addbi#13')               #11
+# Instruction CNVXY: var = src0.lo | ((src1.lo + 8) <<8), 44 cycles
+label('CNVXY') 
+ld(hi('cnvxy#13'),Y)            #10 #12
+jmp(Y,'cnvxy#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x032f, Opcode = 0x2f
@@ -6773,23 +6773,6 @@ ld(hi('REENTER'),Y)             #19
 jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
 
-# ADDBI implementation, var.lo += imm, does NOT modify var.hi
-label('addbi#13')
-ld([vPC+1],Y)                   #13
-st([vTmp])                      #14 immediate value
-st([Y,Xpp])                     #15 X++
-ld([Y,X])                       #16
-ld(AC,X)                        #17 var
-ld([X])                         #18
-adda([vTmp])                    #19
-st([X])                         #20
-ld([vPC])                       #21
-adda(1)                         #22
-st([vPC])                       #23 advance vPC by 1
-ld(hi('NEXTY'),Y)               #24
-jmp(Y,'NEXTY')                  #25
-ld(-28/2)                       #26
-
 # JLT implementation
 label('jlt#13')
 ld([vPC+1],Y)                   #13 vPC.hi
@@ -7820,137 +7803,7 @@ align(0x100, size=0x100)
 #-----------------------------------------------------------------------
 #       More sys implementations, (0x1A00)
 #-----------------------------------------------------------------------
-
-
-# sys_WaitVBlank
-label('sys_WaitVBlank')
-xora(videoYline0)               #18,
-beq('.sys_waitvblank_21')       #19,
-ld([vPC])                       #20,
-suba(2)                         #21,
-st([vPC])                       #22, restart
-ld(hi('REENTER'),Y)             #23,
-jmp(Y,'REENTER')                #24,
-ld(-28/2)                       #25,
-label('.sys_waitvblank_21')
-ld(hi('REENTER'),Y)             #21,
-jmp(Y,'REENTER')                #22,
-ld(-28/2)                       #23,
-
-
-# sys_SortUint8Array, sysArgs0,1=array, sysArg2=i, sysArg3=j, sysArg4=key, sysArg5=length
-label('sys_SortUint8Array')
-ld([sysArgs+3])                 #18,
-ble('.sys_sortuint8array_21')   #19, j == 0
-ld([sysArgs+0])                 #20,
-adda([sysArgs+3])               #21,
-suba(1,X)                       #22,
-ld([Y,X])                       #23,
-bmi('.sys_sortuint8array_26')   #24, convert signed < to unsigned <
-suba([sysArgs+4])               #25,
-bra('.sys_sortuint8array_28')   #26,
-ora([sysArgs+4])                #27, borrow
-label('.sys_sortuint8array_26')
-anda([sysArgs+4])               #26, borrow
-nop()                           #27,
-label('.sys_sortuint8array_28')
-bmi('.sys_sortuint8array_30_0') #28, a[j-1] < key
-ld([Y,X])                       #29,
-st([Y,Xpp])                     #30,
-st([Y,X])                       #31, a[j] = a[j-1]
-ld([sysArgs+3])                 #32,
-suba(1)                         #33,
-st([sysArgs+3])                 #34, j--
-ld([vPC])                       #35,
-suba(2)                         #36,
-st([vPC])                       #37, restart
-ld(hi('NEXTY'),Y)               #38,
-jmp(Y,'NEXTY')                  #39,
-ld(-42/2)                       #40,
-label('.sys_sortuint8array_21')
-adda([sysArgs+3],X)             #21,
-ld([sysArgs+4])                 #22,
-st([Y,X])                       #23, a[j] = key
-ld([sysArgs+2])                 #24,
-adda(1)                         #25,
-st([sysArgs+2])                 #26, i++
-suba([sysArgs+5])               #27,
-blt('.sys_sortuint8array_30_1') #28, i < length
-ld([sysArgs+0])                 #29,
-ld(hi('NEXTY'),Y)               #30,
-jmp(Y,'NEXTY')                  #31,
-ld(-34/2)                       #32,
-label('.sys_sortuint8array_30_0')
-st([Y,Xpp])                     #30,
-ld([sysArgs+4])                 #31,
-st([Y,X])                       #32, a[j] = key
-ld([sysArgs+2])                 #33,
-adda(1)                         #34,
-st([sysArgs+2])                 #35, i++
-suba([sysArgs+5])               #36,
-blt('.sys_sortuint8array_39')   #37, i < length
-ld([sysArgs+0])                 #38,
-ld(hi('REENTER'),Y)             #39,
-jmp(Y,'REENTER')                #40,
-ld(-44/2)                       #41,
-label('.sys_sortuint8array_30_1')
-adda([sysArgs+2],X)             #30,
-ld([Y,X])                       #31,
-st([sysArgs+4])                 #32, key = a[i]
-ld([sysArgs+2])                 #33,
-st([sysArgs+3])                 #34, j = i
-ld([vPC])                       #35,
-suba(2)                         #36,
-st([vPC])                       #37, restart
-ld(hi('NEXTY'),Y)               #38,
-jmp(Y,'NEXTY')                  #39,
-ld(-42/2)                       #40,
-label('.sys_sortuint8array_39')
-adda([sysArgs+2],X)             #39,
-ld([Y,X])                       #40,
-st([sysArgs+4])                 #41, key = a[i]
-ld([sysArgs+2])                 #42,
-st([sysArgs+3])                 #43, j = i
-ld([vPC])                       #44,
-suba(2)                         #45,
-st([vPC])                       #46, restart
-ld(hi('REENTER'),Y)             #47,
-jmp(Y,'REENTER')                #48,
-ld(-52/2)                       #49,
-
-
-# sys_SortViaIndices, sysArgs0,1=indices, sysArgs2,3=src, sysArg4,5=dst, sysArg6=dst step, vAC=count
-label('sys_SortViaIndices')
-ld([sysArgs+0],X)               #18,
-ld([Y,X])                       #19, [index]
-ld([sysArgs+3],Y)               #20,
-adda([sysArgs+2],X)             #21, src
-ld([Y,X])                       #22, peek(src + index)
-ld([sysArgs+5],Y)               #23,
-ld([sysArgs+4],X)               #24, dst
-st([Y,X])                       #25,
-ld([sysArgs+0])                 #26,
-adda(1)                         #27,
-st([sysArgs+0])                 #28, indices++
-ld([sysArgs+4])                 #29,
-adda([sysArgs+6])               #30,
-st([sysArgs+4])                 #31, dst += step
-ld([vAC])                       #32,
-suba(1)                         #33,
-beq('.sys_sortviaindices_36')   #34,
-st([vAC])                       #35, count--
-ld([vPC])                       #36,
-suba(2)                         #37,
-st([vPC])                       #38, restart
-ld(hi('REENTER'),Y)             #39,
-jmp(Y,'REENTER')                #40,
-ld(-44/2)                       #41,
-label('.sys_sortviaindices_36')
-ld(hi('NEXTY'),Y)               #36,
-jmp(Y,'NEXTY')                  #37,
-ld(-40/2)                       #38,
-
-
+#
 # SYS_LoaderNextByteIn_32
 # sysArgs[0:1] Current address
 # sysArgs[2]   Checksum
@@ -8139,6 +7992,119 @@ st([sysArgs+0])                 #50 -> Pixel 0
 ld(hi('REENTER'),Y)             #51
 jmp(Y,'REENTER')                #52
 ld(-56/2)                       #53
+
+
+# sys_SortUint8Array, sysArgs0,1=array, sysArg2=i, sysArg3=j, sysArg4=key, sysArg5=length
+label('sys_SortUint8Array')
+ld([sysArgs+3])                 #18,
+ble('.sys_sortuint8array_21')   #19, j == 0
+ld([sysArgs+0])                 #20,
+adda([sysArgs+3])               #21,
+suba(1,X)                       #22,
+ld([Y,X])                       #23,
+bmi('.sys_sortuint8array_26')   #24, convert signed < to unsigned <
+suba([sysArgs+4])               #25,
+bra('.sys_sortuint8array_28')   #26,
+ora([sysArgs+4])                #27, borrow
+label('.sys_sortuint8array_26')
+anda([sysArgs+4])               #26, borrow
+nop()                           #27,
+label('.sys_sortuint8array_28')
+bmi('.sys_sortuint8array_30_0') #28, a[j-1] < key
+ld([Y,X])                       #29,
+st([Y,Xpp])                     #30,
+st([Y,X])                       #31, a[j] = a[j-1]
+ld([sysArgs+3])                 #32,
+suba(1)                         #33,
+st([sysArgs+3])                 #34, j--
+ld([vPC])                       #35,
+suba(2)                         #36,
+st([vPC])                       #37, restart
+ld(hi('NEXTY'),Y)               #38,
+jmp(Y,'NEXTY')                  #39,
+ld(-42/2)                       #40,
+label('.sys_sortuint8array_21')
+adda([sysArgs+3],X)             #21,
+ld([sysArgs+4])                 #22,
+st([Y,X])                       #23, a[j] = key
+ld([sysArgs+2])                 #24,
+adda(1)                         #25,
+st([sysArgs+2])                 #26, i++
+suba([sysArgs+5])               #27,
+blt('.sys_sortuint8array_30_1') #28, i < length
+ld([sysArgs+0])                 #29,
+ld(hi('NEXTY'),Y)               #30,
+jmp(Y,'NEXTY')                  #31,
+ld(-34/2)                       #32,
+label('.sys_sortuint8array_30_0')
+st([Y,Xpp])                     #30,
+ld([sysArgs+4])                 #31,
+st([Y,X])                       #32, a[j] = key
+ld([sysArgs+2])                 #33,
+adda(1)                         #34,
+st([sysArgs+2])                 #35, i++
+suba([sysArgs+5])               #36,
+blt('.sys_sortuint8array_39')   #37, i < length
+ld([sysArgs+0])                 #38,
+ld(hi('REENTER'),Y)             #39,
+jmp(Y,'REENTER')                #40,
+ld(-44/2)                       #41,
+label('.sys_sortuint8array_30_1')
+adda([sysArgs+2],X)             #30,
+ld([Y,X])                       #31,
+st([sysArgs+4])                 #32, key = a[i]
+ld([sysArgs+2])                 #33,
+st([sysArgs+3])                 #34, j = i
+ld([vPC])                       #35,
+suba(2)                         #36,
+st([vPC])                       #37, restart
+ld(hi('NEXTY'),Y)               #38,
+jmp(Y,'NEXTY')                  #39,
+ld(-42/2)                       #40,
+label('.sys_sortuint8array_39')
+adda([sysArgs+2],X)             #39,
+ld([Y,X])                       #40,
+st([sysArgs+4])                 #41, key = a[i]
+ld([sysArgs+2])                 #42,
+st([sysArgs+3])                 #43, j = i
+ld([vPC])                       #44,
+suba(2)                         #45,
+st([vPC])                       #46, restart
+ld(hi('REENTER'),Y)             #47,
+jmp(Y,'REENTER')                #48,
+ld(-52/2)                       #49,
+
+
+# sys_SortViaIndices, sysArgs0,1=indices, sysArgs2,3=src, sysArg4,5=dst, sysArg6=dst step, vAC=count
+label('sys_SortViaIndices')
+ld([sysArgs+0],X)               #18,
+ld([Y,X])                       #19, [index]
+ld([sysArgs+3],Y)               #20,
+adda([sysArgs+2],X)             #21, src
+ld([Y,X])                       #22, peek(src + index)
+ld([sysArgs+5],Y)               #23,
+ld([sysArgs+4],X)               #24, dst
+st([Y,X])                       #25,
+ld([sysArgs+0])                 #26,
+adda(1)                         #27,
+st([sysArgs+0])                 #28, indices++
+ld([sysArgs+4])                 #29,
+adda([sysArgs+6])               #30,
+st([sysArgs+4])                 #31, dst += step
+ld([vAC])                       #32,
+suba(1)                         #33,
+beq('.sys_sortviaindices_36')   #34,
+st([vAC])                       #35, count--
+ld([vPC])                       #36,
+suba(2)                         #37,
+st([vPC])                       #38, restart
+ld(hi('REENTER'),Y)             #39,
+jmp(Y,'REENTER')                #40,
+ld(-44/2)                       #41,
+label('.sys_sortviaindices_36')
+ld(hi('NEXTY'),Y)               #36,
+jmp(Y,'NEXTY')                  #37,
+ld(-40/2)                       #38,
 
 
 fillers(until=0xff)
@@ -10060,9 +10026,16 @@ jmp(Y,'cmpii#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x248b Opcode = 0x8b
+# Instruction ADDBI: var.lo += imm, 22 + 20 cycles
+label('ADDBI')
+ld(hi('addbi#13'),Y)            #10 #12
+jmp(Y,'addbi#13')               #11
+ld(AC,X)                        #12 address of var
+
+# pc = 0x248e Opcode = 0x8e
 # Instruction SUBBI: var.lo -= imm, 22 + 20 cycles
 label('SUBBI')
-ld(hi('subbi#13'),Y)            #10 #12
+ld(hi('subbi#13'),Y)            #10
 jmp(Y,'subbi#13')               #11
 ld(AC,X)                        #12 address of var
 
@@ -10593,6 +10566,13 @@ jmp(Y,'mulb9#13')               #11
 label('MULB10')
 ld(hi('mulb10#13'),Y)           #10 #12
 jmp(Y,'mulb10#13')              #11
+# dummy                         #12 Overlap
+#
+# pc = 0x2447 Opcode = 0x47
+# Instruction WAITVB: loop start of VBlank, 18 + 22 cycles
+label('WAITVB')
+ld(hi('waitvb#13'),Y)           #10 #12
+jmp(Y,'waitvb#13')              #11
 # dummy                         #12 Overlap
 #
 
@@ -11561,6 +11541,21 @@ st([vAC])                       #17
 ld(hi('NEXTY'),Y)               #18
 jmp(Y,'NEXTY')                  #19
 ld(-22/2)                       #20
+
+# WAITVB implementation
+label('waitvb#13')
+ld([videoY])                    #13
+xora(videoYline0)               #14
+beq('.waitvb#17')               #15
+ld(hi('PREFX1_PAGE'))           #16 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #17 restore PREFX1 instruction page
+adda(1,Y)                       #18 retry instruction
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
+label('.waitvb#17')
+ld(hi('REENTER'),Y)             #17
+jmp(Y,'REENTER')                #18
+ld(-22/2)                       #19
 
 
 fillers(until=0xff)
@@ -13457,6 +13452,47 @@ jmp(Y,'REENTER')                #24
 ld(-28/2)                       #25
 
 
+# CNVXY implementation
+label('cnvxy#13')
+ld([vPC+1],Y)                   #13
+st([vTmp])                      #14 var addr
+st([Y,Xpp])                     #15
+ld(min(0,maxTicks-44/2))        #16
+adda([vTicks])                  #17
+blt('.cnvxy#20')                #18 not enough time left, so retry
+ld([Y,X])                       #19 src1 addr
+st([Y,Xpp])                     #20
+st([0xB1])                      #21 0xB1 = src1 addr
+ld([Y,X])                       #22 src0 addr
+ld(AC,X)                        #23 
+ld([X])                         #24
+st([0xB0])                      #25 src0.lo
+ld([0xB1],X)                    #26
+ld([X])                         #27
+st([0xB1])                      #28 src1.lo
+ld(0,Y)                         #29
+ld([vTmp],X)                    #30
+ld([0xB0])                      #31
+st([Y,Xpp])                     #32 var.lo = src0.lo
+ld([0xB1])                      #33
+adda(8)                         #34
+st([X])                         #35 var.hi = src1.lo + 8
+ld([vPC])                       #36
+adda(2)                         #37
+st([vPC])                       #38 advance vPC by 2
+ld(hi('REENTER'),Y)             #39
+jmp(Y,'REENTER')                #40
+ld(-44/2)                       #41
+
+label('.cnvxy#20')
+ld([vPC])                       #20 retry instruction
+suba(2)                         #21
+st([vPC])                       #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
+
+
 # LDWM implementation
 label('ldwm#13')
 st([vTmp])                      #13 addr.lo
@@ -15036,6 +15072,25 @@ align(0x100, size=0x100)
 #  More vCPU instruction implementations, (0x3500)
 #-----------------------------------------------------------------------
 #
+# ADDBI implementation, var.lo += imm, does NOT modify var.hi
+label('addbi#13')
+ld([X])                         #13
+adda([sysArgs+7])               #14
+st([X])                         #15
+ld(hi('NEXTY'),Y)               #16
+jmp(Y,'NEXTY')                  #17
+ld(-20/2)                       #18
+
+# SUBBI implementation, var.lo -= imm, does NOT modify var.hi
+label('subbi#13')
+ld([X])                         #13
+suba([sysArgs+7])               #14
+st([X])                         #15
+ld(hi('NEXTY'),Y)               #16
+jmp(Y,'NEXTY')                  #17
+ld(-20/2)                       #18
+
+
 # CMPII implementation
 label('cmpii#13')
 st([sysArgs+6])                 #13 imm1
@@ -15093,16 +15148,6 @@ st([vCpuSelect])                #19 restore PREFX3 instruction page
 adda(1,Y)                       #20 retry instruction
 jmp(Y,'NEXTY')                  #21
 ld(-24/2)                       #22
-
-
-# SUBBI implementation, var.lo -= imm, does NOT modify var.hi
-label('subbi#13')
-ld([X])                         #13
-suba([sysArgs+7])               #14
-st([X])                         #15
-ld(hi('NEXTY'),Y)               #16
-jmp(Y,'NEXTY')                  #17
-ld(-20/2)                       #18
 
 
 # FNT6X8 implementation

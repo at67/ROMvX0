@@ -47,7 +47,7 @@
 #define OPCODE_V_MOVQB  0x16
 #define OPCODE_V_MOVQW  0x1C
 #define OPCODE_V_ARRW   0x1F
-#define OPCODE_V_ADDBI  0x2D
+#define OPCODE_V_CNVXY  0x2D
 #define OPCODE_V_PREFX2 0x2F
 #define OPCODE_V_MOVWA  0x32
 #define OPCODE_V_BCC    0x35
@@ -104,6 +104,7 @@
 #define OPCODE_V_MULB8  0x41
 #define OPCODE_V_MULB9  0x43
 #define OPCODE_V_MULB10 0x45
+#define OPCODE_V_WAITVB 0x47
 
 // PREFX2 instructions
 #define OPCODE_V_LSLN   0x11
@@ -185,7 +186,8 @@
 #define OPCODE_V_VADDBL 0x83
 #define OPCODE_V_VSUBBL 0x86
 #define OPCODE_V_CMPII  0x89
-#define OPCODE_V_SUBBI  0x8B
+#define OPCODE_V_ADDBI  0x8B
+#define OPCODE_V_SUBBI  0x8E
 
 #define OPCODE_V_HALT   0xB4
 #define OPERAND_V_HALT  0x80

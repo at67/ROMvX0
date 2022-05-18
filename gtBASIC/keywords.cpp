@@ -4848,9 +4848,9 @@ RESTART_PRINT:
             }
             switch(i)
             {
-                case 0: Compiler::emitVcpuAsm("STW",  "drawCircle_cx", false);                                           break;
-                case 1: Compiler::emitVcpuAsm("ADDI", "8", false); Compiler::emitVcpuAsm("STW", "drawCircle_cy", false); break;
-                case 2: Compiler::emitVcpuAsm("STW",  "drawCircle_r",  false);                                           break;
+                case 0: Compiler::emitVcpuAsm("ST",   "drawCircle_cycx", false);                                                            break;
+                case 1: Compiler::emitVcpuAsm("ADDI", "8",               false); Compiler::emitVcpuAsm("ST", "drawCircle_cycx + 1", false); break;
+                case 2: Compiler::emitVcpuAsm("STW",  "drawCircle_r",    false);                                                            break;
 
                 default: break;
             }
@@ -4883,9 +4883,9 @@ RESTART_PRINT:
             }
             switch(i)
             {
-                case 0: Compiler::emitVcpuAsm("STW", "drawCircleF_cx", false); break;
-                case 1: Compiler::emitVcpuAsm("STW", "drawCircleF_cy", false); break;
-                case 2: Compiler::emitVcpuAsm("STW", "drawCircleF_r",  false); break;
+                case 0: Compiler::emitVcpuAsm("ST",  "drawCircleF_cycx",     false); break;
+                case 1: Compiler::emitVcpuAsm("ST",  "drawCircleF_cycx + 1", false); break;
+                case 2: Compiler::emitVcpuAsm("STW", "drawCircleF_r",        false); break;
 
                 default: break;
             }

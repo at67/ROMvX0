@@ -5,6 +5,7 @@
  "romTypeValue_ROMv4"           : "0x38",
  "romTypeValue_ROMv5"           : "0x40",
  "romTypeValue_ROMvX0"          : "0x80",
+ "romTypeValue_SDCARD"          : "0xf0",
  "romTypeValue_DEVROM"          : "0xf8",
 
  "zeroConst"                    : "0x0000",
@@ -132,7 +133,6 @@
  "SYS_Multiply_s16_vX_66"       : "0x009e",
  "SYS_Divide_s16_vX_80"         : "0x00a1",
  "SYS_DrawLine_vX_86"           : "0x00a4",
- "SYS_WaitVBlank_vX_28"         : "0x00aa",
  "SYS_SpritePattern_vX_134"     : "0x00b6",
  "SYS_SortUint8Array_vX_52"     : "0x00b9",
  "SYS_SortSprites_vX_62"        : "0x00bc",
@@ -145,9 +145,6 @@
  "SYS_DrawBullet_vX_140"        : "0x00d1",
  "SYS_CmpByteBounds_vX_54"      : "0x00d4",
  "SYS_Divide_u168_vX_56"        : "0x00d7",
- "SYS_ReadPixel_vX_32"          : "0x00da",
- "SYS_DrawPixel_vX_30"          : "0x00dd",
-    
  "SYS_Multiply_u8_vX_48"        : "0x1300",
  "SYS_OffsetVTableY_vX_36"      : "0x1340",
  "SYS_FillByteSeq_vX_36"        : "0x1360",
@@ -183,6 +180,8 @@
  "SYS_LSLW4_46"                 : "0x06a0",
  "font32up"                     : "0x0700",
  "font82up"                     : "0x0800",
+ "font4x6_32up"                 : "0x4E00",
+ "font4x6_115up"                : "0x4F00",
  "notesTable"                   : "0x0900",
  "invTable"                     : "0x0a00",
  "SYS_SetMode_v2_80"            : "0x0b00",
@@ -198,8 +197,8 @@
  "SYS_Sprite6y_v3_64"           : "0x0c80",
  "SYS_Sprite6xy_v3_64"          : "0x0cc0",
   
- "SYS_LoaderNextByteIn_32"      : "0x1a6d",
- "SYS_LoaderProcessInput_64"    : "0x1a83",
- "SYS_LoaderPayloadCopy_34"     : "0x1ac1",
- "SYS_Unpack_56"                : "0x1ad5"
+ "SYS_LoaderNextByteIn_32"      : "0x1a00",
+ "SYS_LoaderProcessInput_64"    : "0x1a16",
+ "SYS_LoaderPayloadCopy_34"     : "0x1a54",
+ "SYS_Unpack_56"                : "0x1a68"
 }

@@ -12,6 +12,7 @@
 #include "optimiser.h"
 
 
+// TODO: use MAP's for switch statements to reduce compile time in RELEASE mode
 namespace Optimiser
 {
     enum OptimiseTypes
@@ -25,14 +26,14 @@ namespace Optimiser
         LdwSubiBcc, LdXoriBcc, LdwXoriBcc, LdwNotwStw, LdwNegwStw, LdNotwSt, LdwNotwSt, LdwiAddwStwLdwiAddw, LdwiAddw2StwLdwiAddw2, LdwiStwLdiPoke, LdwiStwLdiDoke, LdwiStwLdwiDoke, StwLdPoke, StwLdwPoke,
         StwLdwDoke, StwLdwDokeReg, StwLdwIncPoke, LdStwLdwPokea, LdStwLdwiPokea, LdStwLdwiAddiPokea, NegwArrayB, NegwArray, AddwArrayB, AddwArray, SubwArrayB, SubwArray, AndwArrayB, AndwArray, OrwArrayB,
         OrwArray, XorwArrayB, XorwArray, LdStwMovqbLdwStw, LdwStwMovqbLdwStw, LdwiStwMovqbLdwStw, LdStwMovqwLdwStw, LdwStwMovqwLdwStw, LdwiStwMovqwLdwStw, StwLdwiAddwAddw, LdwiAddwAddw, LdwArrw, StwStwArrvwDokea,
-        StwArrvwDokea, ArrvwDeek, AssignArray, StarrwLdarrw, StwLdiPokea, AddwAddwDeek,
+        StwArrvwDokea, ArrvwDeek, AssignArray, StarrwLdarrw, StwLdiPokea, AddwAddwDeek, StwLsl8,
 
         // Operands are NOT matched
         MovbSt, PeekSt, PeekVar, DeekStw, DeekVar, LdwiDeek, LdwDeekAddbi, DeekvAddbi, DokeAddbi, LdSt, LdwSt, StwPair, StwPairReg, ExtraStw, PeekArrayB, PeekArray, DeekArray, PokeArray,
         DokeArray, PokeVarArrayB, PokeVarArray, DokeVarArray, PokeTmpArrayB, PokeTmpArray, DokeTmpArray, PokeaVarArrayB, PokeaVarArray, DokeaVarArray, PokeaTmpArrayB, PokeaTmpArray, DokeaTmpArray, MovwaLdwiPokea,
         MovwaLdwiAddwPeeka, MovqwLdwiAddiPokea, LdwiAddwPeek, LdwiAddwPeeka, MovwaLdarrbSt, StwLdwiAddwPokea, LdwiAddwPokea, LdwiAddwPokei, StwMovb, StwPokeArray, StwDokeArray, LdiSt, LdiStw, LdSubLoHi, LdiSubLoHi,
-        LdwSubLoHi, LdiAddi, LdiSubi, LdiAndi, LdiOri, LdiXori, AddiPair, LdwStw, TeqStw, TneStw, TltStw, TgtStw, TleStw, TgeStw, TeqJump, TneJump, TltJump, TgtJump, TleJump, TgeJump, TeqCondii, TeqCondib, TeqCondbi,
-        TeqCondbb, MovbMovb0, MovbMovb1, MovbMovb2, PackvwLdw,
+        LdwSubLoHi, LdiAddi, LdiSubi, LdiAndi, LdiOri, LdiXori, LdwStw, TeqStw, TneStw, TltStw, TgtStw, TleStw, TgeStw, TeqJump, TneJump, TltJump, TgtJump, TleJump, TgeJump, TeqCondii, TeqCondib, TeqCondbi,
+        TeqCondbb, MovbMovb0, MovbMovb1, MovbMovb2, PackvwLdw, XyToVram, AddiAddi, AddiSubi, SubiAddi, SubiSubi,
 
         // Opcodes AND operands are manually matched
         MovwaStarrb, AddiZero, SubiZero, LdwiNeg, LdwiSml, NumOptimiseTypes
@@ -856,6 +857,10 @@ namespace Optimiser
                 Expression::createPaddedString("ADDW", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("DEEK", OPCODE_TRUNC_SIZE, ' ') + ""}},
 
+        // StwLsl8
+        {0, 1, {Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + "0x",
+                Expression::createPaddedString("LSL8", OPCODE_TRUNC_SIZE, ' ') + "0x"}},
+
         /******************************************************************************************/
         /* Operands are not matched from here on in
         /******************************************************************************************/
@@ -1179,10 +1184,6 @@ namespace Optimiser
         {0, 0, {Expression::createPaddedString("LDI",  OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("XORI", OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // AddiPair
-        {0, 0, {Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
-                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + ""}},
-
         // LdwStw
         {0, 0, {Expression::createPaddedString("LDW", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW", OPCODE_TRUNC_SIZE, ' ') + ""}},
@@ -1260,6 +1261,28 @@ namespace Optimiser
         // PackvwLdw
         {0, 0, {Expression::createPaddedString("PACKVW", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("LDW",    OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // XyToVram
+        {0, 0, {Expression::createPaddedString("MOVB", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // AddiAddi
+        {0, 0, {Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // AddiSubi
+        {0, 0, {Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // SubiAddi
+        {0, 0, {Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // SubiSubi
+        {0, 0, {Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + ""}},
 
         /******************************************************************************************/
         /* Opcodes are manually matched here on in
@@ -3742,6 +3765,25 @@ namespace Optimiser
                                     }
                                     break;
 
+                                    // Match STW LSL8 for temp vars, replace STW with LSL8 vAC, delete LSL8
+                                    case StwLsl8:
+                                    {
+                                        // Bail if wrong ROM version
+                                        if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                
+                                        // Bail if LSL8 has a label
+                                        if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+
+                                        // Replace STW with LSL8 vAC
+                                        updateVasm(codeLine, firstMatch, "LSL8", "giga_vAC");
+                                
+                                        // Delete LSL8
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LSL8"});
+                                    }
+                                    break;
+                
                                     default: break;
                                 }
                             }
@@ -4856,36 +4898,6 @@ namespace Optimiser
                                 }
                                 break;
 
-                                // Match ADDI ADDI
-                                case AddiPair:
-                                {
-                                    uint8_t addi0, addi1;
-
-                                    // Migrate second ADDI's label to next instruction, (if it exists)
-                                    if(!migratelLabel(codeLine, firstMatch + 1, firstMatch + 2)) break;
-
-                                    // Add operands together, replace first operand, delete second opcode and operand
-                                    Compiler::VasmLine vasm = Compiler::getCodeLines()[codeLine]._vasm[firstMatch];
-                                    std::string operand = vasm._operand;
-                                    Expression::stringToU8(operand, addi0);
-                                    vasm = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1];
-                                    operand = vasm._operand;
-                                    Expression::stringToU8(operand, addi1);
-
-                                    // Result can't fit in an ADDI operand so exit, (ADDI can't be -ve so result can't be -ve)
-                                    uint16_t result = addi0 + addi1;
-                                    if(result > 255) break;
-
-                                    // Delete second ADDI
-                                    linesDeleted = true;
-                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
-
-                                    // Replace first ADDI's operand with sum of both ADDI's operands
-                                    updateVasm(codeLine, firstMatch, "ADDI", std::to_string(uint8_t(result)));
-                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDI"});
-                                }
-                                break;
-
                                 // Match LDW STW, replace with MOVWA
                                 case LdwStw:
                                 {
@@ -5137,9 +5149,9 @@ namespace Optimiser
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
                                     // Bail if operands don't match corectly
-                                    std::string pckOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 0);
-                                    std::string pckOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 1);
-                                    std::string pckOperand02 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 2);
+                                    std::string pckOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 0);
+                                    std::string pckOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 1);
+                                    std::string pckOperand02 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 2);
                                     std::string ldwOperand   = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 0);
                                     if(pckOperand02 != ldwOperand) break;
 
@@ -5150,6 +5162,185 @@ namespace Optimiser
                                     linesDeleted = true;
                                     itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                     adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LDW"});
+                                }
+                                break;
+
+                                // Match MOVB LDW ADDI ST, replace with CNVXY
+                                case XyToVram:
+                                {
+                                    // Bail if wrong ROM version or if LDW ADDI8 or ST have labels
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._labelIndex >= 0) break;
+
+                                    // Bail if operands don't match corectly
+                                    uint8_t addi = 0;
+                                    std::string movbOperand0 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 0);
+                                    std::string movbOperand1 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 1);
+                                    std::string ldwOperand   = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 0);
+                                    std::string addiOperand  = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand, 0);
+                                    std::string stOperand    = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._operand, 0);
+                                    Expression::stringToU8(addiOperand, addi);
+                                    if(addi != 8) break;
+                                    if(stOperand.find(movbOperand1) == std::string::npos) break;
+                                    if(stOperand.find("+1") == std::string::npos  &&  stOperand.find(" + 1") == std::string::npos) break;
+
+                                    // Replace with CNVXY
+                                    updateVasm(codeLine, firstMatch, "CNVXY", movbOperand0 + ", " + ldwOperand + ", " + movbOperand1);
+
+                                    // Delete LDW ADDI ST
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LDW", "ADDI", "ST"});
+                                }
+                                break;
+
+                                // Match ADDI ADDI
+                                case AddiAddi:
+                                {
+                                    uint8_t addi0, addi1;
+
+                                    // Migrate second ADDI's label to next instruction, (if it exists)
+                                    if(!migratelLabel(codeLine, firstMatch + 1, firstMatch + 2)) break;
+
+                                    // Get operands
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand), addi0);
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand), addi1);
+
+                                    // Result can't fit in an ADDI so exit
+                                    int16_t result = addi0 + addi1;
+                                    if(result < 0  ||  result > 255) break;
+
+                                    // Replace first ADDI and it's operand
+                                    updateVasm(codeLine, firstMatch, "ADDI", std::to_string(uint8_t(result)));
+
+                                    // Delete second ADDI
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDI"});
+                                }
+                                break;
+
+                                // Match SUBI ADDI
+                                case SubiAddi:
+                                {
+                                    uint8_t subi, addi;
+
+                                    // Migrate ADDI's label to next instruction, (if it exists)
+                                    if(!migratelLabel(codeLine, firstMatch + 1, firstMatch + 2)) break;
+
+                                    // Get operands
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand), subi);
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand), addi);
+
+                                    // Result can't fit in a SUBI or ADDI operand so exit
+                                    int16_t result = -subi + addi;
+                                    if(abs(result) > 255) break;
+
+                                    // Replace SUBI and it's operand
+                                    if(Expression::sgn(result) > 0)
+                                    {
+                                        updateVasm(codeLine, firstMatch, "ADDI", std::to_string(uint8_t(result)));
+
+                                        // Delete ADDI
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDI"});
+                                    }
+                                    else if(Expression::sgn(result) < 0)
+                                    {
+                                        updateVasm(codeLine, firstMatch, "SUBI", std::to_string(uint8_t(abs(result))));
+
+                                        // Delete ADDI
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDI"});
+                                    }
+                                    // Result == 0
+                                    else
+                                    {
+                                        // Delete both
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch);
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch, {"SUBI", "ADDI"});
+                                    }
+                                }
+                                break;
+
+                                // Match ADDI SUBI
+                                case AddiSubi:
+                                {
+                                    uint8_t addi, subi;
+
+                                    // Migrate SUBI's label to next instruction, (if it exists)
+                                    if(!migratelLabel(codeLine, firstMatch + 1, firstMatch + 2)) break;
+
+                                    // Get operands
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand), subi);
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand), addi);
+
+                                    // Result can't fit in a SUBI or ADDI operand so exit
+                                    int16_t result = addi - subi;
+                                    if(abs(result) > 255) break;
+
+                                    // Replace ADDI and it's operand
+                                    if(Expression::sgn(result) > 0)
+                                    {
+                                        updateVasm(codeLine, firstMatch, "ADDI", std::to_string(uint8_t(result)));
+
+                                        // Delete SUBI
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI"});
+                                    }
+                                    else if(Expression::sgn(result) < 0)
+                                    {
+                                        updateVasm(codeLine, firstMatch, "SUBI", std::to_string(uint8_t(abs(result))));
+
+                                        // Delete SUBI
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI"});
+                                    }
+                                    // Result == 0
+                                    else
+                                    {
+                                        // Delete both
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch);
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch, {"ADDI", "SUBI"});
+                                    }
+                                }
+                                break;
+
+                                // Match SUBI SUBI
+                                case SubiSubi:
+                                {
+                                    uint8_t subi0, subi1;
+
+                                    // Migrate second ADDI's label to next instruction, (if it exists)
+                                    if(!migratelLabel(codeLine, firstMatch + 1, firstMatch + 2)) break;
+
+                                    // Get operands
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand), subi0);
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand), subi1);
+
+                                    // Result can't fit in an SUBI so exit
+                                    int16_t result = -subi0 + -subi1;
+                                    if(result < -255  ||  result > 0) break;
+
+                                    // Replace first SUBI and it's operand
+                                    updateVasm(codeLine, firstMatch, "SUBI", std::to_string(uint8_t(abs(result))));
+
+                                    // Delete second SUBI
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI"});
                                 }
                                 break;
 
