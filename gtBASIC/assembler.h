@@ -47,6 +47,7 @@
 #define OPCODE_V_MOVQB  0x16
 #define OPCODE_V_MOVQW  0x1C
 #define OPCODE_V_ARRW   0x1F
+#define OPCODE_V_ADDVB  0x29
 #define OPCODE_V_CNVXY  0x2D
 #define OPCODE_V_PREFX2 0x2F
 #define OPCODE_V_MOVWA  0x32
@@ -57,8 +58,9 @@
 #define OPCODE_V_LDARRW 0x3F
 #define OPCODE_V_ADDVI  0x42
 #define OPCODE_V_SUBVI  0x44
+#define OPCODE_V_SUBVB  0x48
 #define OPCODE_V_DJGE   0x4A
-#define OPCODE_V_LOKEQI 0x4D
+#define OPCODE_V_SPARE2 0x4D
 #define OPCODE_V_STWM   0x4F
 #define OPCODE_V_STARRW 0x51
 #define OPCODE_V_LDARRB 0x53
@@ -68,6 +70,7 @@
 #define OPCODE_V_MOVB   0x65
 #define OPCODE_V_DEEKA  0x6F
 #define OPCODE_V_LDWM   0x72
+#define OPCODE_V_SPARE3 0x77
 #define OPCODE_V_DBGE   0x8E
 #define OPCODE_V_BRA    0x90
 #define OPCODE_V_INCWA  0x95
@@ -139,6 +142,9 @@
 #define OPCODE_V_VTBL   0x59
 #define OPCODE_V_OSCZ   0x5C
 #define OPCODE_V_LSL8   0x5E
+#define OPCODE_V_ADDBA  0x60
+#define OPCODE_V_SUBBA  0x62
+#define OPCODE_V_NOTB   0x64
 
 // PREFX3 instructions
 #define OPCODE_V_STB2   0x11

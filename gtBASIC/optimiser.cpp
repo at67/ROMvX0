@@ -20,8 +20,8 @@ namespace Optimiser
         // Operands are matched
         StStw=0, StwLdwPair, StwLdPair, StwStHigh, ExtraLdw, ExtraLd, LdwPair, LdwStwLdwStw, StwLdiAddw, StwLdAddw, StwLdAddwVar, StwLdwAddw, StwLdwAddwVar, StwLdiAndw, StwLdAndw, StwLdAndwVar, StwLdwAndw,
         StwLdwAndwVar, StwLdiXorw, StwLdXorw, StwLdXorwVar, StwLdwXorw, StwLdwXorwVar, StwLdiOrw, StwLdOrw, StwLdOrwVar, StwLdwOrw, StwLdwOrwVar, Stpx0, Stpx1, Stpx2, Stpx3, StwLdwiAddw, StwLdwiSubw,
-        StwLdwiAndw, StwLdwiXorw, StwLdwiOrw, LdwBeqStwTmp, LdwBeqStwVar, LdBeqStTmp, LdBeqStVar, Inc4Var, Inc3Var, Inc2Var, Dec4Var, Dec3Var, Dec2Var, LdwAddiStw, LdwAddwStw, LdAddiSt, LdwAddiSt, LdwSubiStw,
-        LdwSubwStw, IncwLdw, DecwLdw, LdStwLdSubw, LdStwLdwSubw, LdSub1St, LdwSub1Stw, LdSubiSt, LdwSubiSt, LdAndiSt, LdwAndiSt, LdOriSt, LdwOriSt, LdwOriStw, LdXoriSt, LdwXoriSt, LdwXoriStw, LdAndi, LdwAndi,
+        StwLdwiAndw, StwLdwiXorw, StwLdwiOrw, LdwBeqStwTmp, LdwBeqStwVar, LdBeqStTmp, LdBeqStVar, Inc4Var, Inc3Var, Inc2Var, Dec4Var, Dec3Var, Dec2Var, LdwAddiStw, LdwAddwStw0, LdAddiSt, LdwAddiSt, LdwSubiStw,
+        LdwSubwStw0, IncwLdw, DecwLdw, LdStwLdSubw, LdStwLdwSubw, LdSub1St, LdwSub1Stw, LdSubiSt, LdwSubiSt, LdAndiSt, LdwAndiSt, LdOriSt, LdwOriSt, LdwOriStw, LdXoriSt, LdwXoriSt, LdwXoriStw, LdAndi, LdwAndi,
         LdOri, LdXori, LdwLslwStw, LdwLsrvStw, LdwLsrv2Stw, LdLsrb1St, LdLsrb2St, LdLsrb3St, LdLsrb4St, PokeVar, DokeVar, LdwPeekInc, PeekvInc, PokeInc, LdwDeekIncInc, DeekvIncInc, DokeIncInc, LdSubiBcc,
         LdwSubiBcc, LdXoriBcc, LdwXoriBcc, LdwNotwStw, LdwNegwStw, LdNotwSt, LdwNotwSt, LdwiAddwStwLdwiAddw, LdwiAddw2StwLdwiAddw2, LdwiStwLdiPoke, LdwiStwLdiDoke, LdwiStwLdwiDoke, StwLdPoke, StwLdwPoke,
         StwLdwDoke, StwLdwDokeReg, StwLdwIncPoke, LdStwLdwPokea, LdStwLdwiPokea, LdStwLdwiAddiPokea, NegwArrayB, NegwArray, AddwArrayB, AddwArray, SubwArrayB, SubwArray, AndwArrayB, AndwArray, OrwArrayB,
@@ -33,7 +33,7 @@ namespace Optimiser
         DokeArray, PokeVarArrayB, PokeVarArray, DokeVarArray, PokeTmpArrayB, PokeTmpArray, DokeTmpArray, PokeaVarArrayB, PokeaVarArray, DokeaVarArray, PokeaTmpArrayB, PokeaTmpArray, DokeaTmpArray, MovwaLdwiPokea,
         MovwaLdwiAddwPeeka, MovqwLdwiAddiPokea, LdwiAddwPeek, LdwiAddwPeeka, MovwaLdarrbSt, StwLdwiAddwPokea, LdwiAddwPokea, LdwiAddwPokei, StwMovb, StwPokeArray, StwDokeArray, LdiSt, LdiStw, LdSubLoHi, LdiSubLoHi,
         LdwSubLoHi, LdiAddi, LdiSubi, LdiAndi, LdiOri, LdiXori, LdwStw, TeqStw, TneStw, TltStw, TgtStw, TleStw, TgeStw, TeqJump, TneJump, TltJump, TgtJump, TleJump, TgeJump, TeqCondii, TeqCondib, TeqCondbi,
-        TeqCondbb, MovbMovb0, MovbMovb1, MovbMovb2, PackvwLdw, XyToVram, AddiAddi, AddiSubi, SubiAddi, SubiSubi,
+        TeqCondbb, MovbMovb0, MovbMovb1, MovbMovb2, PackvwLdw, XyToVram, AddiAddi, AddiSubi, SubiAddi, SubiSubi, LdiZeroAddw, LdwAddwStw1, LdwSubwStw1,
 
         // Opcodes AND operands are manually matched
         MovwaStarrb, AddiZero, SubiZero, LdwiNeg, LdwiSml, NumOptimiseTypes
@@ -288,7 +288,7 @@ namespace Optimiser
                 Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // LdwAddwStw
+        // LdwAddwStw0
         {0, 2, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("ADDW", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
@@ -308,7 +308,7 @@ namespace Optimiser
                 Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // LdwSubwStw
+        // LdwSubwStw0
         {0, 2, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("SUBW", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
@@ -1283,6 +1283,20 @@ namespace Optimiser
         // SubiSubi
         {0, 0, {Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdiZeroAddw
+        {0, 0, {Expression::createPaddedString("LDI",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ADDW", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdwAddwStw1
+        {0, 0, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ADDW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdwSubwStw1
+        {0, 0, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("SUBW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
 
         /******************************************************************************************/
         /* Opcodes are manually matched here on in
@@ -2518,7 +2532,7 @@ namespace Optimiser
                                     break;
 
                                     // Match LDW ADDW STW, replace all with ADDVW
-                                    case LdwAddwStw:
+                                    case LdwAddwStw0:
                                     {
                                         // Bail if wrong ROM version or if ADDW or STW has a label
                                         if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
@@ -2526,9 +2540,9 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
                                         // Replace LDW with ADDVW and new operands
-                                        std::string ldwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
+                                        std::string ldwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
                                         std::string addwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
-                                        updateVasm(codeLine, firstMatch, "ADDVW", addwOperand + ", " + ldwOperand);
+                                        updateVasm(codeLine, firstMatch, "ADDVW", addwOperand + ", " + ldwOperand + ", " + ldwOperand);
 
                                         // Delete ADDW and STW
                                         linesDeleted = true;
@@ -2592,7 +2606,7 @@ namespace Optimiser
                                     break;
 
                                     // Match LDW SUBW STW, replace all with SUBVW
-                                    case LdwSubwStw:
+                                    case LdwSubwStw0:
                                     {
                                         // Bail if wrong ROM version or if SUBW or STW has a label
                                         if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
@@ -2602,7 +2616,7 @@ namespace Optimiser
                                         // Replace LDW with SUBVW and new operands
                                         std::string ldwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
                                         std::string subwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
-                                        updateVasm(codeLine, firstMatch, "SUBVW", subwOperand + ", " + ldwOperand);
+                                        updateVasm(codeLine, firstMatch, "SUBVW", ldwOperand + ", " + subwOperand + ", " + ldwOperand);
 
                                         // Delete SUBW and STW
                                         linesDeleted = true;
@@ -5321,12 +5335,11 @@ namespace Optimiser
                                 // Match SUBI SUBI
                                 case SubiSubi:
                                 {
-                                    uint8_t subi0, subi1;
-
                                     // Migrate second ADDI's label to next instruction, (if it exists)
                                     if(!migratelLabel(codeLine, firstMatch + 1, firstMatch + 2)) break;
 
                                     // Get operands
+                                    uint8_t subi0, subi1;
                                     Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand), subi0);
                                     Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand), subi1);
 
@@ -5341,6 +5354,72 @@ namespace Optimiser
                                     linesDeleted = true;
                                     itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                     adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI"});
+                                }
+                                break;
+
+                                // Match LDI0 ADDW, replace with LDW
+                                case LdiZeroAddw:
+                                {
+                                    // Bail if ADDW has a label
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+
+                                    // LDI operand has to be zero
+                                    uint8_t ldi;
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand), ldi);
+                                    if(ldi != 0) break;
+
+                                    // Replace LDI with LDW
+                                    std::string addwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                    updateVasm(codeLine, firstMatch, "LDW", addwOperand);
+
+                                    // Delete ADDW
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDW"});
+                                }
+                                break;
+
+                                // Match LDW ADDW STW, replace all with ADDVW
+                                case LdwAddwStw1:
+                                {
+                                    // Bail if wrong ROM version or if ADDW or STW has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Replace LDW with ADDVW and new operands
+                                    std::string ldwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                    std::string addwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                    std::string stwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                    updateVasm(codeLine, firstMatch, "ADDVW", ldwOperand + ", " + addwOperand + ", " + stwOperand);
+
+                                    // Delete ADDW and STW
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDW", "STW"});
+                                }
+                                break;
+
+                                // Match LDW SUBW STW, replace all with SUBVW
+                                case LdwSubwStw1:
+                                {
+                                    // Bail if wrong ROM version or if SUBW or STW has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Replace LDW with SUBVW and new operands
+                                    std::string ldwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                    std::string subwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                    std::string stwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                    updateVasm(codeLine, firstMatch, "SUBVW", ldwOperand + ", " + subwOperand + ", " + stwOperand);
+
+                                    // Delete SUBW and STW
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBW", "STW"});
                                 }
                                 break;
 
