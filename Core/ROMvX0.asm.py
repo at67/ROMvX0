@@ -1638,7 +1638,7 @@ jmp(Y,'lslv#13')                #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0329, Opcode = 0x29
-# Instruction ADDVB: dst.lo = src0.lo + src1.lo
+# Instruction ADDVB: dst.lo = src0.lo + src1.lo, 36 cycles
 label('ADDVB')
 ld(hi('addvb#13'),Y)            #10 #12
 jmp(Y,'addvb#13')               #11
@@ -1730,7 +1730,7 @@ jmp(Y,'deekv+#13')              #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0348, Opcode = 0x48
-# Instruction SUBVB: dst.lo = src0.lo - src1.lo
+# Instruction SUBVB: dst.lo = src0.lo - src1.lo, 36 cycles
 label('SUBVB')
 ld(hi('subvb#13'),Y)            #10 #12
 jmp(Y,'subvb#13')               #11
