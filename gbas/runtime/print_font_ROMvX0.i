@@ -104,7 +104,7 @@ printR_exit         POP
                     ; prints sub string pointed to by the accumulator
 printMid            PUSH
                     CALLI   printInit
-                    ADDVW   textOfs, textStr                    ; textStr += textOfs
+                    ADDVW   textOfs, textStr, textStr           ; textStr += textOfs
                     LD      textLen
                     BEQ     printM_exit
                     INC     textStr                             ; skip length

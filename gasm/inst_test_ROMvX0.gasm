@@ -54,7 +54,7 @@ inst_loop       MOVQB   giga_soundTimer, 5
                 LDWI    (_test_equ >>8) + 1
                 LDI     50
                 STW     0x32
-                CALL    INS118 ;STACK_CHK
+                CALL    INS66 ;STACK_CHK
                 BRA     inst_loop
 
 STACK_CHK       PUSH
@@ -377,7 +377,7 @@ INS65           LDWI    0xFF00
                 LDWI    0x00FF
                 STW     0x32
 _breakpoint_
-                ADDVW   0x30 0x32
+                ADDVW   0x30 0x32 0x32
                 RET
 
 INS66           LDWI    0x00FF
@@ -385,7 +385,7 @@ INS66           LDWI    0x00FF
                 LDWI    0xFF00
                 STW     0x32
 _breakpoint_
-                SUBVW   0x30 0x32
+                SUBVW   0x32, 0x30 0x32
                 RET
 
 INS67           LDWI    0xFF80
@@ -559,12 +559,10 @@ _breakpoint_
                 VADDBW  0x30, 0x32
                 RET
 
-INS93           LDI     0x30
-                LOKEQI  -100
-                LDI     0x34
-                LOKEQI  1234
+INS93           MOVQW   0x30, 55
+                MOVQW   0x31, 100
 _breakpoint_
-                VADDBL  0x30, 0x34
+                ADDVB   0x30, 0x31, 0x32
                 RET
 
 INS94           MOVQW   0x30, 0xEF
@@ -631,8 +629,10 @@ INS106          MOVQB   0x30, 0x55
                 XORBI   0x30, 0xAA
                 RET
 
-INS107          LDI     0x30
-                LOKEQI  0x1234
+INS107          MOVQW   0x30, 100
+                MOVQW   0x31, 55
+_breakpoint_
+                SUBVB   0x30, 0x31, 0x32
                 RET
 
 INS108          LDWI    19999
@@ -692,4 +692,10 @@ INS118          MOVQB   0x30, 80
                 MOVQB   0x32, 60
                 CNVXY   0x30, 0x32, 0x34
 _breakpoint_
+                RET
+
+INS119          MOVQW   0x30, 100
+                MOVQW   0x31, 55
+_breakpoint_
+                ADDVB   0x30, 0x31, 0x31
                 RET

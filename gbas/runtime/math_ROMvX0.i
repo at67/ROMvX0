@@ -95,7 +95,7 @@ multiply16bit_1     MOVQW   mathSum, 0
                     
 multiply161_loop    ANDI    1
                     BEQ     multiply161_skip
-                    ADDVW   mathX, mathSum                      ; mathSum += mathX
+                    ADDVW   mathX, mathSum, mathSum             ; mathSum += mathX
                     
 multiply161_skip    LSLV    mathX                               ; mathX = mathX <<1
                     LSRV    mathY                               ; mathY = mathY >>1
@@ -114,7 +114,7 @@ multiply16bit_2     MOVQW   mathSum, 0
                     
 multiply162_loop    ANDW    mathY
                     BEQ     multiply162_skip
-                    ADDVW   mathX, mathSum
+                    ADDVW   mathX, mathSum, mathSum
                     
 multiply162_skip    LSLV    mathX
                     LSLV    mathMask
@@ -246,15 +246,13 @@ sqrt16bit           STW     mathX
                     LDWI    0x4000
                     STW     mathShift
                     
-sqrt16_loop         LDW     mathResult
-                    ADDW    mathShift
-                    STW     mathSum
+sqrt16_loop         ADDVW   mathResult, mathShift, mathSum
                     LSRV    mathResult
                     LDW     mathSum
                     SUBW    mathX
                     BGT     sqrt16_skip
-                    ADDVW   mathShift, mathResult
-                    SUBVW   mathSum, mathX
+                    ADDVW   mathShift, mathResult, mathResult
+                    SUBVW   mathX, mathSum, mathX
                     
 sqrt16_skip         LSRV    mathShift
                     LSRV    mathShift

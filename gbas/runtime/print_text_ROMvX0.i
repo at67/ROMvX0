@@ -129,7 +129,7 @@ printMid            LD      textLen
                     BEQ     printM_exit
                     PUSH
                     CALLI   printInit
-                    ADDVW   textOfs, textStr                    ; textStr += textOfs
+                    ADDVW   textOfs, textStr, textStr           ; textStr += textOfs
                     INC     textStr                             ; skip length
                     
 printM_char         PEEKV+  textStr             

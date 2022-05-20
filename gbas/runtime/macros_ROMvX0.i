@@ -139,25 +139,25 @@
 %ENDM
 
 %MACRO  ForNextVarAdd _var _label _vEnd _vStep
-        ADDVW   _vStep, _var
+        ADDVW   _vStep, _var, _var
         SUBW    _vEnd
         JLE     _label
 %ENDM
 
 %MACRO  ForNextVarSub _var _label _vEnd _vStep
-        SUBVW   _vStep, _var
+        SUBVW   _var, _vStep, _var
         SUBW    _vEnd
         JGE     _label
 %ENDM
 
 %MACRO  ForNextFarVarAdd _var _label _vEnd _vStep
-        ADDVW   _vStep, _var
+        ADDVW   _vStep, _var, _var
         SUBW    _vEnd
         JLE     _label
 %ENDM
 
 %MACRO  ForNextFarVarSub _var _label _vEnd _vStep
-        SUBVW   _vStep, _var
+        SUBVW   _var, _vStep, _var
         SUBW    _vEnd
         JGE     _label
 %ENDM

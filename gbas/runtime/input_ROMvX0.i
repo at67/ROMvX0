@@ -243,9 +243,7 @@ inputPrint          MOVWA   inpPrnXYBak, cursorXY               ; restore cursor
                     ADDW    inpTextOfs
                     CALLI   printText
                     CALLI   loadRegs8_15
-                    LDW     inpCursXYBak                        ; new cursor position
-                    ADDW    inpCursXYOfs
-                    STW     inpCursXYBak
+                    ADDVW   inpCursXYBak, inpCursXYOfs, inpCursXYBak
                     LDI     0                                   ; keep looping on current var
                     POP
                     RET

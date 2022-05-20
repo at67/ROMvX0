@@ -263,7 +263,7 @@ stringMid           STW     strDstAddr
                     STW     strDstLen
                     POKE    strDstAddr                          ; new destination length
                     
-stringM_skip        ADDVW   strOffset, strSrcAddr               ; copy from (source address + (source length - right length)) to destination address
+stringM_skip        ADDVW   strOffset, strSrcAddr, strSrcAddr   ; copy from (source address + (source length - right length)) to destination address
                     INC     strSrcAddr                          ; skip lengths
                     INC     strDstAddr
 
