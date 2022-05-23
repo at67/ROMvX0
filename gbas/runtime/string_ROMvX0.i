@@ -288,7 +288,7 @@ stringLo_next       PEEKV+  strSrcAddr
                     BLT     stringLo_char
                     CMPI    strChr, 90
                     BGT     stringLo_char
-                    ADDBI   strChr, 32                          ; >= 65 'A' and <= 90 'Z'
+                    ADDBI   strChr, strChr, 32                  ; >= 65 'A' and <= 90 'Z'
                     
 stringLo_char       LD      strChr
                     POKEV+  strDstAddr                          ; lower case char
@@ -310,7 +310,7 @@ stringUp_next       PEEKV+  strSrcAddr
                     BLT     stringUp_char
                     CMPI    strChr, 122
                     BGT     stringUp_char
-                    SUBBI   strChr, 32                          ; >= 97 'a' and <= 122 'z'
+                    SUBBI   strChr, strChr, 32                  ; >= 97 'a' and <= 122 'z'
                     
 stringUp_char       LD      strChr
                     POKEV+  strDstAddr                          ; upper case char

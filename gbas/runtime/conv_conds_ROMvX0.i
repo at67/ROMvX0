@@ -2,36 +2,36 @@
 
 %SUB                convertEqOp
                     ; convert equal to into a boolean
-convertEqOp         TEQ     giga_vAC
+convertEqOp         TEQ
                     RET
 %ENDS   
                     
 %SUB                convertNeOp
                     ; convert not equal to into a boolean
-convertNeOp         TNE     giga_vAC
+convertNeOp         TNE
                     RET
 %ENDS   
     
 %SUB                convertLeOp                
                     ; convert less than or equal to into a boolean
-convertLeOp         TLE     giga_vAC
+convertLeOp         TLE
                     RET
 %ENDS   
     
 %SUB                convertGeOp
                     ; convert greater than or equal to into a boolean
-convertGeOp         TGE     giga_vAC
+convertGeOp         TGE
                     RET
 %ENDS   
         
 %SUB                convertLtOp     
                     ; convert less than into a boolean
-convertLtOp         TLT     giga_vAC
+convertLtOp         TLT
                     RET
 %ENDS   
         
 %SUB                convertGtOp     
                     ; convert greater than into boolean
-convertGtOp         TGT     giga_vAC
+convertGtOp         TGT
                     RET
 %ENDS

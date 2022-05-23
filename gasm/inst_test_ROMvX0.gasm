@@ -247,27 +247,27 @@ INS36           LDWI    0x08FF
                 RET
 
 INS37           LDI     1
-                TEQ     0x30
+                TEQ
                 RET
 
 INS38           LDI     0
-                TNE     0x30
+                TNE
                 RET
 
 INS39           LDWI    -1
-                TLT     0x30
+                TLT
                 RET
 
 INS40           LDWI    0x8000
-                TGT     0x30
+                TGT
                 RET
 
 INS41           LDWI    1
-                TLE     0x30
+                TLE
                 RET
 
 INS42           LDWI    0
-                TGE     0x30
+                TGE
                 RET
 
 INS43           LDI     1
@@ -377,7 +377,7 @@ INS65           LDWI    0xFF00
                 LDWI    0x00FF
                 STW     0x32
 _breakpoint_
-                ADDVW   0x30 0x32 0x32
+                ADDVW   0x30, 0x32, 0x32
                 RET
 
 INS66           LDWI    0x00FF
@@ -385,19 +385,19 @@ INS66           LDWI    0x00FF
                 LDWI    0xFF00
                 STW     0x32
 _breakpoint_
-                SUBVW   0x32, 0x30 0x32
+                SUBVW   0x32, 0x30, 0x32
                 RET
 
 INS67           LDWI    0xFF80
                 STW     0x30
 _breakpoint_
-                ADDVI   0x30 0x81
+                ADDVI   0x30, 0x30, 0x81
                 RET
 
 INS68           LDWI    0xFF80
                 STW     0x30
 _breakpoint_
-                SUBVI   0x30 0x81
+                SUBVI   0x30, 0x30, 0x81
                 RET
 
 INS69           LDWI    0x1234

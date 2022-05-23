@@ -130,7 +130,7 @@ printLo_next        PEEKV+  textStr
                     BLT     printLo_char
                     CMPI    textChr, 90
                     BGT     printLo_char
-                    ADDBI   textChr, 32                         ; >= 65 'A' and <= 90 'Z'
+                    ADDBI   textChr, textChr, 32                ; >= 65 'A' and <= 90 'Z'
                     
 printLo_char        LD      textChr
                     CALLI   printChar
@@ -153,7 +153,7 @@ printUp_next        PEEKV+  textStr
                     BLT     printUp_char
                     CMPI    textChr, 122
                     BGT     printUp_char
-                    SUBBI   textChr, 32                             ; >= 97 'a' and <= 122 'z'
+                    SUBBI   textChr, textChr, 32                ; >= 97 'a' and <= 122 'z'
                     
 printUp_char        LD      textChr
                     CALLI   printChar
@@ -287,7 +287,7 @@ printC_exit         RET
 %ENDS
 
 %SUB                printClip
-printClip           ADDBI   cursorXY, giga_xfont
+printClip           ADDBI   cursorXY, cursorXY, giga_xfont
                     CMPI    cursorXY, giga_xres - giga_xfont    ; last possible char on line
                     BLE     printCl_exit
                     ANDBK   miscFlags, MISC_DISABLE_CLIP_BIT
@@ -311,7 +311,7 @@ newLineScroll       LDI     giga_CursorX                        ; cursor x start
 newLS_cont0         PUSH
                     ANDBK   miscFlags, MISC_ON_BOTTOM_ROW_BIT
                     BNE     newLS_cont1                         ; is on bottom row flag?
-                    ADDBI   cursorXY + 1, giga_yfont
+                    ADDBI   cursorXY + 1, cursorXY + 1, giga_yfont
                     CMPI    cursorXY + 1, giga_yres
                     BLT     newLS_exit
                     MOVQB   cursorXY + 1, giga_yres - giga_yfont

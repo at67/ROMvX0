@@ -225,7 +225,7 @@ inputD_skip         STW     inpCursXYOfs                        ; retreat cursor
                     POKEV+  inpTextAddr                         ; delete cursor
                     LDW     inpTextAddr
                     POKEI   0                                   ; delimiter
-                    SUBBI   inpTextAddr, 2                      ; decrement text pointer
+                    SUBBI   inpTextAddr, inpTextAddr, 2         ; decrement text pointer
                     LDW     inpTextAddr                 
                     POKEI   32                                  ; delete char
                     

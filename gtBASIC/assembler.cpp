@@ -161,7 +161,7 @@ namespace Assembler
         _asmOpcodes["MOVQB" ] = {0x16, 0x00, ThreeBytes, vCpu};
         _asmOpcodes["LSRB"  ] = {0x18, 0x00, TwoBytes,   vCpu};
         _asmOpcodes["LD"    ] = {0x1A, 0x00, TwoBytes,   vCpu};
-        _asmOpcodes["MOVQW" ] = {0x1C, 0x00, ThreeBytes, vCpu};
+        _asmOpcodes["ADDBI" ] = {0x1C, 0x00, FourBytes,  vCpu};
         _asmOpcodes["ARRW"  ] = {0x1F, 0x00, ThreeBytes, vCpu};
         _asmOpcodes["LDW"   ] = {0x21, 0x00, TwoBytes,   vCpu};
         _asmOpcodes["PEEKV+"] = {0x23, 0x00, TwoBytes,   vCpu};
@@ -171,16 +171,16 @@ namespace Assembler
         _asmOpcodes["STW"   ] = {0x2B, 0x00, TwoBytes,   vCpu};
         _asmOpcodes["CNVXY" ] = {0x2D, 0x00, FourBytes,  vCpu};
         _asmOpcodes["MOVWA" ] = {0x32, 0x00, ThreeBytes, vCpu};
-        _asmOpcodes["DOKEI" ] = {0x38, 0x00, ThreeBytes, vCpu};
+        _asmOpcodes["SUBBI" ] = {0x38, 0x00, FourBytes,  vCpu};
         _asmOpcodes["DEEKV" ] = {0x3B, 0x00, TwoBytes,   vCpu};
         _asmOpcodes["ARRVW" ] = {0x3D, 0x00, FourBytes,  vCpu};
         _asmOpcodes["LDARRW"] = {0x3F, 0x00, FourBytes,  vCpu};
-        _asmOpcodes["ADDVI" ] = {0x42, 0x00, ThreeBytes, vCpu};
-        _asmOpcodes["SUBVI" ] = {0x44, 0x00, ThreeBytes, vCpu};
+        _asmOpcodes["ADDVI" ] = {0x42, 0x00, FourBytes,  vCpu};
+        _asmOpcodes["SUBVI" ] = {0x44, 0x00, FourBytes,  vCpu};
         _asmOpcodes["DEEKV+"] = {0x46, 0x00, TwoBytes,   vCpu};
         _asmOpcodes["SUBVB" ] = {0x48, 0x00, FourBytes,  vCpu};
         _asmOpcodes["DJGE"  ] = {0x4A, 0x00, FourBytes,  vCpu};
-        _asmOpcodes["SPARE2"] = {0x4D, 0x00, ThreeBytes, vCpu};
+        _asmOpcodes["MOVQW" ] = {0x4D, 0x00, ThreeBytes, vCpu};
         _asmOpcodes["STWM"  ] = {0x4F, 0x00, ThreeBytes, vCpu};
         _asmOpcodes["STARRW"] = {0x51, 0x00, FourBytes,  vCpu};
         _asmOpcodes["LDARRB"] = {0x53, 0x00, FourBytes,  vCpu};
@@ -199,7 +199,7 @@ namespace Assembler
         _asmOpcodes["DEEKA" ] = {0x6F, 0x00, TwoBytes,   vCpu};
         _asmOpcodes["LDWM"  ] = {0x72, 0x00, ThreeBytes, vCpu};
         _asmOpcodes["PUSH"  ] = {0x75, 0x00, OneByte,    vCpu};
-        _asmOpcodes["SPARE3"] = {0x77, 0x00, TwoBytes,   vCpu};
+        _asmOpcodes["DOKEI" ] = {0x77, 0x00, ThreeBytes, vCpu};
         _asmOpcodes["INCW"  ] = {0x79, 0x00, TwoBytes,   vCpu};
         _asmOpcodes["DECW"  ] = {0x7B, 0x00, TwoBytes,   vCpu};
         _asmOpcodes["DOKEA" ] = {0x7D, 0x00, TwoBytes,   vCpu};
@@ -359,8 +359,7 @@ namespace Assembler
         _asmOpcodes["VADDBL"] = {0xC7, 0x83, FourBytes, vCpu};
         _asmOpcodes["VSUBBL"] = {0xC7, 0x86, FourBytes, vCpu};
         _asmOpcodes["CMPII" ] = {0xC7, 0x89, FourBytes, vCpu};
-        _asmOpcodes["ADDBI" ] = {0xC7, 0x8B, FourBytes, vCpu};
-        _asmOpcodes["SUBBI" ] = {0xC7, 0x8E, FourBytes, vCpu};
+        _asmOpcodes["SPARE" ] = {0xC7, 0x8B, FourBytes, vCpu};
 
         // Gigatron vCPU branch instructions
         _asmOpcodes["BEQ"] = {0x35, 0x3F, ThreeBytes, vCpu};
@@ -400,7 +399,7 @@ namespace Assembler
         _vcpuOpcodes[0x16] = {0x16, 0x00, ThreeBytes, vCpu, "MOVQB" };
         _vcpuOpcodes[0x18] = {0x18, 0x00, TwoBytes,   vCpu, "LSRB"  };
         _vcpuOpcodes[0x1A] = {0x1A, 0x00, TwoBytes,   vCpu, "LD"    };
-        _vcpuOpcodes[0x1C] = {0x1C, 0x00, ThreeBytes, vCpu, "MOVQW" };
+        _vcpuOpcodes[0x1C] = {0x1C, 0x00, FourBytes,  vCpu, "ADDBI" };
         _vcpuOpcodes[0x1F] = {0x1F, 0x00, ThreeBytes, vCpu, "ARRW"  };
         _vcpuOpcodes[0x21] = {0x21, 0x00, TwoBytes,   vCpu, "LDW"   };
         _vcpuOpcodes[0x23] = {0x23, 0x00, TwoBytes,   vCpu, "PEEKV+"};
@@ -410,16 +409,16 @@ namespace Assembler
         _vcpuOpcodes[0x2B] = {0x2B, 0x00, TwoBytes,   vCpu, "STW"   };
         _vcpuOpcodes[0x2D] = {0x2D, 0x00, FourBytes,  vCpu, "CNVXY" };
         _vcpuOpcodes[0x32] = {0x32, 0x00, ThreeBytes, vCpu, "MOVWA" };
-        _vcpuOpcodes[0x38] = {0x38, 0x00, ThreeBytes, vCpu, "DOKEI" };
+        _vcpuOpcodes[0x38] = {0x38, 0x00, FourBytes,  vCpu, "SUBBI" };
         _vcpuOpcodes[0x3B] = {0x3B, 0x00, TwoBytes,   vCpu, "DEEKV" };
         _vcpuOpcodes[0x3D] = {0x3D, 0x00, FourBytes,  vCpu, "ARRVW" };
         _vcpuOpcodes[0x3F] = {0x3F, 0x00, FourBytes,  vCpu, "LDARRW"};
-        _vcpuOpcodes[0x42] = {0x42, 0x00, ThreeBytes, vCpu, "ADDVI" };
-        _vcpuOpcodes[0x44] = {0x44, 0x00, ThreeBytes, vCpu, "SUBVI" };
+        _vcpuOpcodes[0x42] = {0x42, 0x00, FourBytes,  vCpu, "ADDVI" };
+        _vcpuOpcodes[0x44] = {0x44, 0x00, FourBytes,  vCpu, "SUBVI" };
         _vcpuOpcodes[0x46] = {0x46, 0x00, TwoBytes,   vCpu, "DEEKV+"};
         _vcpuOpcodes[0x48] = {0x48, 0x00, FourBytes,  vCpu, "SUBVB" };
         _vcpuOpcodes[0x4A] = {0x4A, 0x00, FourBytes,  vCpu, "DJGE"  };
-        _vcpuOpcodes[0x4D] = {0x4D, 0x00, ThreeBytes, vCpu, "SPARE2"};
+        _vcpuOpcodes[0x4D] = {0x4D, 0x00, ThreeBytes, vCpu, "MOVQW" };
         _vcpuOpcodes[0x4F] = {0x4F, 0x00, ThreeBytes, vCpu, "STWM"  };
         _vcpuOpcodes[0x51] = {0x51, 0x00, FourBytes,  vCpu, "STARRW"};
         _vcpuOpcodes[0x53] = {0x53, 0x00, FourBytes,  vCpu, "LDARRB"};
@@ -438,7 +437,7 @@ namespace Assembler
         _vcpuOpcodes[0x6F] = {0x6F, 0x00, TwoBytes,   vCpu, "DEEKA" };
         _vcpuOpcodes[0x72] = {0x72, 0x00, ThreeBytes, vCpu, "LDWM"  };
         _vcpuOpcodes[0x75] = {0x75, 0x00, OneByte,    vCpu, "PUSH"  };
-        _vcpuOpcodes[0x77] = {0x77, 0x00, TwoBytes,   vCpu, "SPARE3"};
+        _vcpuOpcodes[0x77] = {0x77, 0x00, ThreeBytes, vCpu, "DOKEI" };
         _vcpuOpcodes[0x79] = {0x79, 0x00, TwoBytes,   vCpu, "INCW"  };
         _vcpuOpcodes[0x7B] = {0x7B, 0x00, TwoBytes,   vCpu, "DECW"  };
         _vcpuOpcodes[0x7D] = {0x7D, 0x00, TwoBytes,   vCpu, "DOKEA" };
@@ -603,8 +602,7 @@ namespace Assembler
         _vcpuOpcodes[0xC783] = {0xC7, 0x83, FourBytes, vCpu, "VADDBL"};
         _vcpuOpcodes[0xC786] = {0xC7, 0x86, FourBytes, vCpu, "VSUBBL"};
         _vcpuOpcodes[0xC789] = {0xC7, 0x89, FourBytes, vCpu, "CMPII" };
-        _vcpuOpcodes[0xC78B] = {0xC7, 0x8B, FourBytes, vCpu, "ADDBI" };
-        _vcpuOpcodes[0xC78E] = {0xC7, 0x8E, FourBytes, vCpu, "SUBBI" };
+        _vcpuOpcodes[0xC78B] = {0xC7, 0x8B, FourBytes, vCpu, "SPARE" };
 
         // Native instructions
         _nativeOpcodes[0x00] = {0x00, 0x00, TwoBytes, Native, "LD"  };
@@ -856,8 +854,7 @@ namespace Assembler
                                                  operand0 == OPCODE_V_NOKEA   ||  operand0 == OPCODE_V_ADDVL   ||  operand0 == OPCODE_V_SUBVL   ||  operand0 == OPCODE_V_ANDVL   ||
                                                  operand0 == OPCODE_V_ORVL    ||  operand0 == OPCODE_V_XORVL   ||  operand0 == OPCODE_V_ANDBI   ||  operand0 == OPCODE_V_ORBI    ||
                                                  operand0 == OPCODE_V_XORBI   ||  operand0 == OPCODE_V_ANDBK   ||  operand0 == OPCODE_V_ORBK    ||  operand0 == OPCODE_V_XORBK   ||
-                                                 operand0 == OPCODE_V_VADDBW  ||  operand0 == OPCODE_V_VSUBBW  ||  operand0 == OPCODE_V_VADDBL  ||  operand0 == OPCODE_V_VSUBBL  ||
-                                                 operand0 == OPCODE_V_ADDBI   ||  operand0 == OPCODE_V_SUBBI))
+                                                 operand0 == OPCODE_V_VADDBW  ||  operand0 == OPCODE_V_VSUBBW  ||  operand0 == OPCODE_V_VADDBL  ||  operand0 == OPCODE_V_VSUBBL))
             {
                 sprintf(mnemonic, "%04x %-6s $%02x %02x", address, _vcpuOpcodes[opc]._mnemonic.c_str(), operand1, operand2);
             }
@@ -915,9 +912,8 @@ namespace Assembler
             byteSize = _vcpuOpcodes[opcode]._byteSize;
         }
 
-        // Page3 MOVQB MOVB MOVQW MOVWA CMPI ADDVI SUBVI opcodes
-        if(opcode == OPCODE_V_MOVQB  ||  opcode == OPCODE_V_MOVB   ||  opcode == OPCODE_V_MOVQW  ||  opcode == OPCODE_V_MOVWA  ||
-           opcode == OPCODE_V_CMPI   ||  opcode == OPCODE_V_ADDVI  ||  opcode == OPCODE_V_SUBVI  ||  opcode == OPCODE_V_PACKAW)
+        // Page3 MOVQB MOVB MOVQW MOVWA CMPI opcodes
+        if(opcode == OPCODE_V_MOVQB  ||  opcode == OPCODE_V_MOVB   ||  opcode == OPCODE_V_MOVQW  ||  opcode == OPCODE_V_MOVWA  ||  opcode == OPCODE_V_CMPI   ||  opcode == OPCODE_V_PACKAW)
         {
             sprintf(mnemonic, "%04x %-6s $%02x $%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand1, operand0);
         }
@@ -951,8 +947,19 @@ namespace Assembler
         {
             sprintf(mnemonic, "%04x %-6s $%02x $%02x%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand0, operand2, operand1);
         }
-        // ADDVW SUBWV ADDVB SUBVB PACKVW CNVXY opcodes
-        else if(opcode == OPCODE_V_ADDVW  ||  OPCODE_V_SUBVW  ||  opcode == OPCODE_V_ADDVB  ||  opcode == OPCODE_V_SUBVB  ||  opcode == OPCODE_V_PACKVW  ||  opcode == OPCODE_V_CNVXY)
+        // ADDVW SUBWV ADDVI SUBVI ADDVB SUBVB PACKVW CNVXY opcodes
+        else if(opcode == OPCODE_V_ADDVW  ||  opcode == OPCODE_V_SUBVW  ||  opcode == OPCODE_V_ADDVI   ||  opcode == OPCODE_V_SUBVI  ||
+                opcode == OPCODE_V_ADDVB  ||  opcode == OPCODE_V_SUBVB  ||  opcode == OPCODE_V_PACKVW  ||  opcode == OPCODE_V_CNVXY)
+        {
+            sprintf(mnemonic, "%04x %-6s $%02x $%02x $%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand2, operand1, operand0);
+        }
+        // ADDBI
+        else if(opcode == OPCODE_V_ADDBI)
+        {
+            sprintf(mnemonic, "%04x %-6s $%02x $%02x $%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand0, operand1, operand2);
+        }
+        // SUBBI
+        else if(opcode == OPCODE_V_SUBBI)
         {
             sprintf(mnemonic, "%04x %-6s $%02x $%02x $%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand2, operand1, operand0);
         }
@@ -3904,94 +3911,6 @@ namespace Assembler
                                 _instructions.push_back(instruction);
                                 if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
                             }
-                            // Special case ADDVI as it has multiple parseable tokens
-                            else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_ADDVI)
-                            {
-                                if(tokens.size() < 3)
-                                {
-                                    Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDVI <dst zero page var>, <constant 0..255>' expects 2 parameters '%s'\n", filename.c_str(), _lineNumber+1,
-                                                                                                                                                                                            tokens[tokenIndex].c_str());
-                                    return false;
-                                }
-
-                                Equate equate;
-                                uint8_t equates[2] = {0x00};
-                                int commaTokenIndex = -1;
-                                for(int i=0; i<2; i++)
-                                {
-                                    int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
-                                    if(tokIdx >= int(tokens.size()))
-                                    {
-                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDVI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
-                                        return false;
-                                    }
-
-                                    // Search equates
-                                    if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
-                                    {
-                                        equates[i] = uint8_t(equate._operand);
-                                    }
-                                    // Can be a literal byte
-                                    else
-                                    {
-                                        operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
-                                    }
-                                    if(!operandValid)
-                                    {
-                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDVI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
-                                        return false;
-                                    }
-                                }
-
-                                instruction._operand0 = equates[1]; // native code expects the operands swapped for ADDVI
-                                instruction._operand1 = equates[0];
-                                _instructions.push_back(instruction);
-                                if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
-                            }
-                            // Special case SUBVI as it has multiple parseable tokens
-                            else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_SUBVI)
-                            {
-                                if(tokens.size() < 3)
-                                {
-                                    Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBVI <dst zero page var>, <constant 0..255>' expects 2 parameters '%s'\n", filename.c_str(), _lineNumber+1,
-                                                                                                                                                                                            tokens[tokenIndex].c_str());
-                                    return false;
-                                }
-
-                                Equate equate;
-                                uint8_t equates[2] = {0x00};
-                                int commaTokenIndex = -1;
-                                for(int i=0; i<2; i++)
-                                {
-                                    int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
-                                    if(tokIdx >= int(tokens.size()))
-                                    {
-                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBVI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
-                                        return false;
-                                    }
-
-                                    // Search equates
-                                    if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
-                                    {
-                                        equates[i] = uint8_t(equate._operand);
-                                    }
-                                    // Can be a literal byte
-                                    else
-                                    {
-                                        operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
-                                    }
-                                    if(!operandValid)
-                                    {
-                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBVI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
-                                        return false;
-                                    }
-                                }
-
-                                instruction._operand0 = equates[1]; // native code expects the operands swapped for SUBVI
-                                instruction._operand1 = equates[0];
-                                _instructions.push_back(instruction);
-                                if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
-                            }
                             // Special case PACKAW as it has multiple parseable tokens
                             else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_PACKAW)
                             {
@@ -5157,94 +5076,6 @@ namespace Assembler
                                     _instructions.push_back(instruction);
                                     if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
                                 }
-                                // Special case ADDBI as it has multiple parseable tokens
-                                else if(opcode1 == OPCODE_V_ADDBI)
-                                {
-                                    if(tokens.size() < 3)
-                                    {
-                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDBI <zero page var>, <constant 0..255>' expects 2 parameters '%s'\n", filename.c_str(), _lineNumber+1,
-                                                                                                                                                                                            tokens[tokenIndex].c_str());
-                                        return false;
-                                    }
-
-                                    uint8_t equates[2] = {0x00};
-                                    for(int i=0; i<2; i++)
-                                    {
-                                        int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
-                                        if(tokIdx >= int(tokens.size()))
-                                        {
-                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDBI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
-                                            return false;
-                                        }
-
-                                        // Search equates
-                                        if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
-                                        {
-                                            equates[i] = uint8_t(equate._operand);
-                                        }
-                                        // Can be a literal byte
-                                        else
-                                        {
-                                            operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
-                                        }
-                                        if(!operandValid)
-                                        {
-                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDBI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
-                                            return false;
-                                        }
-                                    }
-
-                                    // PREFIX ARG1 OPCODE ARG0
-                                    instruction._operand0 = equates[1];
-                                    instruction._operand1 = opcode1;
-                                    instruction._operand2 = equates[0];
-                                    _instructions.push_back(instruction);
-                                    if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
-                                }
-                                // Special case SUBBI as it has multiple parseable tokens
-                                else if(opcode1 == OPCODE_V_SUBBI)
-                                {
-                                    if(tokens.size() < 3)
-                                    {
-                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBBI <zero page var>, <constant 0..255>' expects 2 parameters '%s'\n", filename.c_str(), _lineNumber+1,
-                                                                                                                                                                                            tokens[tokenIndex].c_str());
-                                        return false;
-                                    }
-
-                                    uint8_t equates[2] = {0x00};
-                                    for(int i=0; i<2; i++)
-                                    {
-                                        int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
-                                        if(tokIdx >= int(tokens.size()))
-                                        {
-                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBBI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
-                                            return false;
-                                        }
-
-                                        // Search equates
-                                        if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
-                                        {
-                                            equates[i] = uint8_t(equate._operand);
-                                        }
-                                        // Can be a literal byte
-                                        else
-                                        {
-                                            operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
-                                        }
-                                        if(!operandValid)
-                                        {
-                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBBI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
-                                            return false;
-                                        }
-                                    }
-
-                                    // PREFIX ARG1 OPCODE ARG0
-                                    instruction._operand0 = equates[1];
-                                    instruction._operand1 = opcode1;
-                                    instruction._operand2 = equates[0];
-                                    _instructions.push_back(instruction);
-                                    if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
-                                }
                                 // Special case NEEKA as it has multiple parseable tokens
                                 else if(opcode1 == OPCODE_V_NEEKA)
                                 {
@@ -6021,6 +5852,96 @@ namespace Assembler
                                 _instructions.push_back(instruction);
                                 if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
                             }
+                            // Special case ADDVI as it has multiple parseable tokens
+                            else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_ADDVI)
+                            {
+                                if(tokens.size() < 4)
+                                {
+                                    Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDVI <src var>, <dst var>, <imm>' expects 4 parameters '%s'\n", filename.c_str(), _lineNumber+1,
+                                                                                                                                                                                 tokens[tokenIndex].c_str());
+                                    return false;
+                                }
+
+                                Equate equate;
+                                uint8_t equates[3] = {0x00};
+                                int commaTokenIndex = -1;
+                                for(int i=0; i<3; i++)
+                                {
+                                    int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
+                                    if(tokIdx >= int(tokens.size()))
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDVI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
+                                        return false;
+                                    }
+
+                                    // Search equates
+                                    if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
+                                    {
+                                        equates[i] = uint8_t(equate._operand);
+                                    }
+                                    // Can be a literal byte
+                                    else
+                                    {
+                                        operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
+                                    }
+                                    if(!operandValid)
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDVI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
+                                        return false;
+                                    }
+                                }
+
+                                instruction._operand0 = equates[2]; // native code expects the operands swapped for ADDVI
+                                instruction._operand1 = equates[1];
+                                instruction._operand2 = equates[0];
+                                _instructions.push_back(instruction);
+                                if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
+                            }
+                            // Special case SUBVI as it has multiple parseable tokens
+                            else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_SUBVI)
+                            {
+                                if(tokens.size() < 4)
+                                {
+                                    Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBVI <src var>, <dst var>, <imm>' expects 4 parameters '%s'\n", filename.c_str(), _lineNumber+1,
+                                                                                                                                                                                 tokens[tokenIndex].c_str());
+                                    return false;
+                                }
+
+                                Equate equate;
+                                uint8_t equates[3] = {0x00};
+                                int commaTokenIndex = -1;
+                                for(int i=0; i<3; i++)
+                                {
+                                    int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
+                                    if(tokIdx >= int(tokens.size()))
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBVI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
+                                        return false;
+                                    }
+
+                                    // Search equates
+                                    if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
+                                    {
+                                        equates[i] = uint8_t(equate._operand);
+                                    }
+                                    // Can be a literal byte
+                                    else
+                                    {
+                                        operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
+                                    }
+                                    if(!operandValid)
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBVI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
+                                        return false;
+                                    }
+                                }
+
+                                instruction._operand0 = equates[2]; // native code expects the operands swapped for SUBVI
+                                instruction._operand1 = equates[1];
+                                instruction._operand2 = equates[0];
+                                _instructions.push_back(instruction);
+                                if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
+                            }
                             // Special case ADDVB as it has multiple parseable tokens
                             else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_ADDVB)
                             {
@@ -6106,6 +6027,96 @@ namespace Assembler
                                 }
 
                                 instruction._operand0 = equates[2]; // native code expects the operands swapped for SUBVB
+                                instruction._operand1 = equates[1];
+                                instruction._operand2 = equates[0];
+                                _instructions.push_back(instruction);
+                                if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
+                            }
+                            // Special case ADDBI as it has multiple parseable tokens
+                            else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_ADDBI)
+                            {
+                                if(tokens.size() < 4)
+                                {
+                                    Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDBI <src var>, <dst var>, <imm>' expects 4 parameters '%s'\n", filename.c_str(), _lineNumber+1,
+                                                                                                                                                                                 tokens[tokenIndex].c_str());
+                                    return false;
+                                }
+
+                                Equate equate;
+                                uint8_t equates[3] = {0x00};
+                                int commaTokenIndex = -1;
+                                for(int i=0; i<3; i++)
+                                {
+                                    int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
+                                    if(tokIdx >= int(tokens.size()))
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDBI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
+                                        return false;
+                                    }
+
+                                    // Search equates
+                                    if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
+                                    {
+                                        equates[i] = uint8_t(equate._operand);
+                                    }
+                                    // Can be a literal byte
+                                    else
+                                    {
+                                        operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
+                                    }
+                                    if(!operandValid)
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'ADDBI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
+                                        return false;
+                                    }
+                                }
+
+                                instruction._operand0 = equates[0];
+                                instruction._operand1 = equates[1];
+                                instruction._operand2 = equates[2];
+                                _instructions.push_back(instruction);
+                                if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
+                            }
+                            // Special case SUBBI as it has multiple parseable tokens
+                            else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_SUBBI)
+                            {
+                                if(tokens.size() < 4)
+                                {
+                                    Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBBI <src var>, <dst var>, <imm>' expects 4 parameters '%s'\n", filename.c_str(), _lineNumber+1,
+                                                                                                                                                                                 tokens[tokenIndex].c_str());
+                                    return false;
+                                }
+
+                                Equate equate;
+                                uint8_t equates[3] = {0x00};
+                                int commaTokenIndex = -1;
+                                for(int i=0; i<3; i++)
+                                {
+                                    int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
+                                    if(tokIdx >= int(tokens.size()))
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBBI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
+                                        return false;
+                                    }
+
+                                    // Search equates
+                                    if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
+                                    {
+                                        equates[i] = uint8_t(equate._operand);
+                                    }
+                                    // Can be a literal byte
+                                    else
+                                    {
+                                        operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
+                                    }
+                                    if(!operandValid)
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SUBBI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
+                                        return false;
+                                    }
+                                }
+
+                                instruction._operand0 = equates[2];
                                 instruction._operand1 = equates[1];
                                 instruction._operand2 = equates[0];
                                 _instructions.push_back(instruction);

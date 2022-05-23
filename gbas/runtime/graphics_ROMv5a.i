@@ -56,7 +56,8 @@ drawCircle_ch3      EQU     register14
 drawCircleF_x1      EQU     register0
 drawCircleF_y1      EQU     register1
 drawCircleF_x2      EQU     register2
-drawCircleF_cycx    EQU     register10
+drawCircleF_cx      EQU     register15
+drawCircleF_cy      EQU     register10
 drawCircleF_r       EQU     register11
 drawCircleF_v       EQU     register8
 drawCircleF_w       EQU     register9
@@ -721,17 +722,17 @@ drawCircleF         PUSH
                     STW     drawCircleF_v
                     STW     drawCircleF_w
                     
-drawCF_wloop        LD      drawCircleF_cycx
+drawCF_wloop        LD      drawCircleF_cx
                     SUBW    drawCircleF_r
                     STW     drawCircleF_x1
-                    LD      drawCircleF_cycx
+                    LD      drawCircleF_cx
                     ADDW    drawCircleF_r
                     STW     drawCircleF_x2
-                    LD      drawCircleF_cycx + 1
+                    LD      drawCircleF_cy
                     SUBW    drawCircleF_v
                     STW     drawCircleF_y1
                     CALLI   drawHLine
-                    LD      drawCircleF_cycx + 1
+                    LD      drawCircleF_cy
                     ADDW    drawCircleF_v
                     STW     drawCircleF_y1
                     CALLI   drawHLine

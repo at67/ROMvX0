@@ -173,9 +173,7 @@ bcdD_cont           LDW     bcdDstAddr
                     ; create a bcd value from a +ve int, (max 42767)
 bcdInt              STW     bcdValue
                     PUSH
-                    LDW     bcdDstAddr
-                    ADDI    4
-                    STW     bcdDstAddr                          ; bcdDstAddr must point to >= 5 digit bcd value
+                    ADDVI   bcdDstAddr, bcdDstAddr, 4           ; bcdDstAddr must point to >= 5 digit bcd value
                     MOVQW   bcdDigit, 0
                     LDWI    10000
                     CALLI   bcdDigits

@@ -421,7 +421,7 @@ namespace Cpu
     int64_t _clock = CLOCK_RESET;
     uint8_t _IN = 0xFF, _XOUT = 0x00;
     State _stateS, _stateT;
-    vCpuPc _vPC;
+    vCpuPc _vPC = {uint16_t(0x0200), uint16_t(0x0200)};
 
 #ifdef _WIN32
     HWND _consoleWindowHWND;

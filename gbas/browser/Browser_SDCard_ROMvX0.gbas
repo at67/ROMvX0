@@ -71,13 +71,10 @@ sendCommsCmd:
     asm
         LDWI    SYS_SendSerial1_v3_80
         STW     giga_sysFn
-        LDW     _commsAddr
-        STW     giga_sysArg0
+        MOVWA   _commsAddr, giga_sysArg0
         MOVQW   giga_sysArg2, 1
         LD      _commsSize
-        LSLW
-        LSLW
-        LSLW
+        MULB8
         STW     giga_sysArg3
         SYS     80
         STW     _commsRetn
@@ -89,39 +86,37 @@ return
 'to destination address and visuals
 loadDir:
     asm
-        LDW     _NextByteIn_32
-        STW     giga_sysFn
-        LDWI    _buffer                 'buffer address
+        MOVWA   _NextByteIn_32, giga_sysFn
+        LDWI    _buffer                         'buffer address
         STW     giga_sysArg4
 
-loadD0: LDW     giga_sysArg4            'reset buffer
-        STW     giga_sysArg0
+loadD0: MOVWA   giga_sysArg4, giga_sysArg0      'reset buffer
 
-        MOVQB   giga_sysArg3, 207       'scanline 207
-        SYS     32                      'isLast, (0 or 1)
+        MOVQB   giga_sysArg3, 207               'scanline 207
+        SYS     32                              'isLast, (0 or 1)
         
-        PEEKV   giga_sysArg4            'read buffer[0]
+        PEEKV   giga_sysArg4                    'read buffer[0]
         XORI    255
-        JEQ     _loadD0                 'loop while idle
+        JEQ     _loadD0                         'loop while idle
 
-        MOVQB   giga_sysArg3, 219       'scanline 219
-        SYS     32                      'length, (6 bits : 0..62)
+        MOVQB   giga_sysArg3, 219               'scanline 219
+        SYS     32                              'length, (6 bits : 0..62)
 
-        MOVQB   giga_sysArg3, 235       'scanline 235
-        SYS     32                      'payload 0
+        MOVQB   giga_sysArg3, 235               'scanline 235
+        SYS     32                              'payload 0
         
-        MOVQB   giga_sysArg3, 251       'scanline 251
-        SYS     32                      'payload 1
+        MOVQB   giga_sysArg3, 251               'scanline 251
+        SYS     32                              'payload 1
 
-        MOVQB   giga_sysArg4, 60        '60 payloads, (2-61)
-        MOVQB   giga_sysArg3, 2         'scanline 2
+        MOVQB   giga_sysArg4, 60                '60 payloads, (2-61)
+        MOVQB   giga_sysArg3, 2                 'scanline 2
 
-loadD1: SYS     32                      'payload 2-61
-        ADDBI   giga_sysArg3, 4
-        DBNE    giga_sysArg4, _loadD1   'scanline end is 238
+loadD1: SYS     32                              'payload 2-61
+        ADDBI   giga_sysArg3, giga_sysArg3, 4
+        DBNE    giga_sysArg4, _loadD1           'scanline end is 238
         
-        MOVQB   giga_sysArg3, 185       'scanline 185
-        SYS     32                      'payload 62
+        MOVQB   giga_sysArg3, 185               'scanline 185
+        SYS     32                              'payload 62
     endasm
 
     isLast = peek(@buffer)
@@ -345,8 +340,7 @@ return
 
 waitSDCard:
     asm
-        LDW     _NextByteIn_32
-        STW     giga_sysFn
+        MOVWA   _NextByteIn_32, giga_sysFn
 
 waitSD: MOVQW   giga_sysArg0, _waitRtn  'waitRtn address
 

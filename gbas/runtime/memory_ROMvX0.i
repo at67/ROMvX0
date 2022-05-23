@@ -40,8 +40,8 @@ swapB_loop          SWAPB   swpSrcAddr, swpDstAddr
 swapWords           PUSH
                     
 swapW_loop          SWAPW   swpSrcAddr, swpDstAddr              ; CALLI   swapWord
-                    ADDVI   swpSrcAddr, 2
-                    ADDVI   swpDstAddr, 2
+                    ADDVI   swpSrcAddr, swpSrcAddr, 2
+                    ADDVI   swpDstAddr, swpDstAddr, 2
                     DJNE    swapCount, swapW_loop               ; don't use DBNE
                     POP
                     RET

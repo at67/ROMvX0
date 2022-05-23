@@ -118,7 +118,7 @@ clearVB_loopy       MOVQB   giga_sysArg0, giga_xres
                     MOVQB   giga_sysArg2, 0                     ; low start address
                     LDI     giga_yres - 1 + 16
                     SUBW    top
-                    ST      giga_sysArg3                        ; bottom line
+                    ST      giga_sysArg3,                       ; bottom line
                     SYS     54                                  ; fill memory
                     INC     top                                 ; next top line
                     DBNE    clsLines, clearVB_loopy

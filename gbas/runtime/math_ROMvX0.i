@@ -109,8 +109,7 @@ multiply161_exit    LDW     mathSum
 %SUB                multiply16bit_2
                     ; accumulator = mathX * mathY, (result 16bit)
 multiply16bit_2     MOVQW   mathSum, 0
-                    LDI     1
-                    STW     mathMask
+                    MOVQW   mathMask, 1
                     
 multiply162_loop    ANDW    mathY
                     BEQ     multiply162_skip

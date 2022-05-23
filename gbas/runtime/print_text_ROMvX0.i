@@ -152,7 +152,7 @@ printLo_next        PEEKV+  textStr
                     BLT     printLo_char
                     CMPI    textChr, 90
                     BGT     printLo_char
-                    ADDBI   textChr, 32                         ; >= 65 'A' and <= 90 'Z'
+                    ADDBI   textChr, textChr, 32                ; >= 65 'A' and <= 90 'Z'
                     
 printLo_char        LD      textChr
                     CALLI   printChar
@@ -175,7 +175,7 @@ printUp_next        PEEKV+  textStr
                     BLT     printUp_char
                     CMPI    textChr, 122
                     BGT     printUp_char
-                    SUBBI   textChr, 32                         ; >= 97 'a' and <= 122 'z'
+                    SUBBI   textChr, textChr, 32                ; >= 97 'a' and <= 122 'z'
                     
 printUp_char        LD      textChr
                     CALLI   printChar
@@ -304,7 +304,7 @@ printChar4x6        FNT4X6  textFont, textChr
                     MOVQB   giga_sysArg2, 3                     ; 3 LUP's per char
                     LDW     giga_sysArg4
                     PRN4X6  textFont
-                    ADDBI   giga_sysArg4, 4                     ; using sysArg4 as a temporary cursor address for multiple char prints
+                    ADDBI   giga_sysArg4, giga_sysArg4, 4       ; using sysArg4 as a temporary cursor address for multiple char prints
                     PUSH
                     CALLI   printClip4x6
                     POP
@@ -313,7 +313,7 @@ printC46_exit       RET
 %ENDS
 
 %SUB                printClip
-printClip           ADDBI   cursorXY, giga_xfont
+printClip           ADDBI   cursorXY, cursorXY, giga_xfont
                     CMPI    cursorXY, giga_xres - giga_xfont    ; last possible char on line
                     BLE     printCl_exit
                     ANDBK   miscFlags, MISC_DISABLE_CLIP_BIT
@@ -326,7 +326,7 @@ printCl_exit        RET
 %ENDS
 
 %SUB                printClip4x6
-printClip4x6        ADDBI   cursorXY, 4
+printClip4x6        ADDBI   cursorXY, cursorXY, 4
                     CMPI    cursorXY, giga_xres - 4             ; last possible char on line
                     BLE     printCl46_exit
                     ANDBK   miscFlags, MISC_DISABLE_CLIP_BIT
@@ -352,7 +352,7 @@ newLineScroll       ANDBK   miscFlags, MISC_ENABLE_FNT4X6_BIT
 newLS_cont0         PUSH
                     ANDBK   miscFlags, MISC_ON_BOTTOM_ROW_BIT
                     BNE     newLS_cont1                         ; is on bottom row flag?
-                    ADDBI   cursorXY + 1, giga_yfont
+                    ADDBI   cursorXY + 1, cursorXY + 1, giga_yfont
                     CMPI    cursorXY + 1, giga_yres
                     BLT     newLS_exit
                     MOVQB   cursorXY + 1, giga_yres - giga_yfont
@@ -384,7 +384,7 @@ newLineScroll4x6    LDI     0                                   ; cursor x start
 newLS46_cont0       PUSH
                     ANDBK   miscFlags, MISC_ON_BOTTOM_ROW_BIT
                     BNE     newLS46_cont1                       ; is on bottom row flag?
-                    ADDBI   cursorXY + 1, 6
+                    ADDBI   cursorXY + 1, cursorXY + 1, 6
                     CMPI    cursorXY + 1, giga_yres
                     BLT     newLS46_exit
                     MOVQB   cursorXY + 1, giga_yres - 6

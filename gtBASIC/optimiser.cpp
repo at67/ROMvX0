@@ -20,8 +20,8 @@ namespace Optimiser
         // Operands are matched
         StStw=0, StwLdwPair, StwLdPair, StwStHigh, ExtraLdw, ExtraLd, LdwPair, LdwStwLdwStw, StwLdiAddw, StwLdAddw, StwLdAddwVar, StwLdwAddw, StwLdwAddwVar, StwLdiAndw, StwLdAndw, StwLdAndwVar, StwLdwAndw,
         StwLdwAndwVar, StwLdiXorw, StwLdXorw, StwLdXorwVar, StwLdwXorw, StwLdwXorwVar, StwLdiOrw, StwLdOrw, StwLdOrwVar, StwLdwOrw, StwLdwOrwVar, Stpx0, Stpx1, Stpx2, Stpx3, StwLdwiAddw, StwLdwiSubw,
-        StwLdwiAndw, StwLdwiXorw, StwLdwiOrw, LdwBeqStwTmp, LdwBeqStwVar, LdBeqStTmp, LdBeqStVar, Inc4Var, Inc3Var, Inc2Var, Dec4Var, Dec3Var, Dec2Var, LdwAddiStw, LdwAddwStw0, LdAddiSt, LdwAddiSt, LdwSubiStw,
-        LdwSubwStw0, IncwLdw, DecwLdw, LdStwLdSubw, LdStwLdwSubw, LdSub1St, LdwSub1Stw, LdSubiSt, LdwSubiSt, LdAndiSt, LdwAndiSt, LdOriSt, LdwOriSt, LdwOriStw, LdXoriSt, LdwXoriSt, LdwXoriStw, LdAndi, LdwAndi,
+        StwLdwiAndw, StwLdwiXorw, StwLdwiOrw, LdwBeqStwTmp, LdwBeqStwVar, LdBeqStTmp, LdBeqStVar, Inc4Var, Inc3Var, Inc2Var, Dec4Var, Dec3Var, Dec2Var, LdwAddiStw0, LdwAddwStw0, LdAddiSt0, LdwAddiSt0, LdwSubiStw0,
+        LdwSubwStw0, IncwLdw, DecwLdw, LdStwLdSubw, LdStwLdwSubw, LdSub1St, LdwSub1Stw, LdSubiSt0, LdwSubiSt0, LdAndiSt, LdwAndiSt, LdOriSt, LdwOriSt, LdwOriStw, LdXoriSt, LdwXoriSt, LdwXoriStw, LdAndi, LdwAndi,
         LdOri, LdXori, LdwLslwStw, LdwLsrvStw, LdwLsrv2Stw, LdLsrb1St, LdLsrb2St, LdLsrb3St, LdLsrb4St, PokeVar, DokeVar, LdwPeekInc, PeekvInc, PokeInc, LdwDeekIncInc, DeekvIncInc, DokeIncInc, LdSubiBcc,
         LdwSubiBcc, LdXoriBcc, LdwXoriBcc, LdwNotwStw, LdwNegwStw, LdNotwSt, LdwNotwSt, LdwiAddwStwLdwiAddw, LdwiAddw2StwLdwiAddw2, LdwiStwLdiPoke, LdwiStwLdiDoke, LdwiStwLdwiDoke, StwLdPoke, StwLdwPoke,
         StwLdwDoke, StwLdwDokeReg, StwLdwIncPoke, LdStwLdwPokea, LdStwLdwiPokea, LdStwLdwiAddiPokea, NegwArrayB, NegwArray, AddwArrayB, AddwArray, SubwArrayB, SubwArray, AndwArrayB, AndwArray, OrwArrayB,
@@ -33,7 +33,8 @@ namespace Optimiser
         DokeArray, PokeVarArrayB, PokeVarArray, DokeVarArray, PokeTmpArrayB, PokeTmpArray, DokeTmpArray, PokeaVarArrayB, PokeaVarArray, DokeaVarArray, PokeaTmpArrayB, PokeaTmpArray, DokeaTmpArray, MovwaLdwiPokea,
         MovwaLdwiAddwPeeka, MovqwLdwiAddiPokea, LdwiAddwPeek, LdwiAddwPeeka, MovwaLdarrbSt, StwLdwiAddwPokea, LdwiAddwPokea, LdwiAddwPokei, StwMovb, StwPokeArray, StwDokeArray, LdiSt, LdiStw, LdSubLoHi, LdiSubLoHi,
         LdwSubLoHi, LdiAddi, LdiSubi, LdiAndi, LdiOri, LdiXori, LdwStw, TeqStw, TneStw, TltStw, TgtStw, TleStw, TgeStw, TeqJump, TneJump, TltJump, TgtJump, TleJump, TgeJump, TeqCondii, TeqCondib, TeqCondbi,
-        TeqCondbb, MovbMovb0, MovbMovb1, MovbMovb2, PackvwLdw, XyToVram, AddiAddi, AddiSubi, SubiAddi, SubiSubi, LdiZeroAddw, LdwAddwStw1, LdwSubwStw1,
+        TeqCondbb, MovbMovb0, MovbMovb1, MovbMovb2, PackvwLdw, PackvwStpx, XyToVram, AddiAddi, AddiSubi, SubiAddi, SubiSubi, LdiZeroAddw, LdwAddwStw1, LdwSubwStw1, LdAddiSt1, LdwAddiSt1, LdwSubiStw1, LdSubiSt1,
+        LdwSubiSt1, LdwAddiStw1, 
 
         // Opcodes AND operands are manually matched
         MovwaStarrb, AddiZero, SubiZero, LdwiNeg, LdwiSml, NumOptimiseTypes
@@ -283,7 +284,7 @@ namespace Optimiser
         {0, 1, {Expression::createPaddedString("DEC", OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("DEC", OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // LdwAddiStw
+        // LdwAddiStw0
         {0, 2, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
@@ -293,17 +294,17 @@ namespace Optimiser
                 Expression::createPaddedString("ADDW", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // LdAddiSt
+        // LdAddiSt0
         {0, 2, {Expression::createPaddedString("LD",   OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // LdwAddiSt
+        // LdwAddiSt0
         {0, 2, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // LdwSubiStw
+        // LdwSubiStw0
         {0, 2, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
@@ -343,12 +344,12 @@ namespace Optimiser
                 Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // LdSubiSt
+        // LdSubiSt0
         {0, 2, {Expression::createPaddedString("LD",   OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
 
-        // LdwSubiSt
+        // LdwSubiSt0
         {0, 2, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
@@ -1262,6 +1263,12 @@ namespace Optimiser
         {0, 0, {Expression::createPaddedString("PACKVW", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("LDW",    OPCODE_TRUNC_SIZE, ' ') + ""}},
 
+        // PackvwStpx
+        {0, 0, {Expression::createPaddedString("PACKVW", OPCODE_TRUNC_SIZE, ' ') + "",
+                                               "MOV"                                 , // match without padding
+                Expression::createPaddedString("LDW",    OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("STPX",   OPCODE_TRUNC_SIZE, ' ') + ""}},
+
         // XyToVram
         {0, 0, {Expression::createPaddedString("MOVB", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
@@ -1296,6 +1303,36 @@ namespace Optimiser
         // LdwSubwStw1
         {0, 0, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
                 Expression::createPaddedString("SUBW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdAddiSt1
+        {0, 0, {Expression::createPaddedString("LD",   OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdwAddiSt1
+        {0, 0, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdwSubiStw1
+        {0, 0, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdSubiSt1
+        {0, 0, {Expression::createPaddedString("LD",   OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdwSubiSt1
+        {0, 0, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ST",   OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdwAddiStw1
+        {0, 0, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
 
         /******************************************************************************************/
@@ -2276,12 +2313,11 @@ namespace Optimiser
                                             }
                                         }
 
-                                        // Bail if next instruction is a write instruction, (this can fail for delayed write's in hand written code, but won't fail for compiled code; the optimiser is only ever run on compiled code)
-                                        // This can still fail if this next instruction relies on the correct results of a subtraction, enable LdSubiBcc/LdXoriBcc with caution.
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode.find("ST") != std::string::npos  ||  stOpcode.find("OKE") != std::string::npos) break;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Bail if SUBI/XORI has a label
@@ -2307,12 +2343,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LDW, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLdw = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LDW with NOTW and new operand
@@ -2324,8 +2359,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"NOTW", "STW"});
-
-                                        if(insertLdw) insertVasm(codeLine, firstMatch, firstMatch + 1, "LDW", ldwOperand);
                                     }
                                     break;
 
@@ -2337,12 +2370,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LDW, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLdw = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LDW with NEGW and new operand
@@ -2354,8 +2386,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"NEGW", "STW"});
-
-                                        if(insertLdw) insertVasm(codeLine, firstMatch, firstMatch + 1, "LDW", ldwOperand);
                                     }
                                     break;
 
@@ -2368,12 +2398,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LDW, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLdw = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LD/LDW with NOTB and new operand
@@ -2385,8 +2414,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"NOTW", "ST"});
-
-                                        if(insertLdw) insertVasm(codeLine, firstMatch, firstMatch + 1, "LDW", ldOperand);
                                     }
                                     break;
 
@@ -2399,7 +2426,7 @@ namespace Optimiser
                                 
                                         // Replace first INC with ADDBI and new operands
                                         std::string incOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        updateVasm(codeLine, firstMatch, "ADDBI", incOperand + ", 2");
+                                        updateVasm(codeLine, firstMatch, "ADDBI", incOperand + ", " + incOperand + ", 2");
 
                                         // Delete second INC
                                         linesDeleted = true;
@@ -2418,7 +2445,7 @@ namespace Optimiser
                                 
                                         // Replace first INC with ADDBI and new operands
                                         std::string incOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        updateVasm(codeLine, firstMatch, "ADDBI", incOperand + ", 3");
+                                        updateVasm(codeLine, firstMatch, "ADDBI", incOperand + ", " + incOperand + ", 3");
 
                                         // Delete second and third INC
                                         linesDeleted = true;
@@ -2439,7 +2466,7 @@ namespace Optimiser
                                 
                                         // Replace first INC with ADDBI and new operands
                                         std::string incOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        updateVasm(codeLine, firstMatch, "ADDBI", incOperand + ", 4");
+                                        updateVasm(codeLine, firstMatch, "ADDBI", incOperand + ", " + incOperand + ", 4");
 
                                         // Delete second, third and fourth INC
                                         linesDeleted = true;
@@ -2458,8 +2485,8 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                 
                                         // Replace first DEC with SUBBI and new operands
-                                        std::string incOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        updateVasm(codeLine, firstMatch, "SUBBI", incOperand + ", 2");
+                                        std::string decOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
+                                        updateVasm(codeLine, firstMatch, "SUBBI", decOperand + ", " + decOperand + ", 2");
 
                                         // Delete second DEC
                                         linesDeleted = true;
@@ -2477,8 +2504,8 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
                                 
                                         // Replace first DEC with SUBBI and new operands
-                                        std::string incOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        updateVasm(codeLine, firstMatch, "SUBBI", incOperand + ", 3");
+                                        std::string decOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
+                                        updateVasm(codeLine, firstMatch, "SUBBI", decOperand + ", " + decOperand + ", 3");
 
                                         // Delete second and third DEC
                                         linesDeleted = true;
@@ -2498,8 +2525,8 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._labelIndex >= 0) break;
                                 
                                         // Replace first DEC with SUBBI and new operands
-                                        std::string incOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        updateVasm(codeLine, firstMatch, "SUBBI", incOperand + ", 4");
+                                        std::string decOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
+                                        updateVasm(codeLine, firstMatch, "SUBBI", decOperand + ", " + decOperand + ", 4");
 
                                         // Delete second, third and fourth DEC
                                         linesDeleted = true;
@@ -2511,7 +2538,7 @@ namespace Optimiser
                                     break;
 
                                     // Match LDW ADDI STW, replace all with ADDVI
-                                    case LdwAddiStw:
+                                    case LdwAddiStw0:
                                     {
                                         // Bail if wrong ROM version or if ADDI or STW has a label
                                         if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
@@ -2521,7 +2548,7 @@ namespace Optimiser
                                         // Replace LDW with ADDVI and new operands
                                         std::string ldwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
                                         std::string addiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
-                                        updateVasm(codeLine, firstMatch, "ADDVI", ldwOperand + ", " + addiOperand);
+                                        updateVasm(codeLine, firstMatch, "ADDVI", ldwOperand + ", " + ldwOperand + ", " + addiOperand);
 
                                         // Delete ADDI and STW
                                         linesDeleted = true;
@@ -2552,40 +2579,38 @@ namespace Optimiser
                                     }
                                     break;
 
-                                    // Match LD/LDW ADDI ST, replace all with ADDBI
-                                    case LdAddiSt:
-                                    case LdwAddiSt:
+                                    // Match LD/LDW ADDI ST, replace all with ADDBI, (matching of LD/ST operands)
+                                    case LdAddiSt0:
+                                    case LdwAddiSt0:
                                     {
                                         // Bail if wrong ROM version or if ADDI or ST has a label
                                         if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLd = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LD/LDW with ADDBI and new operands
-                                        std::string ldOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        std::string addOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
-                                        updateVasm(codeLine, firstMatch, "ADDBI", ldOperand + ", " + addOperand);
+                                        std::string ldOperand   = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                        std::string addiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                        std::string stOperand   = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                        updateVasm(codeLine, firstMatch, "ADDBI", ldOperand + ", " + stOperand + ", " + addiOperand);
 
                                         // Delete ADDI and ST
                                         linesDeleted = true;
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDI", "ST"});
-
-                                        if(insertLd) insertVasm(codeLine, firstMatch, firstMatch + 1, "LD", ldOperand);
                                     }
                                     break;
 
                                     // Match LDW SUBI STW, replace all with SUBVI
-                                    case LdwSubiStw:
+                                    case LdwSubiStw0:
                                     {
                                         // Bail if wrong ROM version or if SUBI or STW has a label
                                         if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
@@ -2593,9 +2618,10 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
                                         // Replace LDW with SUBVI and new operands
-                                        std::string ldwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        std::string addiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
-                                        updateVasm(codeLine, firstMatch, "SUBVI", ldwOperand + ", " + addiOperand);
+                                        std::string ldwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                        std::string subiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                        std::string stwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                        updateVasm(codeLine, firstMatch, "SUBVI", ldwOperand + ", " + stwOperand + ", " + subiOperand);
 
                                         // Delete SUBI and STW
                                         linesDeleted = true;
@@ -2697,12 +2723,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLd = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LD with DEC and new operand
@@ -2720,8 +2745,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI", "ST"});
-
-                                        if(insertLd) insertVasm(codeLine, firstMatch, firstMatch + 1, "LD", ldOperand);
                                     }
                                     break;
 
@@ -2733,12 +2756,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LDW, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLdw = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LDW with DECW and new operand
@@ -2756,40 +2778,36 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI", "STW"});
-
-                                        if(insertLdw) insertVasm(codeLine, firstMatch, firstMatch + 1, "LDW", ldwOperand);
                                     }
                                     break;
 
                                     // Match LD/LDW SUBI ST, replace all with SUBBI
-                                    case LdSubiSt:
-                                    case LdwSubiSt:
+                                    case LdSubiSt0:
+                                    case LdwSubiSt0:
                                     {
                                         // Bail if wrong ROM version or if SUBI or ST has a label
                                         if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLd = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LD/LDW with SUBBI and new operands
-                                        std::string ldOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
-                                        std::string subOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
-                                        updateVasm(codeLine, firstMatch, "SUBBI", ldOperand + ", " + subOperand);
+                                        std::string ldOperand   = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                        std::string subiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                        std::string stOperand   = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                        updateVasm(codeLine, firstMatch, "SUBBI", ldOperand + ", " + stOperand + ", " + subiOperand);
 
                                         // Delete SUBI and ST
                                         linesDeleted = true;
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI", "ST"});
-
-                                        if(insertLd) insertVasm(codeLine, firstMatch, firstMatch + 1, "LD", ldOperand);
                                     }
                                     break;
 
@@ -2802,12 +2820,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLd = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LD/LDW with ANDBI and new operands
@@ -2820,8 +2837,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ANDI", "ST"});
-
-                                        if(insertLd) insertVasm(codeLine, firstMatch, firstMatch + 1, "LD", ldOperand);
                                     }
                                     break;
 
@@ -2834,12 +2849,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLd = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LD/LDW with ORBI and new operands
@@ -2852,8 +2866,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ORI", "ST"});
-
-                                        if(insertLd) insertVasm(codeLine, firstMatch, firstMatch + 1, "LD", ldOperand);
                                     }
                                     break;
 
@@ -2865,12 +2877,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLdw = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LDW with ORBI and new operands
@@ -2883,8 +2894,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ORI", "STW"});
-
-                                        if(insertLdw) insertVasm(codeLine, firstMatch, firstMatch + 1, "LDW", ldwOperand);
                                     }
                                     break;
 
@@ -2897,12 +2906,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLd = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LD/LDW with XORBI and new operands
@@ -2915,8 +2923,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"XORI", "ST"});
-
-                                        if(insertLd) insertVasm(codeLine, firstMatch, firstMatch + 1, "LD", ldOperand);
                                     }
                                     break;
 
@@ -2928,12 +2934,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLdw = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LDW with XORBI and new operands
@@ -2946,8 +2951,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"XORI", "STW"});
-
-                                        if(insertLdw) insertVasm(codeLine, firstMatch, firstMatch + 1, "LDW", ldwOperand);
                                     }
                                     break;
 
@@ -3017,12 +3020,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LDW, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLdw = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LDW with LSLV and new operand
@@ -3034,8 +3036,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LSLW", "STW"});
-
-                                        if(insertLdw) insertVasm(codeLine, firstMatch, firstMatch + 1, "LDW", ldwOperand);
                                     }
                                     break;
 
@@ -3047,12 +3047,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LDW, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLdw = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LDW with LSRV and new operand
@@ -3064,8 +3063,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LSRV", "STW"});
-
-                                        if(insertLdw) insertVasm(codeLine, firstMatch, firstMatch + 1, "LDW", ldwOperand);
                                     }
                                     break;
 
@@ -3078,12 +3075,12 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LDW, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
+                                        // If next instruction is a read/write then insert an LDW
                                         bool insertLdw = false;
                                         if(firstMatch + 4 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLdw = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) insertLdw = true;
                                         }
 
                                         // Replace LDW with LSRV and new operand, replace first LSRV's operand with new operand
@@ -3109,12 +3106,11 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
-                                        bool insertLd = false;
+                                        // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                         }
 
                                         // Replace LD with LSRB and new operand
@@ -3126,8 +3122,6 @@ namespace Optimiser
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                         itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LSRB", "ST"});
-
-                                        if(insertLd) insertVasm(codeLine, firstMatch, firstMatch + 1, "LD", ldOperand);
                                     }
                                     break;
 
@@ -3140,12 +3134,12 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
+                                        // If next instruction is a read/write then insert an LD
                                         bool insertLd = false;
                                         if(firstMatch + 4 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) insertLd = true;
                                         }
 
                                         // Replace LD LSRB with LSRB LSRB and new operand
@@ -3173,12 +3167,12 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
+                                        // If next instruction is a read/write then insert an LD
                                         bool insertLd = false;
                                         if(firstMatch + 5 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 5]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 5]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) insertLd = true;
                                         }
 
                                         // Replace LD LSRB LSRB with LSRB LSRB LSRB and new operand
@@ -3208,12 +3202,12 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 5]._labelIndex >= 0) break;
 
-                                        // If next instruction is a ST/STW then insert an LD, (TODO: fails for many instructions like POKE/DOKE/BXX/JXX/etc)
+                                        // If next instruction is a read/write then insert an LD
                                         bool insertLd = false;
                                         if(firstMatch + 6 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 6]._opcode;
-                                            if(stOpcode == "ST"  ||  stOpcode == "STW") insertLd = true;
+                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 6]._opcode;
+                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) insertLd = true;
                                         }
 
                                         // Replace LD LSRB LSRB LSRB with LSRB LSRB LSRB LSRB and new operand
@@ -3868,7 +3862,7 @@ namespace Optimiser
                                     if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a ST/STW/PEEK/DEEK/POKE/DOKE/etc
+                                    // Bail if next instruction is a read or write
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
                                         std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
@@ -4016,11 +4010,11 @@ namespace Optimiser
                                     if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a write
+                                    // Bail if next instruction is a read or write
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
-                                        if(stOpcode.find("ST") != std::string::npos  ||  stOpcode.find("OKE") != std::string::npos) break;
+                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
+                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                     }
 
                                     // Replace LD/LDW with MOVB and new operands
@@ -4711,11 +4705,11 @@ namespace Optimiser
                                     if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a write
-                                    if(Compiler::getCodeLines()[codeLine]._vasm.size() > firstMatch + 2)
+                                    // Bail if next instruction is a read or write
+                                    if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
-                                        if(stOpcode.find("ST") != std::string::npos  ||  stOpcode.find("OKE") != std::string::npos) break;
+                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
+                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                     }
 
                                     // Replace LDI with MOVQB and new operands
@@ -4738,11 +4732,11 @@ namespace Optimiser
                                     if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a write
-                                    if(Compiler::getCodeLines()[codeLine]._vasm.size() > firstMatch + 2)
+                                    // Bail if next instruction is a read or write
+                                    if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string stOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
-                                        if(stOpcode.find("ST") != std::string::npos  ||  stOpcode.find("OKE") != std::string::npos) break;
+                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
+                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
                                     }
 
                                     // Replace LDI with MOVQW and new operands
@@ -5179,6 +5173,27 @@ namespace Optimiser
                                 }
                                 break;
 
+                                // Match PACKVW MOV* LDW STPX, replace with PACKAW MOV* STPX
+                                case PackvwStpx:
+                                {
+                                    // Bail if wrong ROM version or if second MOVB has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._labelIndex >= 0) break;
+
+                                    // Replace PACKVW with PACKAW
+                                    std::string pckOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 0);
+                                    std::string pckOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 1);
+                                    updateVasm(codeLine, firstMatch, "PACKAW", pckOperand00 + ", " + pckOperand01);
+
+                                    // Delete LDW
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 2);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 2, {"LDW"});
+                                }
+                                break;
+
                                 // Match MOVB LDW ADDI ST, replace with CNVXY
                                 case XyToVram:
                                 {
@@ -5420,6 +5435,110 @@ namespace Optimiser
                                     itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                     itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                     adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBW", "STW"});
+                                }
+                                break;
+
+                                // Match LD/LDW ADDI ST, replace all with ADDBI, (no matching of LD/ST operands)
+                                case LdAddiSt1:
+                                case LdwAddiSt1:
+                                {
+                                    // Bail if wrong ROM version or if ADDI or ST has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Bail if next instruction is a read or write
+                                    if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
+                                    {
+                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                    }
+
+                                    // Replace LD/LDW with ADDBI and new operands
+                                    std::string ldOperand   = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                    std::string addiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                    std::string stOperand   = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                    updateVasm(codeLine, firstMatch, "ADDBI", ldOperand + ", " + stOperand + ", " + addiOperand);
+
+                                    // Delete ADDI and ST
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDI", "ST"});
+                                }
+                                break;
+
+                                // Match LDW SUBI STW, replace all with SUBVI
+                                case LdwSubiStw1:
+                                {
+                                    // Bail if wrong ROM version or if SUBI or STW has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Replace LDW with SUBVI and new operands
+                                    std::string ldwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                    std::string subiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                    std::string stwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                    updateVasm(codeLine, firstMatch, "SUBVI", ldwOperand + ", " + stwOperand + ", " + subiOperand);
+
+                                    // Delete SUBI and STW
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI", "STW"});
+                                }
+                                break;
+
+                                // Match LD/LDW SUBI ST, replace all with SUBBI, (no matching of LD/ST operands)
+                                case LdSubiSt1:
+                                case LdwSubiSt1:
+                                {
+                                    // Bail if wrong ROM version or if SUBI or ST has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Bail if next instruction is a read or write
+                                    if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
+                                    {
+                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
+                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                    }
+
+                                    // Replace LD/LDW with SUBBI and new operands
+                                    std::string ldOperand   = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                    std::string subiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                    std::string stOperand   = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                    updateVasm(codeLine, firstMatch, "SUBBI", ldOperand + ", " + stOperand + ", " + subiOperand);
+
+                                    // Delete SUBI and ST
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"SUBI", "ST"});
+                                }
+                                break;
+
+                                // Match LDW ADDI STW, replace all with ADDVI, (no matching of LDW/STW operands)
+                                case LdwAddiStw1:
+                                {
+                                    // Bail if wrong ROM version or if ADDI or STW has a label
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Replace LDW with ADDVI and new operands
+                                    std::string ldwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand;
+                                    std::string addiOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand;
+                                    std::string stwOperand  = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand;
+                                    updateVasm(codeLine, firstMatch, "ADDVI", ldwOperand + ", " + stwOperand + ", " + addiOperand);
+
+                                    // Delete ADDI and STW
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDI", "STW"});
                                 }
                                 break;
 

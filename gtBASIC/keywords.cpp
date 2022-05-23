@@ -4661,7 +4661,7 @@ RESTART_PRINT:
             }
 
             Compiler::emitVcpuAsm("LDW", "drawPixel_xy", false);
-            Compiler::emitVcpuAsm("STPX", "fgbgColour+1", false);
+            Compiler::emitVcpuAsm("STPX", "fgbgColour + 1", false);
         }
         else
         {

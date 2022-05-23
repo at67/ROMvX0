@@ -105,35 +105,35 @@
 %ENDM
 
 %MACRO  ForNextAddZero _var _label _end _step
-        ADDVI   _var, _step
+        ADDVI   _var, _var, _step
         JLE     _label
 %ENDM
 
 %MACRO  ForNextSubZero _var _label _end _step
-        SUBVI   _var, _step
+        SUBVI   _var, _var, _step
         JGE     _label
 %ENDM
 
 %MACRO  ForNextAdd _var _label _end _step
-        ADDVI   _var, _step
+        ADDVI   _var, _var, _step
         SUBI    _end
         JLE     _label
 %ENDM
 
 %MACRO  ForNextSub _var _label _end _step
-        SUBVI   _var, _step
+        SUBVI   _var, _var, _step
         SUBI    _end
         JGE     _label
 %ENDM
 
 %MACRO  ForNextFarAdd _var _label _end _step
-        ADDVI   _var, _step
+        ADDVI   _var, _var, _step
         SUBI    _end
         JLE     _label
 %ENDM
 
 %MACRO  ForNextFarSub _var _label _end _step
-        SUBVI   _var, _step
+        SUBVI   _var, _var, _step
         SUBI    _end
         JGE     _label
 %ENDM

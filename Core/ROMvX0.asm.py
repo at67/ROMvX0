@@ -1596,10 +1596,10 @@ jmp(Y,'ld#13')                  #11
 # dummy                         #12 Overlap
 #
 # pc = 0x031c, Opcode = 0x1c
-# Instruction MOVQW: Load a word var with a small constant 0..255, 28 cycles
-label('MOVQW')
-ld(hi('movqw#13'),Y)            #10 #12
-jmp(Y,'movqw#13')               #11
+# Instruction ADDBI: dst.lo = imm + src.lo, 36 cycles
+label('ADDBI')
+ld(hi('addbi#13'),Y)            #10 #12
+jmp(Y,'addbi#13')               #11
 ld([vPC+1],Y)                   #12 vPC.hi
 
 # pc = 0x031f, Opcode = 0x1f
@@ -1681,11 +1681,11 @@ jmp(Y,AC)                       #12 AC is the conditional operand
 # dummy                         #13 Overlap
 #
 # pc = 0x0338, Opcode = 0x38
-# Instruction DOKEI: doke immediate word into address contained in [vAC], 28 cycles
-label('DOKEI') 
-ld(hi('dokei#13'),Y)            #10 #13
-jmp(Y,'dokei#13')               #11
-ld([vPC+1],Y)                   #13
+# Instruction SUBBI: dst.lo = src.lo - imm, 30 cycles
+label('SUBBI')
+ld(hi('subbi#13'),Y)            #10 #12
+jmp(Y,'subbi#13')               #11
+ld([vPC+1],Y)                   #12 vPC.hi
 
 # pc = 0x033b, Opcode = 0x3b
 # Instruction DEEKV: read word from address contained in var, 28 cycles
@@ -1709,14 +1709,14 @@ jmp(Y,'ldarrw#13')              #11
 ld([vPC+1],Y)                   #12 vPC.hi
 
 # pc = 0x0342, Opcode = 0x42
-# Instruction ADDVI: add 8bit immediate to 16bit zero page var, var += imm, vAC = var, 50 cycles
+# Instruction ADDVI: dst = src + imm, vAC = dst, 54 cycles
 label('ADDVI')
 ld(hi('addvi#13'),Y)            #10
 jmp(Y,'addvi#13')               #11
 # dummy                         #12 Overlap
 
 # pc = 0x0344, Opcode = 0x44
-# Instruction SUBVI: subtract 8bit immediate from 16bit zero page var, var -= imm, vAC = var, 50 cycles
+# Instruction SUBVI: dst = src - imm, vAC = dst, 54 cycles
 label('SUBVI')
 ld(hi('subvi#13'),Y)            #10 #12
 jmp(Y,'subvi#13')               #11
@@ -1744,10 +1744,10 @@ jmp(Y,'djge#13')                #11
 ld([vPC+1],Y)                   #12
 
 # pc = 0x034d, Opcode = 0x4d
-# Instruction SPARE2:
-label('SPARE2') 
-ld(hi('SPARE2'),Y)              #10 #12
-jmp(Y,'SPARE2')                 #11
+# Instruction MOVQW: Load a word var with a small constant 0..255, 28 cycles
+label('MOVQW')
+ld(hi('movqw#13'),Y)            #10 #12
+jmp(Y,'movqw#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x034f, Opcode = 0x4f
@@ -1877,10 +1877,10 @@ jmp(Y,'push#13')                #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0377, Opcode = 0x77
-# Instruction SPARE3:
-label('SPARE3')
-ld(hi('SPARE3'),Y)              #10 #12
-jmp(Y,'SPARE3')                 #11
+# Instruction DOKEI: doke immediate word into address contained in [vAC], 28 cycles
+label('DOKEI') 
+ld(hi('dokei#13'),Y)            #10 #12
+jmp(Y,'dokei#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0379, Opcode = 0x79
@@ -2030,14 +2030,14 @@ jmp(Y,'cmpi#13')                #11
 # dummy                         #12 Overlap
 
 # pc = 0x03a9, Opcode = 0xa9
-# Instruction ADDVW: Add two 16bit zero page vars, dst += src, vAC = dst, 28 to 54 cycles
+# Instruction ADDVW: Add two 16bit zero page vars, dst = src0 + src1, vAC = dst, 60 cycles
 label('ADDVW')
 ld(hi('addvw#13'),Y)            #10 #12
 jmp(Y,'addvw#13')               #11
 # dummy                         #12 Overlap
 
 # pc = 0x03ab, Opcode = 0xab
-# Instruction SUBVW: Subtract two 16bit zero page vars, dst -= src, vAC = dst, 30 to 54 cycles
+# Instruction SUBVW: Subtract two 16bit zero page vars, dst = src0 - src1, vAC = dst, 58 cycles
 label('SUBVW')
 ld(hi('subvw#13'),Y)            #10 #12
 jmp(Y,'subvw#13')               #11
@@ -6013,7 +6013,7 @@ ld([sysArgs+7],X)               #30
 ld([vAC])                       #31
 adda([X])                       #32
 st([vAC])                       #33 vAC.lo = src0.lo + src1.lo
-bmi('.addvw#36')                #34 Now figure out if there was a carry
+bmi('.addvw#36')                #34 calculate carry
 suba([X])                       #35
 bra('.addvw#38')                #36
 ora([X])                        #37 carry in bit 7
@@ -6076,24 +6076,24 @@ ld([sysArgs+7],X)               #30
 ld([vAC])                       #31
 bmi('.subvw#34')                #32
 suba([X])                       #33 vAC.lo = src0.lo - src1.lo
-st([vAC])                       #34 Store low result
+st([vAC])                       #34 low result
 bra('.subvw#37')                #35
-ora([X])                        #36 Carry in bit 7
+ora([X])                        #36 borrow in bit 7
 
 label('.subvw#34')
-st([vAC])                       #34 Store low result
-anda([X])                       #35 carry in bit 7
+st([vAC])                       #34 low result
+anda([X])                       #35 borrow in bit 7
 nop()                           #36
 
 label('.subvw#37')
-anda(0x80,X)                    #37 carry to bit 0
+anda(0x80,X)                    #37 borrow to bit 0
 ld([vAC+1])                     #38
 suba([X])                       #39
-st([vTmp])                      #40 src0.hi - carry
+st([vTmp])                      #40 src0.hi - borrow
 ld([sysArgs+7])                 #41
 adda(1,X)                       #42
 ld([vTmp])                      #43
-suba([X])                       #44 src0.hi - carry - src1.hi
+suba([X])                       #44 src0.hi - borrow - src1.hi
 st([vAC+1])                     #45
 ld([sysArgs+6],X)               #46
 ld([vAC])                       #47
@@ -6626,20 +6626,21 @@ ld(-28/2)                       #25
  
 # MOVQW implementation
 label('movqw#13')
-st([vTmp])                      #13 immediate value
-st([Y,Xpp])                     #14 X++
-ld([Y,X])                       #15
-ld(AC,X)                        #16 address of var
-ld([vTmp])                      #17
-ld(0,Y)                         #18
-st([Y,Xpp])                     #19 var.lo = immediate value
-st(0,[X])                       #20 var.hi = 0
-ld([vPC])                       #21
-adda(1)                         #22
-st([vPC])                       #23 advance vPC by 1
-ld(hi('NEXTY'),Y)               #24
-jmp(Y,'NEXTY')                  #25
-ld(-28/2)                       #26
+ld([vPC+1],Y)                   #13 vPC.hi
+st([vTmp])                      #14 immediate value
+st([Y,Xpp])                     #15 X++
+ld([Y,X])                       #16
+ld(AC,X)                        #17 address of var
+ld([vTmp])                      #18
+ld(0,Y)                         #19
+st([Y,Xpp])                     #20 var.lo = immediate value
+st(0,[X])                       #21 var.hi = 0
+ld([vPC])                       #22
+adda(1)                         #23
+st([vPC])                       #24 advance vPC by 1
+ld(hi('REENTER'),Y)             #25
+jmp(Y,'REENTER')                #26
+ld(-30/2)                       #27
 
 # PEEKV implementation
 label('peekv#13')
@@ -7031,20 +7032,21 @@ ld(-20/2)                       #18
 
 # DOKEI implementation
 label('dokei#13')
-st([vTmp])                      #13 imm.hi
-st([Y,Xpp])                     #14 X++
-ld([Y,X])                       #15 imm.lo
-ld([vAC+1],Y)                   #16
-ld([vAC],X)                     #17
-st([Y,Xpp])                     #18
-ld([vTmp])                      #19
-st([Y,X])                       #20
-ld([vPC])                       #21
-adda(1)                         #22
-st([vPC])                       #23
-ld(hi('NEXTY'),Y)               #24
-jmp(Y,'NEXTY')                  #25
-ld(-28/2)                       #26
+ld([vPC+1],Y)                   #13
+st([vTmp])                      #14 imm.hi
+st([Y,Xpp])                     #15 X++
+ld([Y,X])                       #16 imm.lo
+ld([vAC+1],Y)                   #17
+ld([vAC],X)                     #18
+st([Y,Xpp])                     #19
+ld([vTmp])                      #20
+st([Y,X])                       #21
+ld([vPC])                       #22
+adda(1)                         #23
+st([vPC])                       #24
+ld(hi('REENTER'),Y)             #25
+jmp(Y,'REENTER')                #26
+ld(-30/2)                       #27
 
 
 # MOVWA implementation 
@@ -9994,19 +9996,6 @@ ld(hi('cmpii#13'),Y)            #10
 jmp(Y,'cmpii#13')               #11
 # dummy                         #12 Overlap
 #
-# pc = 0x228b Opcode = 0x8b
-# Instruction ADDBI: var.lo += imm, 22 + 20 cycles
-label('ADDBI')
-ld(hi('addbi#13'),Y)            #10 #12
-jmp(Y,'addbi#13')               #11
-ld(AC,X)                        #12 address of var
-
-# pc = 0x228e Opcode = 0x8e
-# Instruction SUBBI: var.lo -= imm, 22 + 20 cycles
-label('SUBBI')
-ld(hi('subbi#13'),Y)            #10
-jmp(Y,'subbi#13')               #11
-ld(AC,X)                        #12 address of var
 
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
@@ -11557,45 +11546,50 @@ align(0x100, size=0x100)
 # ADDVI implementation
 label('addvi#13')
 ld([vPC+1],Y)                   #13 vPC.hi
-st([sysArgs+6])                 #14 immediate 8bit
-st([Y,Xpp])                     #15 X++
-ld(min(0,maxTicks-50/2))        #16
+st([Y,Xpp])                     #14 X++
+st([sysArgs+6])                 #15 immediate 8bit
+ld(min(0,maxTicks-54/2))        #16
 adda([vTicks])                  #17
 blt('.addvi#20')                #18 not enough time left, so retry
 ld([Y,X])                       #19
-st([sysArgs+7],X)               #20 dst var addr
-ld(0,Y)                         #21
-ld([X])                         #22 dst low value
-st([vAC])                       #23
-st([Y,Xpp])                     #24 X++
-ld([X])                         #25 dst hi value
-st([vAC+1])                     #26
-ld([sysArgs+6])                 #27
-adda([vAC])                     #28
-st([vAC])                       #29 Store low result
-bmi('.addvi#32')                #30 Now figure out if there was a carry
-suba([sysArgs+6])               #31 Gets back the initial value of vAC
-bra('.addvi#34')                #32
-ora([sysArgs+6])                #33 Carry in bit 7
-label('.addvi#32')
-anda([sysArgs+6])               #32 Carry in bit 7
-nop()                           #33
-label('.addvi#34')
-anda(0x80,X)                    #34 Move carry to bit 0
-ld([X])                         #35
-adda([vAC+1])                   #36 Add the high bytes with carry
-st([vAC+1])                     #37 Store high result
-ld([sysArgs+7],X)               #38
-ld([vAC])                       #39
-st([Y,Xpp])                     #40
-ld([vAC+1])                     #41
-st([X])                         #42
-ld([vPC])                       #43
-adda(1)                         #44
-st([vPC])                       #45
-ld(hi('NEXTY'),Y)               #46
-jmp(Y,'NEXTY')                  #47
-ld(-50/2)                       #48
+st([Y,Xpp])                     #20 X++
+st([sysArgs+7])                 #21 dst var addr
+ld([Y,X])                       #22
+ld(AC,X)                        #23 src addr
+ld(0,Y)                         #24
+ld([X])                         #25
+st([vAC])                       #26 vAC.lo = src.lo
+st([Y,Xpp])                     #27
+ld([X])                         #28
+st([vAC+1])                     #29 vAC.hi = src.hi
+ld([vAC])                       #30
+adda([sysArgs+6])               #31
+st([vAC])                       #32 vAC.lo = src0.lo + src1.lo
+bmi('.addvw#35')                #33 calculate carry
+suba([sysArgs+6])               #34
+bra('.addvw#37')                #35
+ora([sysArgs+6])                #36 carry in bit 7
+
+label('.addvw#35')
+anda([sysArgs+6])               #35 carry in bit 7
+nop()                           #36
+
+label('.addvw#37')
+anda(0x80,X)                    #37
+ld([X])                         #38 carry in bit 0
+adda([vAC+1])                   #39
+st([vAC+1])                     #40
+ld([sysArgs+7],X)               #41
+ld([vAC])                       #42
+st([Y,Xpp])                     #43
+ld([vAC+1])                     #44
+st([Y,X])                       #45
+ld([vPC])                       #46
+adda(2)                         #47
+st([vPC])                       #48
+ld(hi('REENTER'),Y)             #49
+jmp(Y,'REENTER')                #50
+ld(-54/2)                       #51
 
 label('.addvi#20')
 ld([vPC])                       #20 retry instruction
@@ -11609,46 +11603,50 @@ ld(-28/2)                       #25
 # SUBVI implementation
 label('subvi#13')
 ld([vPC+1],Y)                   #13 vPC.hi
-st([sysArgs+6])                 #14 immediate 8bit
-st([Y,Xpp])                     #15 X++
-ld(min(0,maxTicks-50/2))        #16
+st([Y,Xpp])                     #14 X++
+st([sysArgs+6])                 #15 immediate 8bit
+ld(min(0,maxTicks-52/2))        #16
 adda([vTicks])                  #17
 blt('.subvi#20')                #18 not enough time left, so retry
 ld([Y,X])                       #19
-st([sysArgs+7],X)               #20 dst var addr
-ld(0,Y)                         #21
-ld([X])                         #22 dst low value
-st([vAC])                       #23
-st([Y,Xpp])                     #24 X++
-ld([X])                         #25 dst hi value
-st([vAC+1])                     #26
-ld([sysArgs+7],X)               #27 dst var addr
+st([Y,Xpp])                     #20 X++
+st([sysArgs+7])                 #21 dst var addr
+ld([Y,X])                       #22
+ld(AC,X)                        #23 src addr
+ld(0,Y)                         #24
+ld([X])                         #25
+st([vAC])                       #26 vAC.lo = src.lo
+st([Y,Xpp])                     #27
 ld([X])                         #28
-bmi('.subvi#31')                #29
-suba([sysArgs+6])               #30
-st([vAC])                       #31 store low result
-bra('.subvi#34')                #32
-ora([sysArgs+6])                #33 carry in bit 7
-label('.subvi#31')
-st([vAC])                       #31 store low result
-anda([sysArgs+6])               #32 carry in bit 7
-nop()                           #33
-label('.subvi#34')
-anda(0x80,X)                    #34 move carry to bit 0
-ld([vAC+1])                     #35
-suba([X])                       #36
-st([vAC+1])                     #37 store high result
-ld([sysArgs+7],X)               #38
-ld([vAC])                       #39
-st([Y,Xpp])                     #40
-ld([vAC+1])                     #41
-st([X])                         #42
-ld([vPC])                       #43
-adda(1)                         #44
-st([vPC])                       #45
-ld(hi('NEXTY'),Y)               #46
-jmp(Y,'NEXTY')                  #47
-ld(-50/2)                       #48
+st([vAC+1])                     #29 vAC.hi = src.hi
+ld([vAC])                       #30
+bmi('.subvi#33')                #31
+suba([sysArgs+6])               #32
+st([vAC])                       #33 store low result
+bra('.subvi#36')                #34
+ora([sysArgs+6])                #35 borrow in bit 7
+
+label('.subvi#33')
+st([vAC])                       #33 store low result
+anda([sysArgs+6])               #34 borrow in bit 7
+nop()                           #35
+
+label('.subvi#36')
+anda(0x80,X)                    #36 move borrow to bit 0
+ld([vAC+1])                     #37
+suba([X])                       #38
+st([vAC+1])                     #39 store high result
+ld([sysArgs+7],X)               #40
+ld([vAC])                       #41
+st([Y,Xpp])                     #42
+ld([vAC+1])                     #43
+st([X])                         #44
+ld([vPC])                       #45
+adda(2)                         #46
+st([vPC])                       #47
+ld(hi('NEXTY'),Y)               #48
+jmp(Y,'NEXTY')                  #49
+ld(-52/2)                       #50
 
 label('.subvi#20')
 ld([vPC])                       #20 retry instruction
@@ -15078,82 +15076,56 @@ align(0x100, size=0x100)
 #  More vCPU instruction implementations, (0x3500)
 #-----------------------------------------------------------------------
 #
-# ADDBI implementation, var.lo += imm, does NOT modify var.hi
+# ADDBI implementation, dst.lo = imm + src.lo, does NOT modify dst.hi
 label('addbi#13')
-ld([X])                         #13
-adda([sysArgs+7])               #14
-st([X])                         #15
-ld(hi('NEXTY'),Y)               #16
-jmp(Y,'NEXTY')                  #17
-ld(-20/2)                       #18
+st([vTmp])                      #13 src var
+st([Y,Xpp])                     #14
+ld([Y,X])                       #15
+st([sysArgs+7])                 #16 dst var
+st([Y,Xpp])                     #17
+ld([Y,X])                       #18 imm
+ld([vTmp],X)                    #19
+adda([X])                       #20
+ld([sysArgs+7],X)               #21
+st([X])                         #22
+ld([vPC])                       #23
+adda(2)                         #24
+st([vPC])                       #25
+ld(hi('NEXTY'),Y)               #26
+jmp(Y,'NEXTY')                  #27
+ld(-30/2)                       #28
 
-# SUBBI implementation, var.lo -= imm, does NOT modify var.hi
+
+# SUBBI implementation, dst.lo = src.lo - imm, does NOT modify dst.hi
 label('subbi#13')
-ld([X])                         #13
-suba([sysArgs+7])               #14
-st([X])                         #15
-ld(hi('NEXTY'),Y)               #16
-jmp(Y,'NEXTY')                  #17
-ld(-20/2)                       #18
+st([vTmp])                      #13 imm
+st([Y,Xpp])                     #14
+ld(min(0,maxTicks-34/2))        #15
+adda([vTicks])                  #16
+blt('.subbi#19')                #17 not enough time left, so retry
+ld([Y,X])                       #18
+st([sysArgs+7])                 #19 dst var
+st([Y,Xpp])                     #20
+ld([Y,X])                       #21 src var
+ld(AC,X)                        #22
+ld([X])                         #23
+suba([vTmp])                    #24
+ld([sysArgs+7],X)               #25
+st([X])                         #26
+ld([vPC])                       #27
+adda(2)                         #28
+st([vPC])                       #29
+ld(hi('NEXTY'),Y)               #30
+jmp(Y,'NEXTY')                  #31
+ld(-34/2)                       #32
 
-
-# CMPII implementation
-label('cmpii#13')
-st([sysArgs+6])                 #13 imm1
-ld(min(0,maxTicks-36/2))        #14
-adda([vTicks])                  #15
-blt('.cmpii#18')                #16 not enough time left, so retry
-ld([vAC])                       #17
-bmi('cmpii#20')                 #18
-suba([sysArgs+6])               #19 imm0
-bra('cmpii#22')                 #20
-ora([sysArgs+6])                #21
-
-label('cmpii#20')
-anda([sysArgs+6])               #20
-nop()                           #21
-
-label('cmpii#22')
-bpl('cmpii#24')                 #22
-ld([vAC])                       #23
-ld(0xFF)                        #24 vAC < imm0
-st([vAC])                       #25
-st([vAC+1])                     #26
-ld(hi('REENTER'),Y)             #27
-jmp(Y,'REENTER')                #28
-ld(-32/2)                       #29
-
-label('cmpii#24')
-bmi('cmpii#26')                 #24
-suba([sysArgs+7])               #25 imm1
-bra('cmpii#28')                 #26
-ora([sysArgs+7])                #27
-
-label('cmpii#26')
-anda([sysArgs+7])               #26
-nop()                           #27
-
-label('cmpii#28')
-bmi('cmpii#30')                 #28
-ld(0x01)                        #29 vAC >= imm1
-st([vAC])                       #30
-ld(hi('REENTER'),Y)             #31
-jmp(Y,'REENTER')                #32
-ld(-36/2)                       #33
-
-label('cmpii#30')
-ld(0x00)                        #30 imm0 >= vAC < imm1
-st([vAC])                       #31
-ld(hi('NEXTY'),Y)               #32
-jmp(Y,'NEXTY')                  #33
-ld(-36/2)                       #34
-
-label('.cmpii#18')
-ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
-st([vCpuSelect])                #19 restore PREFX3 instruction page
-adda(1,Y)                       #20 retry instruction
-jmp(Y,'NEXTY')                  #21
-ld(-24/2)                       #22
+label('.subbi#19')
+ld([vPC])                       #19 retry instruction
+suba(2)                         #20
+st([vPC])                       #21
+ld(hi('NEXTY'),Y)               #22
+jmp(Y,'NEXTY')                  #23
+ld(-26/2)                       #24
 
 
 # FNT6X8 implementation
@@ -15410,6 +15382,65 @@ st([Y,X])                       #23
 ld(hi('NEXTY'),Y)               #24
 jmp(Y,'NEXTY')                  #25
 ld(-28/2)                       #26
+
+
+# CMPII implementation
+label('cmpii#13')
+st([sysArgs+6])                 #13 imm1
+ld(min(0,maxTicks-36/2))        #14
+adda([vTicks])                  #15
+blt('.cmpii#18')                #16 not enough time left, so retry
+ld([vAC])                       #17
+bmi('cmpii#20')                 #18
+suba([sysArgs+6])               #19 imm0
+bra('cmpii#22')                 #20
+ora([sysArgs+6])                #21
+
+label('cmpii#20')
+anda([sysArgs+6])               #20
+nop()                           #21
+
+label('cmpii#22')
+bpl('cmpii#24')                 #22
+ld([vAC])                       #23
+ld(0xFF)                        #24 vAC < imm0
+st([vAC])                       #25
+st([vAC+1])                     #26
+ld(hi('REENTER'),Y)             #27
+jmp(Y,'REENTER')                #28
+ld(-32/2)                       #29
+
+label('cmpii#24')
+bmi('cmpii#26')                 #24
+suba([sysArgs+7])               #25 imm1
+bra('cmpii#28')                 #26
+ora([sysArgs+7])                #27
+
+label('cmpii#26')
+anda([sysArgs+7])               #26
+nop()                           #27
+
+label('cmpii#28')
+bmi('cmpii#30')                 #28
+ld(0x01)                        #29 vAC >= imm1
+st([vAC])                       #30
+ld(hi('REENTER'),Y)             #31
+jmp(Y,'REENTER')                #32
+ld(-36/2)                       #33
+
+label('cmpii#30')
+ld(0x00)                        #30 imm0 >= vAC < imm1
+st([vAC])                       #31
+ld(hi('NEXTY'),Y)               #32
+jmp(Y,'NEXTY')                  #33
+ld(-36/2)                       #34
+
+label('.cmpii#18')
+ld(hi('PREFX3_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX3 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
 
 
 # LDARRW implementation

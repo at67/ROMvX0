@@ -530,7 +530,7 @@ drawRectF           LDWI    SYS_SetMemory_v2_54
                     MOVB    drawRectF_y2, drawRectF_y1
                     NEGW    drawRectF_ycnt                      ; line count if y1 > y2
                     
-drawRFY_cont        ADDBI   drawRectF_y1, 8                     ; high start address
+drawRFY_cont        ADDBI   drawRectF_y1, drawRectF_y1, 8       ; high start address
                     INC     drawRectF_ycnt                      ; line count++ for DBNE
                     LD      drawRectF_x2
                     SUBW    drawRectF_x1
@@ -677,7 +677,7 @@ scrollV_offs        ST      giga_sysArg0
 %SUB                scrollRectV
 scrollRectV         LDWI    SYS_ScrollRectVTableY_vX_44
                     STW     giga_sysFn
-                    LD      register0
+                    LD      register0                           ; don't replace with ADDBI
                     ADDI    8
                     ST      giga_sysArg4
                     ADDW    register1

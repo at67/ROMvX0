@@ -147,7 +147,7 @@ gotoNL_exit         RET
                     
 gotoNL_cont         SUBW    numericLabel
                     BEQ     gotoNL_found
-                    ADDBI   lutIndex, 2
+                    ADDBI   lutIndex, lutIndex, 2
                     BRA     gotoNL_loop                         ; loop through lut until found or 0
                     
 gotoNL_found        LDW     lutIndex
@@ -177,7 +177,7 @@ gosubNL_exit        POP
                     
 gosubNL_cont        SUBW    numericLabel
                     BEQ     gosubNL_found
-                    ADDBI   lutIndex, 2
+                    ADDBI   lutIndex, lutIndex, 2
                     BRA     gosubNL_loop                        ; loop through lut until found or 0
                     
 gosubNL_found       LDW     lutIndex
