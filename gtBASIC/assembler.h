@@ -46,7 +46,6 @@
 
 #define OPCODE_V_MOVQB  0x16
 #define OPCODE_V_ADDBI  0x1C
-#define OPCODE_V_ARRW   0x1F
 #define OPCODE_V_ADDVB  0x29
 #define OPCODE_V_CNVXY  0x2D
 #define OPCODE_V_PREFX2 0x2F
@@ -71,6 +70,7 @@
 #define OPCODE_V_DEEKA  0x6F
 #define OPCODE_V_LDWM   0x72
 #define OPCODE_V_DOKEI  0x77
+#define OPCODE_V_ARRW   0x79
 #define OPCODE_V_DBGE   0x8E
 #define OPCODE_V_BRA    0x90
 #define OPCODE_V_INCWA  0x95
@@ -145,6 +145,7 @@
 #define OPCODE_V_ADDBA  0x60
 #define OPCODE_V_SUBBA  0x62
 #define OPCODE_V_NOTB   0x64
+#define OPCODE_V_ABSVW  0x67
 
 // PREFX3 instructions
 #define OPCODE_V_STB2   0x11
@@ -205,6 +206,7 @@ namespace Assembler
 {
     enum ByteSize {BadByteSize=-1, OneByte=1, TwoBytes=2, ThreeBytes=3, FourBytes=4, FiveBytes=5, MaxByteSize};
     enum OpcodeType {ReservedDB=0, ReservedDW, ReservedDBR, ReservedDWR, vCpu, Native};
+    enum VACType {NoVAC, TmpVAC, InVAC, OutVAC, InOutVAC};
 
     struct ByteCode
     {
@@ -231,6 +233,7 @@ namespace Assembler
         uint8_t _opcode1;
         ByteSize _byteSize;
         OpcodeType _opcodeType;
+        VACType _vAcType = NoVAC;
     };
 
     struct InstructionDasm
@@ -240,6 +243,7 @@ namespace Assembler
         ByteSize _byteSize;
         OpcodeType _opcodeType;
         std::string _mnemonic;
+        VACType _vAcType = NoVAC;
     };
 
     struct LineToken
@@ -296,6 +300,7 @@ namespace Assembler
     int getAsmOpcodeSize(const std::string& opcodeStr);
     int getAsmOpcodeSizeText(const std::string& textStr);
     int getAsmOpcodeSizeFile(const std::string& filename);
+    VACType getAsmOpcodeVACType(const std::string& opcodeStr);
 
     void clearDefines(void);
     bool createDefine(const std::string& filename, const std::vector<std::string>& tokens, int adjustedLineIndex);

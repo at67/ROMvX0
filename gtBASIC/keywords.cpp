@@ -323,9 +323,9 @@ namespace Keywords
         {
             switch(int16Byte)
             {
-                case Expression::Int16Low:  Compiler::emitVcpuAsm("INC",  "_" + Compiler::getIntegerVars()[varIndex]._name,          false); break;
-                case Expression::Int16High: Compiler::emitVcpuAsm("INC",  "_" + Compiler::getIntegerVars()[varIndex]._name + " + 1", false); break;
-                case Expression::Int16Both: Compiler::emitVcpuAsm("INCW", "_" + Compiler::getIntegerVars()[varIndex]._name,          false); break;
+                case Expression::Int16Low:  Compiler::emitVcpuAsm("INC",   "_" + Compiler::getIntegerVars()[varIndex]._name,          false); break;
+                case Expression::Int16High: Compiler::emitVcpuAsm("INC",   "_" + Compiler::getIntegerVars()[varIndex]._name + " + 1", false); break;
+                case Expression::Int16Both: Compiler::emitVcpuAsm("INCWA", "_" + Compiler::getIntegerVars()[varIndex]._name,          false); break;
 
                 default: break;
             }
@@ -376,9 +376,9 @@ namespace Keywords
         {
             switch(int16Byte)
             {
-                case Expression::Int16Low:  Compiler::emitVcpuAsm("DEC",  "_" + Compiler::getIntegerVars()[varIndex]._name,          false); break;
-                case Expression::Int16High: Compiler::emitVcpuAsm("DEC",  "_" + Compiler::getIntegerVars()[varIndex]._name + " + 1", false); break;
-                case Expression::Int16Both: Compiler::emitVcpuAsm("DECW", "_" + Compiler::getIntegerVars()[varIndex]._name,          false); break;
+                case Expression::Int16Low:  Compiler::emitVcpuAsm("DEC",   "_" + Compiler::getIntegerVars()[varIndex]._name,          false); break;
+                case Expression::Int16High: Compiler::emitVcpuAsm("DEC",   "_" + Compiler::getIntegerVars()[varIndex]._name + " + 1", false); break;
+                case Expression::Int16Both: Compiler::emitVcpuAsm("DECWA", "_" + Compiler::getIntegerVars()[varIndex]._name,          false); break;
 
                 default: break;
             }

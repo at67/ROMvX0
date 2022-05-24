@@ -1070,7 +1070,8 @@ namespace Compiler
         Expression::strToUpper(opcodeStr);
         Expression::stripWhitespace(operandStr);
 
-        int vasmSize = createVcpuAsm(opcodeStr, operandStr, int(_codeLines.size()), line);
+        Assembler::VACType vAcType;
+        int vasmSize = createVcpuAsm(opcodeStr, operandStr, int(_codeLines.size()), line, vAcType);
         if(vasmSize == 0  &&  opcodeStr != "_BREAKPOINT_")
         {
             // This is a bit of a hack, but needed as createAsmLine is called before the keyword ENDASM can be processed
@@ -1080,7 +1081,7 @@ namespace Compiler
             return false;
         }
 
-        _codeLines[_currentCodeLineIndex]._vasm.push_back({uint16_t(_vasmPC - vasmSize), opcodeStr, operandStr, line, false, false, _nextVasmLabelIndex, vasmSize});
+        _codeLines[_currentCodeLineIndex]._vasm.push_back({uint16_t(_vasmPC - vasmSize), opcodeStr, operandStr, line, false, false, _nextVasmLabelIndex, vasmSize, vAcType});
         _codeLines[_currentCodeLineIndex]._vasmSize += vasmSize;
         _codeLines[_currentCodeLineIndex]._dontParse = true;
         _nextVasmLabelIndex = -1;
@@ -1370,8 +1371,13 @@ namespace Compiler
         }
     }
 
-
     int createVcpuAsm(const std::string& opcodeStr, const std::string& operandStr, int codeLineIdx, std::string& line)
+    {
+        Assembler::VACType vAcType;
+        return createVcpuAsm(opcodeStr, operandStr, codeLineIdx, line, vAcType);
+    }
+
+    int createVcpuAsm(const std::string& opcodeStr, const std::string& operandStr, int codeLineIdx, std::string& line, Assembler::VACType& vAcType)
     {
         UNREFERENCED_PARAM(codeLineIdx);
 
@@ -1399,9 +1405,11 @@ namespace Compiler
             }
 
             // Get opcode size
+            vAcType = Assembler::NoVAC;
             if(vasmSize == 0)
             {
                 vasmSize = Assembler::getAsmOpcodeSize(opcode);
+                vAcType = Assembler::getAsmOpcodeVACType(opcode);
             }
         }
 
@@ -1438,7 +1446,8 @@ namespace Compiler
         if(_nextVasmLabelIndex >= 0) labelIndex = _nextVasmLabelIndex;
 
         std::string line;
-        int vasmSize = createVcpuAsm(opcodeStr, operandStr, codeLineIdx, line);
+        Assembler::VACType vAcType;
+        int vasmSize = createVcpuAsm(opcodeStr, operandStr, codeLineIdx, line, vAcType);
 
         // Breakpoint instruction
         static int breakPointLine = -1;
@@ -1447,14 +1456,14 @@ namespace Compiler
         {
             breakPointLine = codeLineIdx;
             breakPointSlot = int(_codeLines[codeLineIdx]._vasm.size());
-            _codeLines[codeLineIdx]._vasm.push_back({uint16_t(_vasmPC - vasmSize), opcodeStr, operandStr, line, pageJump, false, labelIndex, vasmSize});
+            _codeLines[codeLineIdx]._vasm.push_back({uint16_t(_vasmPC - vasmSize), opcodeStr, operandStr, line, pageJump, false, labelIndex, vasmSize, vAcType});
         }
         else
         {
             // Swap breakpoint with next instruction as breakpoint cannot have a label
             if(breakPointLine >= 0  &&  breakPointSlot >= 0)
             {
-                _codeLines[breakPointLine]._vasm[breakPointSlot] = VasmLine({uint16_t(_vasmPC - vasmSize), opcodeStr, operandStr, line, pageJump, false, labelIndex, vasmSize});
+                _codeLines[breakPointLine]._vasm[breakPointSlot] = VasmLine({uint16_t(_vasmPC - vasmSize), opcodeStr, operandStr, line, pageJump, false, labelIndex, vasmSize, vAcType});
                 _codeLines[codeLineIdx]._vasm.push_back({_vasmPC, "_breakpoint_", "", "_breakpoint_", false, false, -1, 0});
                 breakPointLine = -1;
                 breakPointSlot = -1;
@@ -1462,7 +1471,7 @@ namespace Compiler
             // Normal instruction
             else
             {
-                _codeLines[codeLineIdx]._vasm.push_back({uint16_t(_vasmPC - vasmSize), opcodeStr, operandStr, line, pageJump, false, labelIndex, vasmSize});
+                _codeLines[codeLineIdx]._vasm.push_back({uint16_t(_vasmPC - vasmSize), opcodeStr, operandStr, line, pageJump, false, labelIndex, vasmSize, vAcType});
             }
         }
         _codeLines[codeLineIdx]._vasmSize += vasmSize;

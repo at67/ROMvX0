@@ -11,6 +11,7 @@
 #include "expression.h"
 #include "cpu.h"
 #include "compiler.h"
+#include "test.h"
 
 #ifndef STAND_ALONE
 #include <SDL.h>
@@ -1654,6 +1655,22 @@ namespace Cpu
 
                 if(_initAudio  &&  _clock > STARTUP_DELAY_CLOCKS*10.0)
                 {
+                    //uint16_t x0 = rand() % 160;
+                    //uint16_t y0 = rand() % 120;
+                    //uint16_t x1 = rand() % 160;
+                    //uint16_t y1 = rand() % 120;
+                    //uint8_t  c  = rand() % 63;
+                    //printf("%d %d %d %d %d\n", x0, y0, x1, y1, c);
+                    //TestDrawLine::drawLineGiga1(x0, y0, x1, y1, c);
+                    
+                    //for(int16_t i=19; i>=0; i--)
+                    //{
+                    //    uint16_t x = i*8 + 4;
+                    //    uint16_t y = i*6 + 3;
+                    //    uint8_t  c  = rand() % 63;
+                    //    TestDrawLine::drawLineGiga1(159, y, x, 0, c);
+                    //}
+        
                     // ROM's V1 to V3 do not re-initialise RAM Audio Wave Tables on soft reboot
                     if(_romType != ROMvX0) Audio::initialiseChannels();
                     Audio::saveWaveTables();

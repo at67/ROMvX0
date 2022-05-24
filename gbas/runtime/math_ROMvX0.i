@@ -85,58 +85,14 @@ multiply16bit       MOVQW   giga_sysFn, SYS_Multiply_s16_vX_66
                     RET
 %ENDS
 
-%SUB                multiply16bit_1
-                    ; accumulator = mathX * mathY, (result 16bit)
-multiply16bit_1     MOVQW   mathSum, 0
-                    LDW     mathX
-                    BEQ     multiply161_exit                    ; if x=0 then return 0
-                    LDW     mathY
-                    BEQ     multiply161_exit                    ; if y=0 then return
-                    
-multiply161_loop    ANDI    1
-                    BEQ     multiply161_skip
-                    ADDVW   mathX, mathSum, mathSum             ; mathSum += mathX
-                    
-multiply161_skip    LSLV    mathX                               ; mathX = mathX <<1
-                    LSRV    mathY                               ; mathY = mathY >>1
-                    LDW     mathY
-                    BNE     multiply161_loop
-
-multiply161_exit    LDW     mathSum
-                    RET
-%ENDS
-    
-%SUB                multiply16bit_2
-                    ; accumulator = mathX * mathY, (result 16bit)
-multiply16bit_2     MOVQW   mathSum, 0
-                    MOVQW   mathMask, 1
-                    
-multiply162_loop    ANDW    mathY
-                    BEQ     multiply162_skip
-                    ADDVW   mathX, mathSum, mathSum
-                    
-multiply162_skip    LSLV    mathX
-                    LSLV    mathMask
-                    LDW     mathMask
-                    BNE     multiply162_loop
-                    LDW     mathSum
-                    RET
-%ENDS   
-
 %SUB                divide16bit
                     ; accumulator:mathRem = mathX / mathY, (results 16bit)
 divide16bit         LDW     giga_sysArg0                        ; mathX
                     XORW    giga_sysArg2                        ; mathY
                     STW     mathSign
-                    LDW     giga_sysArg0
-                    BGE     divide16_pos0
-                    NEGW    giga_sysArg0
-                    
-divide16_pos0       LDW     giga_sysArg2                     
-                    BGE     divide16_pos1
-                    NEGW    giga_sysArg2
-                    
-divide16_pos1       MOVQW   giga_sysFn, SYS_Divide_s16_vX_80
+                    ABSVW   giga_sysArg0
+                    ABSVW   giga_sysArg2
+                    MOVQW   giga_sysFn, SYS_Divide_s16_vX_80
                     MOVQW   giga_sysArg4, 0                     ; mathRem
                     MOVQW   giga_sysArg6, 1                     ; mathMask
                     SYS     80
@@ -145,97 +101,6 @@ divide16_pos1       MOVQW   giga_sysFn, SYS_Divide_s16_vX_80
                     NEGW    giga_sysArg0
                     
 divide16_exit       LDW     giga_sysArg0
-                    RET
-%ENDS
-
-%SUB                divide16bit_1
-                    ; accumulator:mathRem = mathX / mathY, (results 16bit)
-divide16bit_1       LDW     mathX
-                    XORW    mathY
-                    STW     mathSign
-                    LDW     mathX
-                    BGE     divide161_pos0
-                    NEGW    mathX
-                    
-divide161_pos0      LDW     mathY                     
-                    BGE     divide161_pos1
-                    NEGW    mathY
-                    
-divide161_pos1      MOVQW   mathRem, 0
-                    LDI     1
-    
-divide161_loop      STW     mathMask
-                    LSLV    mathRem
-                    LDW     mathX
-                    BGE     divide161_incr
-                    INC     mathRem
-                    
-divide161_incr      LSLV    mathX
-                    LDW     mathRem
-                    SUBW    mathY
-                    BLT     divide161_incx
-                    STW     mathRem
-                    INC     mathX
-                    
-divide161_incx      LDW     mathMask
-                    LSLW
-                    BNE     divide161_loop
-                    LDW     mathSign
-                    BGE     divide161_exit
-                    LDI     0
-                    SUBW    mathX
-                    RET
-                    
-divide161_exit      LDW     mathX
-                    RET
-%ENDS   
-
-%SUB                divide16bit_2
-                    ; accumulator:mathRem = mathX / mathY, (results 16bit)
-divide16bit_2       LDI     0
-                    STW     mathQuot
-                    STW     mathRem
-                    
-                    LDW     mathX
-                    XORW    mathY
-                    STW     mathSign
-                    LDW     mathX
-                    BGE     divide162_pos0
-                    NEGW    mathX
-                    
-divide162_pos0      LDW     mathY
-                    BGE     divide162_pos1
-                    NEGW    mathY
-                    
-divide162_pos1      LDWI    0x8000
-                    
-divide162_loop      STW     mathMask
-                    BEQ     divide162_exit
-                    LSLV    mathRem
-                    LDW     mathX
-                    ANDW    mathMask
-                    BEQ     divide162_skip1
-                    INC     mathRem
-                    
-divide162_skip1     LDW     mathRem
-                    SUBW    mathY
-                    BLT     divide162_skip2
-                    STW     mathRem
-                    LDW     mathQuot
-                    ORW     mathMask
-                    STW     mathQuot
-                    
-divide162_skip2     LSRV    mathMask
-                    LDW     mathMask
-                    BRA     divide162_loop
-
-divide162_exit      LDW     mathSign
-                    BLT     divide162_sgn
-                    LDW     mathQuot
-                    RET
-                    
-divide162_sgn       LDI     0
-                    SUBW    mathQuot
                     RET
 %ENDS
 
@@ -309,15 +174,9 @@ fastMul8bit         MOVQW   giga_sysArg0, 0
 fastDiv168bit       LDW     giga_sysArg0                        ; mathX
                     XORW    giga_sysArg2                        ; mathY
                     STW     mathSign
-                    LDW     giga_sysArg0
-                    BGE     fastD168_pos0
-                    NEGW    giga_sysArg0
-                    
-fastD168_pos0       LDW     giga_sysArg2                     
-                    BGE     fastD168_pos1
-                    NEGW    giga_sysArg2
-
-fastD168_pos1       MOVQB   giga_sysArg4, 8
+                    ABSVW   giga_sysArg0
+                    ABSVW   giga_sysArg2
+                    MOVQB   giga_sysArg4, 8
                     MOVQW   giga_sysFn, SYS_Divide_u168_vX_56
                     SYS     56
                     LDW     mathSign

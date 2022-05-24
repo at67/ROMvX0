@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "expression.h"
+#include "assembler.h"
 
 
 #define LABEL_TRUNC_SIZE   34 // The smaller you make this, the more your BASIC label names will be truncated in the resultant .vasm code
@@ -93,6 +94,7 @@ namespace Compiler
     enum TypeVarType {Byte, Word, String, ArrayB, Array2B, Array3B, ArrayW, Array2W, Array3W, ArrayS};
     enum LabelModifierType {LabelModNone, LabelModError, LabelModNoPush};
 
+
     struct Constant
     {
         uint8_t _size;
@@ -161,6 +163,7 @@ namespace Compiler
         bool _lazyErase = false;
         int _labelIndex = -1;
         int _vasmSize = 0;
+        Assembler::VACType _vAcType = Assembler::NoVAC;
     };
 
     struct MacroNameEntry
@@ -638,6 +641,7 @@ namespace Compiler
 
     bool eraseVcpuAsm(int codeLineIdx);
     int createVcpuAsm(const std::string& opcodeStr, const std::string& operandStr, int codeLineIdx, std::string& line);
+    int createVcpuAsm(const std::string& opcodeStr, const std::string& operandStr, int codeLineIdx, std::string& line, Assembler::VACType& vAcType);
     std::pair<int, int> emitVcpuAsm(const std::string& opcodeStr, const std::string& operandStr, bool nextTempVar, int codeLineIdx=-1, const std::string& labelName="", bool pageJump=false);
     int16_t emitVcpuAsmForLiteral(Expression::Numeric& numeric, bool useHex);
     int16_t emitVcpuAsmForLiteral(const std::string& opcode, Expression::Numeric& numeric, bool useHex);

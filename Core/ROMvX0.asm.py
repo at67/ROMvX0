@@ -1603,11 +1603,11 @@ jmp(Y,'addbi#13')               #11
 ld([vPC+1],Y)                   #12 vPC.hi
 
 # pc = 0x031f, Opcode = 0x1f
-# Instruction ARRW: vAC = imm16 + vAC*2, 48 cycles
-label('ARRW')
-ld(hi('arrw#13'),Y)             #10
-jmp(Y,'arrw#13')                #11
-# dummy                         #12 Overlap
+# Instruction CMPHS: Adjust high byte for signed compare (vACH=XXX), 28 cycles
+label('CMPHS')
+ld(hi('cmphs#13'),Y)            #10
+jmp(Y,'cmphs#13')               #11
+# dummy                         #12 Overlap, not dependent on ld(AC,X) anymore
 #
 # pc = 0x0321, Opcode = 0x21
 # Instruction LDW: Load word from zero page (vAC=[D]+256*[D+1]), 24 cycles
@@ -1884,17 +1884,17 @@ jmp(Y,'dokei#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0379, Opcode = 0x79
-# Instruction INCW: Increment word var, 24-26 cycles
-label('INCW')
-ld(hi('incw#13'),Y)             #10 #12
-jmp(Y,'incw#13')                #11
+# Instruction ARRW: vAC = imm16 + vAC*2, 48 cycles
+label('ARRW')
+ld(hi('arrw#13'),Y)             #10
+jmp(Y,'arrw#13')                #11
 # dummy                         #12 Overlap
 #
 # pc = 0x037b, Opcode = 0x7b
-# Instruction DECW: Decrement word var, 24-28 cycles
-label('DECW')
-ld(hi('decw#13'),Y)             #10 #12
-jmp(Y,'decw#13')                #11
+# Instruction POKEA+: Poke a byte from var to [vAC], incw vAC, 26-30 cycles
+label('POKEA+') 
+ld(hi('pokea+#13'),Y)           #10 #12
+jmp(Y,'pokea+#13')              #11
 # dummy                         #12 Overlap
 #
 # pc = 0x037d, Opcode = 0x7d
@@ -1975,11 +1975,11 @@ jmp(Y,'incwa#13')               #11
 # dummy                         #12 Overlap
 #
 # pc = 0x0397, Opcode = 0x97
-# Instruction POKEA+: Poke a byte from var to [vAC], incw vAC, 26-30 cycles
-label('POKEA+') 
-ld(hi('pokea+#13'),Y)           #10 #12
-jmp(Y,'pokea+#13')              #11
-# dummy                         #12 Overlap
+# Instruction CMPHU: Adjust high byte for unsigned compare (vACH=XXX), 28 cycles
+label('CMPHU')
+ld(hi('cmphu#13'),Y)            #10 #12
+jmp(Y,'cmphu#13')               #11
+# dummy                         #12 Overlap, not dependent on ld(AC,X) anymore
 #
 # pc = 0x0399, Opcode = 0x99
 # Instruction ADDW: Word addition with zero page (vAC+=[D]+256*[D+1]), 30 cycles
@@ -10177,17 +10177,17 @@ jmp(Y,'smpcpy#13')              #11
 ld(AC,X)                        #12
 
 # pc = 0x2337, Opcode = 0x37
-# Instruction CMPHS: Adjust high byte for signed compare (vACH=XXX), 22 + 26 cycles
-label('CMPHS')
-ld(hi('cmphs#13'),Y)            #10
-jmp(Y,'cmphs#13')               #11
+# Instruction SPARE0:
+label('SPARE0')
+ld(hi('SPARE0'),Y)              #10
+jmp(Y,'SPARE0')                 #11
 ld(AC,X)                        #12
 
 # pc = 0x233a, Opcode = 0x3a
-# Instruction CMPHU: Adjust high byte for unsigned compare (vACH=XXX), 22 + 26 cycles
-label('CMPHU')
-ld(hi('cmphu#13'),Y)            #10
-jmp(Y,'cmphu#13')               #11
+# Instruction SPARE1:
+label('SPARE1')
+ld(hi('SPARE1'),Y)              #10
+jmp(Y,'SPARE1')                 #11
 ld(AC,X)                        #12
 
 # pc = 0x233d, Opcode = 0x3d
@@ -10316,6 +10316,28 @@ label('NOTB')
 ld(hi('notb#13'),Y)             #10 #12
 jmp(Y,'notb#13')                #11
 ld(AC,X)                        #12 address of var
+
+# pc = 0x2367, Opcode = 0x67
+# Instruction ABSVW: var = abs(var), 22 + 34 cycles
+label('ABSVW')
+ld(hi('absvw#13'),Y)            #10
+jmp(Y,'absvw#13')               #11
+st([vTmp])                      #12 address of var.lo
+
+# pc = 0x236a, Opcode = 0x6a
+# Instruction INCW: Increment word var, 22 + 24-26 cycles
+label('INCW')
+ld(hi('incw#13'),Y)             #10 #12
+jmp(Y,'incw#13')                #11
+# dummy                         #12 Overlap
+#
+# pc = 0x236c, Opcode = 0x6c
+# Instruction DECW: Decrement word var, 22 + 24-28 cycles
+label('DECW')
+ld(hi('decw#13'),Y)             #10 #12
+jmp(Y,'decw#13')                #11
+# dummy                         #12 Overlap
+#
 
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
@@ -11196,39 +11218,39 @@ ld(-24/2)                       #22
 
 # CMPHS implementation
 label('cmphs#13')
-ld([X])                         #13
-xora([vAC+1])                   #14
-bpl('.cmphu#17')                #15 Skip if same sign
-ld([vAC+1])                     #16
-bmi(pc()+3)                     #17
-bra(pc()+3)                     #18
-
-label('.cmphs#19')
-ld(+1)                          #19    vAC < variable
-ld(-1)                          #19(!) vAC > variable
-
+ld(AC,X)                        #13
+ld([X])                         #14
+xora([vAC+1])                   #15
+bpl('.cmphu#18')                #16 Skip if same sign
+ld([vAC+1])                     #17
+bmi(pc()+3)                     #18
+bra(pc()+3)                     #19
 label('.cmphs#20')
-adda([X])                       #20
-st([vAC+1])                     #21
-ld(hi('NEXTY'),Y)               #22
-jmp(Y,'NEXTY')                  #23
-ld(-26/2)                       #24
+ld(+1)                          #20    vAC < variable
+ld(-1)                          #20(!) vAC > variable
+label('.cmphs#21')
+adda([X])                       #21
+st([vAC+1])                     #22
+ld(hi('REENTER'),Y)             #23
+jmp(Y,'REENTER')                #24
+ld(-28/2)                       #25
 
 # CMPHU implementation
 label('cmphu#13')
-ld([X])                         #13
-xora([vAC+1])                   #14
-bpl('.cmphu#17')                #15 Skip if same sign
-ld([vAC+1])                     #16
-bmi('.cmphs#19')                #17
-bra('.cmphs#20')                #18
-ld(-1)                          #19    vAC > variable
+ld(AC,X)                        #13
+ld([X])                         #14
+xora([vAC+1])                   #15
+bpl('.cmphu#18')                #16 Skip if same sign
+ld([vAC+1])                     #17
+bmi('.cmphs#20')                #18
+bra('.cmphs#21')                #19
+ld(-1)                          #20    vAC > variable
 
 # No-operation for CMPHS/CMPHU when high bits are equal
-label('.cmphu#17')
-ld(hi('REENTER'),Y)             #17
-jmp(Y,'REENTER')                #18
-ld(-22/2)                       #19
+label('.cmphu#18')
+ld(hi('NEXTY'),Y)               #18
+jmp(Y,'NEXTY')                  #19
+ld(-22/2)                       #20
 
 
 fillers(until=0xff)
@@ -11565,16 +11587,16 @@ st([vAC+1])                     #29 vAC.hi = src.hi
 ld([vAC])                       #30
 adda([sysArgs+6])               #31
 st([vAC])                       #32 vAC.lo = src0.lo + src1.lo
-bmi('.addvw#35')                #33 calculate carry
+bmi('.addvi#35')                #33 calculate carry
 suba([sysArgs+6])               #34
-bra('.addvw#37')                #35
+bra('.addvi#37')                #35
 ora([sysArgs+6])                #36 carry in bit 7
 
-label('.addvw#35')
+label('.addvi#35')
 anda([sysArgs+6])               #35 carry in bit 7
 nop()                           #36
 
-label('.addvw#37')
+label('.addvi#37')
 anda(0x80,X)                    #37
 ld([X])                         #38 carry in bit 0
 adda([vAC+1])                   #39
@@ -14164,6 +14186,49 @@ align(0x100, size=0x100)
 #       More vCPU instruction implementations, (0x3100)
 #-----------------------------------------------------------------------
 #
+# ABSVW implementation
+label('absvw#13')
+adda(1,X)                       #13 address of var.hi
+ld(min(0,maxTicks-34/2))        #14
+adda([vTicks])                  #15
+blt('.absvw#18')                #16
+ld([X])                         #17
+bmi('.absvw#20')                #18
+ld(0,Y)                         #19
+ld(hi('NEXTY'),Y)               #20
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
+
+label('.absvw#20')
+ld([vTmp],X)                    #20
+ld([X])                         #21
+xora(0xFF)                      #22
+adda(1)                         #23
+beq('.absvw#26')                #24
+st([X])                         #25
+st([Y,Xpp])                     #26
+ld([X])                         #27
+xora(255)                       #28
+st([X])                         #29
+ld(hi('NEXTY'),Y)               #30
+jmp(Y,'NEXTY')                  #31
+ld(-34/2)                       #32
+
+label('.absvw#26')
+st([Y,Xpp])                     #26
+ld([X])                         #27
+xora(255)                       #28
+st([X])                         #29
+ld(hi('NEXTY'),Y)               #30
+jmp(Y,'NEXTY')                  #31
+ld(-34/2)                       #32
+
+label('.absvw#18')
+ld(hi('PREFX2_PAGE'))           #18 ENTER is at $(n-1)ff, where n = instruction page
+st([vCpuSelect])                #19 restore PREFX3 instruction page
+adda(1,Y)                       #20 retry instruction
+jmp(Y,'NEXTY')                  #21
+ld(-24/2)                       #22
 
 
 fillers(until=0xff)
@@ -14175,7 +14240,7 @@ align(0x100, size=0x100)
 #
 # MOVL implementation, (lb3361)
 label('movl#13')
-adda(1, X)                      #13
+adda(1,X)                       #13
 ld(min(0,maxTicks-40/2))        #14
 adda([vTicks])                  #15
 blt('movl#18')                  #16
@@ -14211,7 +14276,7 @@ ld(-24/2)                       #22
 
 # MOVF implementation, (lb3361)
 label('movf#13')
-adda(1, X)                      #13
+adda(1,X)                       #13
 ld(min(0,maxTicks-46/2))        #14
 adda([vTicks])                  #15
 blt('movl#18')                  #16

@@ -6,7 +6,6 @@ intSwap             EQU     register3
 intSrcAddr          EQU     register8
 intDigit            EQU     register9
 intResult           EQU     register10
-intNegative         EQU     register11
 bcdLength           EQU     register8
 bcdSrcAddr          EQU     register9
 bcdDstAddr          EQU     register10
@@ -65,13 +64,10 @@ integerCl_A1        LDW     intSrcA
 %SUB                integerStr
                     ; converts a string to a +/- integer, assumes string pointer is pointing to first char and not the string length, (no overflow or underflow checks)
 integerStr          STW     intSrcAddr
-                    LDI     0
-                    ST      intNegative
-                    STW     intResult
+                    MOVQW   intResult, 0
                     PEEKV   intSrcAddr
                     SUBI    45                                  ; -ve
                     BNE     integerS_loop
-                    MOVQB   intNegative, 1
                     INC     intSrcAddr                          ; skip -ve
 
 integerS_loop       PEEKV   intSrcAddr
@@ -90,11 +86,8 @@ integerS_loop       PEEKV   intSrcAddr
                     INC     intSrcAddr
                     BRA     integerS_loop
           
-integerS_neg        LD      intNegative
-                    BEQ     integerS_exit
-                    NEGW    intResult                           ; result *= -1
-                    
-integerS_exit       LDW     intResult
+integerS_neg        ABSVW   intResult
+                    LDW     intResult
                     RET
 %ENDS
 
@@ -199,8 +192,8 @@ bcdCmp_loop         PEEKV   bcdDstAddr                          ; expects unpack
                     SUBW    bcdDstData
                     BGT     bcdC_gt
                     BLT     bcdC_lt
-                    DECW    bcdDstAddr
-                    DECW    bcdSrcAddr
+                    DECWA   bcdDstAddr
+                    DECWA   bcdSrcAddr
                     DBNE    bcdLength, bcdCmp_loop              ; expects src and dst lengths to be equal
                     LDI     0
                     RET

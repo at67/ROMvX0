@@ -26,7 +26,7 @@ namespace Optimiser
         LdwSubiBcc, LdXoriBcc, LdwXoriBcc, LdwNotwStw, LdwNegwStw, LdNotwSt, LdwNotwSt, LdwiAddwStwLdwiAddw, LdwiAddw2StwLdwiAddw2, LdwiStwLdiPoke, LdwiStwLdiDoke, LdwiStwLdwiDoke, StwLdPoke, StwLdwPoke,
         StwLdwDoke, StwLdwDokeReg, StwLdwIncPoke, LdStwLdwPokea, LdStwLdwiPokea, LdStwLdwiAddiPokea, NegwArrayB, NegwArray, AddwArrayB, AddwArray, SubwArrayB, SubwArray, AndwArrayB, AndwArray, OrwArrayB,
         OrwArray, XorwArrayB, XorwArray, LdStwMovqbLdwStw, LdwStwMovqbLdwStw, LdwiStwMovqbLdwStw, LdStwMovqwLdwStw, LdwStwMovqwLdwStw, LdwiStwMovqwLdwStw, StwLdwiAddwAddw, LdwiAddwAddw, LdwArrw, StwStwArrvwDokea,
-        StwArrvwDokea, ArrvwDeek, AssignArray, StarrwLdarrw, StwLdiPokea, AddwAddwDeek, StwLsl8,
+        StwArrvwDokea, ArrvwDeek, AssignArray, StarrwLdarrw, StwLdiPokea, AddwAddwDeek, StwLsl8, LdwAbswStw,
 
         // Operands are NOT matched
         MovbSt, PeekSt, PeekVar, DeekStw, DeekVar, LdwiDeek, LdwDeekAddbi, DeekvAddbi, DokeAddbi, LdSt, LdwSt, StwPair, StwPairReg, ExtraStw, PeekArrayB, PeekArray, DeekArray, PokeArray,
@@ -861,6 +861,11 @@ namespace Optimiser
         // StwLsl8
         {0, 1, {Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + "0x",
                 Expression::createPaddedString("LSL8", OPCODE_TRUNC_SIZE, ' ') + "0x"}},
+
+        // LdwAbswStw
+        {0, 2, {Expression::createPaddedString("LDW",  OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ABSW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
 
         /******************************************************************************************/
         /* Operands are not matched from here on in
@@ -2316,8 +2321,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Bail if SUBI/XORI has a label
@@ -2346,8 +2351,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LDW with NOTW and new operand
@@ -2373,8 +2378,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LDW with NEGW and new operand
@@ -2401,8 +2406,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD/LDW with NOTB and new operand
@@ -2591,8 +2596,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD/LDW with ADDBI and new operands
@@ -2726,8 +2731,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD with DEC and new operand
@@ -2759,8 +2764,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LDW with DECW and new operand
@@ -2793,8 +2798,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD/LDW with SUBBI and new operands
@@ -2823,8 +2828,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD/LDW with ANDBI and new operands
@@ -2852,8 +2857,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD/LDW with ORBI and new operands
@@ -2880,8 +2885,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LDW with ORBI and new operands
@@ -2909,8 +2914,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD/LDW with XORBI and new operands
@@ -2937,8 +2942,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LDW with XORBI and new operands
@@ -3023,8 +3028,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LDW with LSLV and new operand
@@ -3050,8 +3055,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LDW with LSRV and new operand
@@ -3079,8 +3084,8 @@ namespace Optimiser
                                         bool insertLdw = false;
                                         if(firstMatch + 4 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) insertLdw = true;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LDW with LSRV and new operand, replace first LSRV's operand with new operand
@@ -3109,8 +3114,8 @@ namespace Optimiser
                                         // Bail if next instruction is a read or write
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD with LSRB and new operand
@@ -3138,8 +3143,8 @@ namespace Optimiser
                                         bool insertLd = false;
                                         if(firstMatch + 4 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) insertLd = true;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 4]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD LSRB with LSRB LSRB and new operand
@@ -3171,8 +3176,8 @@ namespace Optimiser
                                         bool insertLd = false;
                                         if(firstMatch + 5 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 5]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) insertLd = true;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 5]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD LSRB LSRB with LSRB LSRB LSRB and new operand
@@ -3206,8 +3211,8 @@ namespace Optimiser
                                         bool insertLd = false;
                                         if(firstMatch + 6 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
-                                            std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 6]._opcode;
-                                            if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) insertLd = true;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 6]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                         }
 
                                         // Replace LD LSRB LSRB LSRB with LSRB LSRB LSRB LSRB and new operand
@@ -3791,7 +3796,34 @@ namespace Optimiser
                                         adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"LSL8"});
                                     }
                                     break;
-                
+
+                                    // Match LDW ABSW STW, replace all with ABSVW
+                                    case LdwAbswStw:
+                                    {
+                                        // Bail if wrong ROM version or if ABSW or STW has a label
+                                        if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                        if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                        if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                        // Bail if next instruction is a read or write
+                                        if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
+                                        {
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
+                                        }
+
+                                        // Replace LDW with ABSVW and new operand
+                                        std::string ldwOperand = Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand;
+                                        updateVasm(codeLine, firstMatch, "ABSVW", ldwOperand);
+
+                                        // Delete ABSW and STW
+                                        linesDeleted = true;
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                        itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                        adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ABSW", "STW"});
+                                    }
+                                    break;
+
                                     default: break;
                                 }
                             }
@@ -3865,8 +3897,8 @@ namespace Optimiser
                                     // Bail if next instruction is a read or write
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
-                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                     }
 
                                     // Replace DEEK with DEEKA and STW's operand
@@ -4013,8 +4045,8 @@ namespace Optimiser
                                     // Bail if next instruction is a read or write
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
-                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                     }
 
                                     // Replace LD/LDW with MOVB and new operands
@@ -4708,8 +4740,8 @@ namespace Optimiser
                                     // Bail if next instruction is a read or write
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
-                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                     }
 
                                     // Replace LDI with MOVQB and new operands
@@ -4735,8 +4767,8 @@ namespace Optimiser
                                     // Bail if next instruction is a read or write
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode;
-                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                     }
 
                                     // Replace LDI with MOVQW and new operands
@@ -5450,8 +5482,8 @@ namespace Optimiser
                                     // Bail if next instruction is a read or write
                                     if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                     }
 
                                     // Replace LD/LDW with ADDBI and new operands
@@ -5502,8 +5534,8 @@ namespace Optimiser
                                     // Bail if next instruction is a read or write
                                     if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
-                                        std::string bailOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._opcode;
-                                        if(bailOpcode.find("ST") != std::string::npos  ||  bailOpcode.find("EEK") != std::string::npos  ||  bailOpcode.find("OKE") != std::string::npos) break;
+                                            Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
+                                            if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
                                     }
 
                                     // Replace LD/LDW with SUBBI and new operands

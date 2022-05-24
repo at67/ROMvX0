@@ -54,7 +54,7 @@ inst_loop       MOVQB   giga_soundTimer, 5
                 LDWI    (_test_equ >>8) + 1
                 LDI     50
                 STW     0x32
-                CALL    INS66 ;STACK_CHK
+                CALL    INS120 ;STACK_CHK
                 BRA     inst_loop
 
 STACK_CHK       PUSH
@@ -121,12 +121,12 @@ INS10_1         LSLV    0x30
 
 INS11           LDI     0x01
                 STW     0x30
-                ADDBI   0x30, 0xFF
+                ADDBI   0x30, 0x30, 0xFF
                 RET
 
 INS12           LDWI    9
                 STW     0x30
-                SUBBI   0x30, 10
+                SUBBI   0x30, 0x30, 10
                 RET
 
 INS13           MOVB    0x30, 0x31
@@ -247,27 +247,27 @@ INS36           LDWI    0x08FF
                 RET
 
 INS37           LDI     1
-                TEQ
+                TEQ     0x30
                 RET
 
 INS38           LDI     0
-                TNE
+                TNE     0x30
                 RET
 
 INS39           LDWI    -1
-                TLT
+                TLT     0x30
                 RET
 
 INS40           LDWI    0x8000
-                TGT
+                TGT     0x30
                 RET
 
 INS41           LDWI    1
-                TLE
+                TLE     0x30
                 RET
 
 INS42           LDWI    0
-                TGE
+                TGE     0x30
                 RET
 
 INS43           LDI     1
@@ -698,4 +698,10 @@ INS119          MOVQW   0x30, 100
                 MOVQW   0x31, 55
 _breakpoint_
                 ADDVB   0x30, 0x31, 0x31
+                RET
+
+INS120          LDWI    -5700
+                STW     0x30
+_breakpoint_
+                ABSVW   0x30
                 RET

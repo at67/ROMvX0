@@ -28,8 +28,8 @@ swapWord            SWAPW   swpSrcAddr, swpDstAddr
 swapBytes           PUSH
                     
 swapB_loop          SWAPB   swpSrcAddr, swpDstAddr
-                    INCW    swpSrcAddr
-                    INCW    swpDstAddr
+                    INCWA   swpSrcAddr
+                    INCWA   swpDstAddr
                     DJNE    swapCount, swapB_loop               ; don't use DBNE
                     POP
                     RET
