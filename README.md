@@ -6,5 +6,5 @@ Gigatron TTL ROMvX0 firmware, associated tools and examples.
 'make ROMvX0.rom' : assumes you have the build toolchain already installed!
 
 
-## PRIVATE
-This is a PRIVATE REPO, please do NOT share any aspect of it, with anyone, until it is finally released!
+## TESTING
+This is a TESTING REPO, instructions, features and resources can and will change before the full release!
