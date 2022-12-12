@@ -67,19 +67,15 @@ end
 
 
 findLoader:
-    execAddr = 0
     romType = get("ROM_TYPE")
-    if romType     &&= &h20  'ROMv2
-        execAddr = &hE23E
-    elseif romType &&= &h28  'ROMv3
-        execAddr = &hB4A8
-    elseif romType &&= &h38  'ROMv4
-        execAddr = &hAD5A
-    elseif romType &>= &h40  'ROMv5 or higher
+    if romType &&= &h20 then execAddr = &hE23E      'ROMv2
+    if romType &&= &h28 then execAddr = &hB4A8      'ROMv3
+    if romType &&= &h38 then execAddr = &hAD5A      'ROMv4
+    if romType &&>= &h40 'ROMv5 or higher
         repeat
             'create name string
             execAddr = get("ROM_READ_DIR", execAddr)
-            if (execAddr)
+            if &(execAddr)
                 poke @execName$, 6
                 for j=sysArg0 &to sysArg7
                     poke @execName$ + j - (sysArg0 - 1), peek(j)
@@ -87,9 +83,9 @@ findLoader:
 
                 if execName$ = "Loader" then return
             endif
-        until execAddr &= 0
+        until execAddr &&= 0
 
-        print "Loader not found!"
+        'print "Loader not found!"
         end
     endif
 return

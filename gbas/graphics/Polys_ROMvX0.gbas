@@ -27,5 +27,5 @@ jiffies = get("JIFFIES")
 seconds = get("TIMER")
 
 set FG_COLOUR, &h3F
-print : print seconds;" ";jiffies;"/60"
+at 0, 0 : print seconds;" ";jiffies;"/60"
 end

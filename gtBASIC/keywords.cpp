@@ -34,6 +34,7 @@ namespace Keywords
 
 
     uint64_t _uniqueJumpId = 0;
+    bool _spritesSortY = false;
     bool _constDimStrArray = false;
     int _numNumericGotosGosubs = 0;
     MidiTypes _midiType = MidiNone;
@@ -50,6 +51,7 @@ namespace Keywords
 
     void reset(void)
     {
+        _spritesSortY = false;
         _midiType = MidiNone;
         _userRoutine = "";
         _gprintfs.clear();
@@ -5272,6 +5274,66 @@ RESTART_PRINT:
             return false;
         }
 
+        std::vector<std::string> tokens = Expression::tokenise(codeLine._code.substr(foundPos), ',', false);
+        if(tokens.size() != 1  &&  tokens.size() != 3)
+        {
+            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::HSCROLL() : '%s:%d' : syntax error, use 'HSCROLL <scroll -31 to 31>, <optional start>, <optional count>' : %s\n",
+                                                    codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
+            return false;
+        }
+
+        if(tokens.size() == 1)
+        {
+            // Scroll amount
+            std::string scrollOffsetToken = tokens[0];
+            Expression::Numeric scrollOffsetNumeric;
+            if(Compiler::parseExpression(codeLineIndex, scrollOffsetToken, scrollOffsetNumeric) == Expression::IsInvalid)
+            {
+                Cpu::reportError(Cpu::KwdError, stderr, "Keywords::HSCROLL() : '%s:%d' : syntax error in : '%s' : %s\n", codeLine._moduleName.c_str(), codeLineStart, scrollOffsetToken.c_str(), codeLine._text.c_str());
+                return false;
+            }
+
+            Compiler::emitVcpuAsm("%ScrollH", "", false);
+            return true;
+        }
+
+
+        int16_t scrollvalues[3] = {0, 0, 0}; 
+        std::string scrollTokens[3] = {tokens[0], tokens[1], tokens[2]};
+        for(int i=0; i<3; i++)
+        {
+            int varIndex = -1, constIndex = -1, strIndex = -1;
+            Expression::stripWhitespace(scrollTokens[i]);
+            uint32_t expressionType = Compiler::isExpression(scrollTokens[i], varIndex, constIndex, strIndex);
+
+            // Constant channel
+            if((expressionType & Expression::HasIntConsts)  &&  constIndex > -1)
+            {
+                std::string operand;
+                Expression::Numeric numeric(true); // true = allow static init
+                if(Compiler::parseStaticExpression(codeLineIndex, scrollTokens[i], operand, numeric) == Compiler::OperandInvalid)
+                {
+                    Cpu::reportError(Cpu::KwdError, stderr, "Keywords::HSCROLL() : '%s:%d' : syntax error in : '%s' : %s\n", codeLine._moduleName.c_str(), codeLineStart,
+                                                                                                                             scrollTokens[i].c_str(), codeLine._text.c_str());
+                    return false;
+                }
+                scrollvalues[i] = int16_t(std::lround(numeric._value));
+            }
+            // Literal channel
+            else
+            {
+                if(!Expression::stringToI16(scrollTokens[i], scrollvalues[i]))
+                {
+                    Cpu::reportError(Cpu::KwdError, stderr, "Keywords::HSCROLL() : '%s:%d' : channel number must be in the range, [1 to 4], found '%s' : %s\n",
+                                                            codeLine._moduleName.c_str(), codeLineStart, scrollTokens[i].c_str(), codeLine._text.c_str());
+                    return false;
+                }
+            }
+        }
+
+        // HSCRLH amount, count, start
+        Compiler::emitVcpuAsm("SCRLHR", std::to_string(scrollvalues[0]) + ", " + std::to_string(scrollvalues[2]) + ", " + std::to_string(scrollvalues[1]), false);
+
         return true;
     }
 
@@ -6123,9 +6185,10 @@ RESTART_PRINT:
         }
 
         std::vector<std::string> tokens = Expression::tokenise(codeLine._code.substr(foundPos), ',', false);
-        if(tokens.size() != 4)
+        if(tokens.size() < 4  ||  tokens.size() > 7)
         {
-            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::BLIT() : '%s:%d' : syntax error, use 'BLIT <NOFLIP/FLIPX/FLIPY/FLIPXY>, <id>, <x pos>, <y pos>' : %s\n",
+            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::BLIT() : '%s:%d' : syntax error, use 'BLIT <NOFLIP/FLIPX/FLIPY/FLIPXY>, <id>, <x pos>, <y pos>' : %s\n"
+                                                    "                                           use 'BLIT <SCROLLX/SCROLLY/SCROLLXY>,  <id>, <x pos>, <y pos>, <size>, <x/y offs>, <optional y offs>' : %s\n",
                                                     codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
             return false;
         }
@@ -6133,11 +6196,39 @@ RESTART_PRINT:
         // Flip type
         static std::map<std::string, Compiler::BlitFlipType> flipType = {{"NOFLIP", Compiler::NoFlip}, {"FLIPX", Compiler::FlipX}, {"FLIPY", Compiler::FlipY}, {"FLIPXY", Compiler::FlipXY}};
         std::string flipToken = tokens[0];
-        Expression::stripWhitespace(flipToken);
-        Expression::strToUpper(flipToken);
-        if(flipType.find(flipToken) == flipType.end())
+
+        // Scroll type
+        static std::map<std::string, Compiler::BlitScrollType> scrollType = {{"SCROLLX", Compiler::ScrollX}, {"SCROLLY", Compiler::ScrollY}, {"SCROLLXY", Compiler::ScrollXY}};
+        std::string scrollToken = tokens[0];
+
+        // Blit
+        if(tokens.size() == 4)
         {
-            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::BLIT() : '%s:%d' : syntax error, use one of the correct flip types, 'BLIT <NOFLIP/FLIPX/FLIPY/FLIPXY>, <id>, <x pos>, <y pos>' : %s\n",
+            Expression::stripWhitespace(flipToken);
+            Expression::strToUpper(flipToken);
+            if(flipType.find(flipToken) == flipType.end())
+            {
+                Cpu::reportError(Cpu::KwdError, stderr, "Keywords::BLIT() : '%s:%d' : syntax error, use one of the correct flip types, 'BLIT <NOFLIP/FLIPX/FLIPY/FLIPXY>, <id>, <x pos>, <y pos>' : %s\n",
+                                                        codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
+                return false;
+            }
+        }
+        // Scroll
+        else if(tokens.size() == 6  ||  tokens.size() == 7)
+        {
+            Expression::stripWhitespace(scrollToken);
+            Expression::strToUpper(scrollToken);
+            if(scrollType.find(scrollToken) == scrollType.end())
+            {
+                Cpu::reportError(Cpu::KwdError, stderr, "Keywords::BLIT() : '%s:%d' : syntax error, use one of the correct SCROLL types, 'BLIT <SCROLLX/SCROLLY/SCROLLXY>, <id>, <x pos>, <y pos>, <x/y offs>, <optional y offs>' : %s\n",
+                                                        codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
+                return false;
+            }
+        }
+        else
+        {
+            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::BLIT() : '%s:%d' : syntax error, use 'BLIT <NOFLIP/FLIPX/FLIPY/FLIPXY>, <id>, <x pos>, <y pos>' : %s\n"
+                                                    "                                           use 'BLIT <SCROLLX/SCROLLY/SCROLLXY>,  <id>, <x pos>, <y pos>, <size>, <x/y offs>, <optional y offs>' : %s\n",
                                                     codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
             return false;
         }
@@ -6174,12 +6265,45 @@ RESTART_PRINT:
         Compiler::emitVcpuAsm("ST", "blitXY + 1", false);
 
         // Draw blit
-        switch(flipType[flipToken])
+        if(tokens.size() == 4)
         {
-            case Compiler::NoFlip: Compiler::emitVcpuAsm("%DrawBlit",   "", false); break;
-            case Compiler::FlipX:  Compiler::emitVcpuAsm("%DrawBlitX",  "", false); break;
-            case Compiler::FlipY:  Compiler::emitVcpuAsm("%DrawBlitY",  "", false); break;
-            case Compiler::FlipXY: Compiler::emitVcpuAsm("%DrawBlitXY", "", false); break;
+            switch(flipType[flipToken])
+            {
+                case Compiler::NoFlip: Compiler::emitVcpuAsm("%DrawBlit",   "", false); break;
+                case Compiler::FlipX:  Compiler::emitVcpuAsm("%DrawBlitX",  "", false); break;
+                case Compiler::FlipY:  Compiler::emitVcpuAsm("%DrawBlitY",  "", false); break;
+                case Compiler::FlipXY: Compiler::emitVcpuAsm("%DrawBlitXY", "", false); break;
+            }
+        }
+        // Scroll blit
+        else if(tokens.size() == 6  ||  tokens.size() == 7)
+        {
+            // Scroll size
+            std::string sizeToken = tokens[4];
+            Expression::Numeric sizeParam;
+            if(Compiler::parseExpression(codeLineIndex, sizeToken, sizeParam) == Expression::IsInvalid)
+            {
+                Cpu::reportError(Cpu::KwdError, stderr, "Keywords::BLIT() : '%s:%d' : syntax error in : '%s' : %s\n", codeLine._moduleName.c_str(), codeLineStart, sizeToken.c_str(), codeLine._text.c_str());
+                return false;
+            }
+            Compiler::emitVcpuAsm("STW", "blitScrollSize", false);
+
+            // Scroll X/Y offset
+            std::string yofsToken = tokens[5];
+            Expression::Numeric yofsParam;
+            if(Compiler::parseExpression(codeLineIndex, yofsToken, yofsParam) == Expression::IsInvalid)
+            {
+                Cpu::reportError(Cpu::KwdError, stderr, "Keywords::BLIT() : '%s:%d' : syntax error in : '%s' : %s\n", codeLine._moduleName.c_str(), codeLineStart, yofsToken.c_str(), codeLine._text.c_str());
+                return false;
+            }
+            Compiler::emitVcpuAsm("STW", "blitScrollY", false);
+
+            switch(scrollType[scrollToken])
+            {
+                case Compiler::ScrollY:  Compiler::emitVcpuAsm("%ScrollBlitY",  "", false); break;
+
+                default: break;
+            }
         }
  
         return true;
@@ -6269,7 +6393,8 @@ RESTART_PRINT:
                         return false;
                     }
                     Compiler::emitVcpuAsm("STW", "spatternId", false);
-                    Compiler::emitVcpuAsm("LDI", "_SH/2", false);
+                    Compiler::emitVcpuAsm("LDARRB", "spriteId, _spritesHeightLut_", false);
+                    Compiler::emitVcpuAsm("LSRV", "giga_vAC", false);
                     Compiler::emitVcpuAsm("ST", "giga_sysArg3", false);
                     Compiler::emitVcpuAsm("%AnimateSprite", "", false);
                     return true;
@@ -6349,14 +6474,14 @@ RESTART_PRINT:
         std::vector<std::string> tokens = Expression::tokenise(codeLine._code.substr(foundPos), ',', false);
         if(tokens.size() < 1  ||  tokens.size() > 2)
         {
-            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES() : '%s:%d' : syntax error, use 'SPRITES DRAW, <optional height>' : %s\n", codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
-            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES()                           use 'SPRITES RESTORE, <optional height>'\n");
-            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES()                           use 'SPRITES ENABLE, <enable>'\n");
+            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES() : '%s:%d' : syntax error, use 'SPRITES INIT' : %s\n", codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
+            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES()                           use 'SPRITES DRAW <optional SORTY>'\n");
+            Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES()                           use 'SPRITES RESTORE <optional WAITVB>'\n");
             return false;
         }
 
         // Sprites command
-        static std::map<std::string, Compiler::SpritesCmd> spritesCmdMap = {{"INIT", Compiler::SpritesInit}, {"DRAW", Compiler::SpritesDraw}, {"RESTORE", Compiler::SpritesRestore}, {"SHOW", Compiler::SpritesShow}};
+        static std::map<std::string, Compiler::SpritesCmd> spritesCmdMap = {{"INIT", Compiler::SpritesInit}, {"DRAW", Compiler::SpritesDraw}, {"RESTORE", Compiler::SpritesRestore}};
         std::string cmdToken = tokens[0];
         Expression::stripWhitespace(cmdToken);
         Expression::strToUpper(cmdToken);
@@ -6372,71 +6497,77 @@ RESTART_PRINT:
         {
             case Compiler::SpritesInit:
             {
+                if(tokens.size() != 1)
+                {
+                    Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES() : '%s:%d' : syntax error, use 'SPRITES INIT' : %s\n", codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
+                    return false;
+                }
                 Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
-                Compiler::emitVcpuAsm("ST", "spritesCount", false);
+                Compiler::emitVcpuAsm("STW", "spritesCount", false);
                 Compiler::emitVcpuAsm("%InitSprites", "", false);
             }
             break;
 
             case Compiler::SpritesDraw:
             {
-                Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
-                Compiler::emitVcpuAsm("ST", "spritesCount", false);
-                Compiler::emitVcpuAsm("%SortSpritesLut", "", false);
-
-                if(tokens.size() == 1)
+                if(tokens.size() == 2)
                 {
-                    Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
-                    Compiler::emitVcpuAsm("ST", "spritesCount", false);
-                    Compiler::emitVcpuAsm("%DrawSprites", "", false);
+                    cmdToken = tokens[1];
+                    Expression::stripWhitespace(cmdToken);
+                    Expression::strToUpper(cmdToken);
+                    if(cmdToken != "SORTY")
+                    {
+                        Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES() : '%s:%d' : syntax error, use 'SPRITES DRAW <optional SORTY>' : %s\n", codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
+                        return false;
+                    }
+                    _spritesSortY = true;
                 }
-                // Optional constant height
+
+                // Sort sprites by Y to minimise flicker
+                Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
+                Compiler::emitVcpuAsm("STW", "spritesCount", false);
+                if(_spritesSortY)
+                {
+                    Compiler::emitVcpuAsm("%SortSpritesLut", "", false);
+                }
                 else
                 {
-                    //std::string heightToken = tokens[1];
-                    //Expression::Numeric heightParam;
-                    //if(Compiler::parseExpression(codeLineIndex, heightToken, heightParam) == Expression::IsInvalid)
-                    //{
-                    //    Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES() : '%s:%d' : syntax error in : '%s' : %s\n", codeLine._moduleName.c_str(), codeLineStart, heightToken.c_str(), codeLine._text.c_str());
-                    //    return false;
-                    //}
-                    //Compiler::emitVcpuAsm("ST", "spritesCntHt + 1", false);
-
-                    Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
-                    Compiler::emitVcpuAsm("ST", "spritesCount", false);
-                    Compiler::emitVcpuAsm("%DrawSpritesH", "", false);
+                    Compiler::emitVcpuAsm("%MergeSpritesLut", "", false);
                 }
+
+                Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
+                Compiler::emitVcpuAsm("STW", "spritesCount", false);
+                Compiler::emitVcpuAsm("%DrawSprites", "", false);
             }
             break;
 
             case Compiler::SpritesRestore:
             {
-                Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
-                Compiler::emitVcpuAsm("ST", "spritesCount", false);
-                Compiler::emitVcpuAsm("%SortSprites", "", false);
-
-                // Optional constant height
                 if(tokens.size() == 2)
                 {
-                    //std::string heightToken = tokens[1];
-                    //Expression::Numeric heightParam;
-                    //if(Compiler::parseExpression(codeLineIndex, heightToken, heightParam) == Expression::IsInvalid)
-                    //{
-                    //    Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES() : '%s:%d' : syntax error in : '%s' : %s\n", codeLine._moduleName.c_str(), codeLineStart, heightToken.c_str(), codeLine._text.c_str());
-                    //    return false;
-                    //}
-                    //Compiler::emitVcpuAsm("STW", "giga_sysArg1", false);
-
-                    Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
-                    Compiler::emitVcpuAsm("ST", "spritesCount", false);
-                    Compiler::emitVcpuAsm("LDWI", "_spritesTmpLut_ - 2 + " + std::to_string(uint8_t(Compiler::getDefDataSprites().size())*4), false);
-                    Compiler::emitVcpuAsm("%RestoreSpritesH", "", false);
+                    cmdToken = tokens[1];
+                    Expression::stripWhitespace(cmdToken);
+                    Expression::strToUpper(cmdToken);
+                    if(cmdToken != "WAITVB")
+                    {
+                        Cpu::reportError(Cpu::KwdError, stderr, "Keywords::SPRITES() : '%s:%d' : syntax error, use 'SPRITES RESTORE <optional WAITVB>' : %s\n", codeLine._moduleName.c_str(), codeLineStart, codeLine._text.c_str());
+                        return false;
+                    }
+                    Compiler::emitVcpuPreProcessingCmd("%define SPRITES_WAITVB");
                 }
-            }
-            break;
 
-            case Compiler::SpritesShow:
-            {
+                // Sort sprites by Y to minimise flicker
+                if(_spritesSortY)
+                {
+                    Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
+                    Compiler::emitVcpuAsm("STW", "spritesCount", false);
+                    Compiler::emitVcpuAsm("%SortSprites", "", false);
+                }
+
+                Compiler::emitVcpuAsm("LDI", std::to_string(uint8_t(Compiler::getDefDataSprites().size())), false);
+                Compiler::emitVcpuAsm("STW", "spritesCount", false);
+                Compiler::emitVcpuAsm("LDWI", "_spritesTmpLut_ - 2 + " + std::to_string(uint8_t(Compiler::getDefDataSprites().size())*4), false);
+                Compiler::emitVcpuAsm("%RestoreSprites", "", false);
             }
             break;
 

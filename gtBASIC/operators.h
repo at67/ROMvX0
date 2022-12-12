@@ -20,6 +20,7 @@ namespace Operators
     void createSingleOp(const std::string& opcodeStr, Expression::Numeric& numeric);
     void createSingleOp(const std::string& opcode, Expression::Numeric& numeric, const std::string& operand);
     void handleSingleOp(const std::string& opcodeStr, Expression::Numeric& numeric);
+    void handleMulDivOp(const std::string& opcode, const std::string& operand, Expression::Numeric& numeric);
     void selectSingleOp(const std::string& opcodeStr, Expression::Numeric& numeric);
 
     // Unary logic operators

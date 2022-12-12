@@ -397,14 +397,20 @@ namespace Load
         {
             uint16_t size = 0;
             uint16_t address = 0;
-            if(!Memory::getFreeChunkRAM(Memory::FitDescending, USER_CODE_START, Compiler::getRuntimeStart(), MIDI_MIN_SEGMENT_SIZE, address, uint16_t(midiSize + MIDI_CMD_JMP_SEG_SIZE), size, false))
+            if(!Memory::getFreeRAMLargest(RAM_SEGMENTS_START, Compiler::getRuntimeStart(), address, size)  ||  size < MIDI_MIN_SEGMENT_SIZE)
+            //if(!Memory::getFreeChunkRAM(Memory::FitDescending, USER_CODE_START, Compiler::getRuntimeStart(), MIDI_MIN_SEGMENT_SIZE, address, uint16_t(midiSize + MIDI_CMD_JMP_SEG_SIZE), size, false))
             {
-                loadUsage(LoadMidi, codeLine, codeLineStart);
                 Cpu::reportError(Cpu::KwdError, stderr, "Keywords::loadMidi() : '%s:%d' : getting MIDI memory for segment %d failed : %s\n", codeLine._moduleName.c_str(), codeLineStart,
-                                                                                                                                                segmentCount, codeLine._text.c_str());
+                                                                                                                                             segmentCount, codeLine._text.c_str());
                 return false;
             }
-
+            size = std::min(size, uint16_t(midiSize + MIDI_CMD_JMP_SEG_SIZE));
+            if(!Memory::takeFreeRAM(address, size))
+            {
+                Cpu::reportError(Cpu::KwdError, stderr, "Keywords::loadMidi() : '%s:%d' : getting MIDI memory for segment %d failed : %s\n", codeLine._moduleName.c_str(), codeLineStart,
+                                                                                                                                             segmentCount, codeLine._text.c_str());
+                return false;
+            }
             byteIndex += size;
 
             // Pad for jump segment command and adjust for start notes, start note can be either 3 bytes, (0x90, nn, vv) or 2 bytes, (0x90, nn), depending on hasVolume
@@ -854,7 +860,7 @@ namespace Load
             }
         }
 
-        Compiler::getDefDataBlits()[blitId] = {blitId, filename, tgaFile._header._width, tgaFile._header._height, numColumns, numStripesPerCol, numStripeChunks, remStripeChunks, stripeAddrs, blitData, flipType, isInstanced};
+        Compiler::getDefDataBlits()[blitId] = {blitId, filename, tgaFile._header._width, tgaFile._header._height, numColumns, numStripesPerCol, numStripeChunks, remStripeChunks, stripeAddrs, blitData, flipType, isInstanced, overlap};
 
         return true;
     }
@@ -976,7 +982,7 @@ SPRITE_ALLOC_RESTART:;
         // Alloc sprite memory
         for(int i=0; i<height; i++)
         {
-            if(!Memory::takeFreeRAM(address + uint16_t(i)*0x0100, SPRITE_WIDTH*2 + 2), false)
+            if(!Memory::takeFreeRAM(address + uint16_t(i)*0x0100, SPRITE_WIDTH*2 + 2, false))
             {
                 loadUsage(LoadSprite, codeLine, codeLineStart);
                 Cpu::reportError(Cpu::KwdError, stderr, "Keywords::loadSprite() : '%s:%d' : couldn't allocate memory for sprite %d : %s\n", codeLine._moduleName.c_str(), codeLineStart, spriteId, codeLine._text.c_str());
@@ -1054,52 +1060,77 @@ SPRITE_ALLOC_RESTART:;
             return false;
         }
 
-        // Build pattern data from image data
+        // Search pattern image for instancing
+        int parentInstance = 0;
+        bool isInstanced = false;
         std::vector<uint8_t> patternData;
-        for(int i=0; i<int(gtRgbFile._data.size()); i++)
+        for(auto it=Compiler::getDefDataPatterns().begin(); it!=Compiler::getDefDataPatterns().end(); ++it)
         {
-            uint8_t pixel;
-
-            switch(tgaFile._header._bitsPerPixel)
+            if(it->second._filename == filename)
             {
-                case 24:
-                {
-                    pixel = gtRgbFile._data[i] & 0x3F;
-                }
+                isInstanced = true;
+                parentInstance = it->first;
+                patternData = it->second._data;
                 break;
-
-                case 32:
-                {
-                    pixel = gtRgbFile._data[i];
-                    pixel = ((pixel & 0x80)  &&  (pixel & 0x3F) == 0x00) ? 0x90 : pixel;        // black to darkest blue
-                    pixel = ((pixel & 0x80) == 0x00)                     ? 0x00 : pixel & 0x3F; // alpha < 0.5 = black
-                }
-                break;
-
-                default: break;
             }
-
-            patternData.push_back(pixel);
         }
 
-        // Alloc pattern memory
-        uint16_t address = 0x0000;
+        // Build pattern data from image data if not instanced
+        if(!isInstanced)
+        {
+            for(int i=0; i<int(gtRgbFile._data.size()); i++)
+            {
+                uint8_t pixel;
+
+                switch(tgaFile._header._bitsPerPixel)
+                {
+                    case 24:
+                    {
+                        pixel = gtRgbFile._data[i] & 0x3F;
+                    }
+                    break;
+
+                    case 32:
+                    {
+                        pixel = gtRgbFile._data[i];
+                        pixel = ((pixel & 0x80)  &&  (pixel & 0x3F) == 0x00) ? 0x90 : pixel;        // black to darkest blue
+                        pixel = ((pixel & 0x80) == 0x00)                     ? 0x00 : pixel & 0x3F; // alpha < 0.5 = black
+                    }
+                    break;
+
+                    default: break;
+                }
+
+                patternData.push_back(pixel);
+            }
+        }
+
+        // Alloc pattern memory if not instanced
         std::vector<uint16_t> patternAddrs;
         uint16_t width = gtRgbFile._header._width;
         uint16_t height = gtRgbFile._header._height;
-        for(int i=0; i<height/2; i++)
+        if(!isInstanced)
         {
-            if(!Memory::getFreePageRAM(Memory::FitDescending, SPRITE_WIDTH*2, USER_CODE_START, Compiler::getRuntimeStart(), address, true))
+            uint16_t address = 0x0000;
+            for(int i=0; i<height/2; i++)
             {
-                loadUsage(LoadPattern, codeLine, codeLineStart);
-                Cpu::reportError(Cpu::KwdError, stderr, "Keywords::loadPattern() : '%s:%d' : couldn't allocate memory for pattern %d : %s\n", codeLine._moduleName.c_str(), codeLineStart, patternId, codeLine._text.c_str());
-                return false;
-            }
+                if(!Memory::getFreePageRAM(Memory::FitDescending, SPRITE_WIDTH*2, USER_CODE_START, Compiler::getRuntimeStart(), address, true))
+                {
+                    loadUsage(LoadPattern, codeLine, codeLineStart);
+                    Cpu::reportError(Cpu::KwdError, stderr, "Keywords::loadPattern() : '%s:%d' : couldn't allocate memory for pattern %d : %s\n", codeLine._moduleName.c_str(), codeLineStart, patternId, codeLine._text.c_str());
+                    return false;
+                }
 
-            patternAddrs.push_back(address);
+                patternAddrs.push_back(address);
+            }
+        }
+        // Instanced
+        else
+        {
+            patternAddrs = Compiler::getDefDataPatterns()[parentInstance]._addrs;
         }
 
-        Compiler::getDefDataPatterns()[patternId] = {patternId, filename, width, height, patternAddrs, patternData};
+        Compiler::getDefDataPatterns()[patternId] = {patternId, filename, width, height, patternAddrs, patternData, isInstanced};
 
         return true;
     }

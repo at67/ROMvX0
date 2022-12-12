@@ -49,7 +49,19 @@ setMidiStream       ARRVW   midiId, _midisLut_
 %ENDS
 
 %SUB                playMidi
-playMidi            LDW     midiStream
+playMidi            IMIDI   midiStream, midiDelay
+                    PMIDI   midiStream, midiDelay
+                    RET
+%ENDS
+
+%SUB                playMidiVol
+playMidiVol         IMIDI   midiStream, midiDelay
+                    PMIDIV  midiStream, midiDelay
+                    RET
+%ENDS
+
+%SUB                playMidiOld
+playMidiOld         LDW     midiStream
                     BEQ     playM_exit0                         ; 0x0000 = stop
                     MOVQB   giga_soundTimer, 5                  ; keep pumping soundTimer
                     DECWA   midiDelay
@@ -88,8 +100,8 @@ playM_exit1         POP
                     RET
 %ENDS
 
-%SUB                playMidiVol
-playMidiVol         LDW     midiStream
+%SUB                playMidiVolOld
+playMidiVolOld      LDW     midiStream
                     BEQ     playMV_exit0                        ; 0x0000 = stop
                     MOVQB   giga_soundTimer, 5                  ; keep pumping soundTimer
                     DECWA   midiDelay

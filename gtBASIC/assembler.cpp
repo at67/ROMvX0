@@ -173,7 +173,7 @@ namespace Assembler
         _asmOpcodes["LSRB"  ] = {0x18, 0x00, TwoBytes,   vCpu, NoVAC   };
         _asmOpcodes["LD"    ] = {0x1A, 0x00, TwoBytes,   vCpu, OutVAC  };
         _asmOpcodes["ADDBI" ] = {0x1C, 0x00, FourBytes,  vCpu, NoVAC   };
-        _asmOpcodes["CMPHS" ] = {0x1F, 0x00, TwoBytes,   vCpu, InOutVAC};
+        _asmOpcodes["SPARE0"] = {0x1F, 0x00, TwoBytes,   vCpu, InOutVAC};
         _asmOpcodes["LDW"   ] = {0x21, 0x00, TwoBytes,   vCpu, OutVAC  };
         _asmOpcodes["PEEKV+"] = {0x23, 0x00, TwoBytes,   vCpu, OutVAC  };
         _asmOpcodes["POKEI" ] = {0x25, 0x00, TwoBytes,   vCpu, InVAC   };
@@ -212,7 +212,7 @@ namespace Assembler
         _asmOpcodes["PUSH"  ] = {0x75, 0x00, OneByte,    vCpu, NoVAC   };
         _asmOpcodes["DOKEI" ] = {0x77, 0x00, ThreeBytes, vCpu, InVAC   };
         _asmOpcodes["ARRW"  ] = {0x79, 0x00, ThreeBytes, vCpu, InOutVAC};
-        _asmOpcodes["POKEA+"] = {0x7B, 0x00, TwoBytes,   vCpu, InOutVAC};
+        _asmOpcodes["SCRLHR"] = {0x7B, 0x00, FourBytes,  vCpu, NoVAC   };
         _asmOpcodes["DOKEA" ] = {0x7D, 0x00, TwoBytes,   vCpu, InVAC   };
         _asmOpcodes["LUP"   ] = {0x7F, 0x00, TwoBytes,   vCpu, InOutVAC};
         _asmOpcodes["ANDI"  ] = {0x82, 0x00, TwoBytes,   vCpu, InOutVAC};
@@ -224,7 +224,7 @@ namespace Assembler
         _asmOpcodes["BRA"   ] = {0x90, 0x00, TwoBytes,   vCpu, NoVAC   };
         _asmOpcodes["INC"   ] = {0x93, 0x00, TwoBytes,   vCpu, NoVAC   };
         _asmOpcodes["INCWA" ] = {0x95, 0x00, TwoBytes,   vCpu, OutVAC  };
-        _asmOpcodes["CMPHU" ] = {0x97, 0x00, TwoBytes,   vCpu, InOutVAC};
+        _asmOpcodes["SPARE1"] = {0x97, 0x00, TwoBytes,   vCpu, InOutVAC};
         _asmOpcodes["ADDW"  ] = {0x99, 0x00, TwoBytes,   vCpu, InOutVAC};
         _asmOpcodes["LDNI"  ] = {0x9C, 0x00, TwoBytes,   vCpu, OutVAC  };
         _asmOpcodes["DBNE"  ] = {0x9E, 0x00, ThreeBytes, vCpu, NoVAC   };
@@ -246,7 +246,7 @@ namespace Assembler
         _asmOpcodes["DEF"   ] = {0xCD, 0x00, TwoBytes,   vCpu, OutVAC  };
         _asmOpcodes["CALL"  ] = {0xCF, 0x00, TwoBytes,   vCpu, NoVAC   };
         _asmOpcodes["POKEV+"] = {0xD1, 0x00, TwoBytes,   vCpu, InVAC   };
-        _asmOpcodes["LSRV"  ] = {0xD3, 0x00, TwoBytes,   vCpu, NoVAC   };
+        _asmOpcodes["DOKEI+"] = {0xD3, 0x00, ThreeBytes, vCpu, InOutVAC};
         _asmOpcodes["TGE"   ] = {0xD5, 0x00, TwoBytes,   vCpu, InVAC   };
         _asmOpcodes["TLT"   ] = {0xD7, 0x00, TwoBytes,   vCpu, InVAC   };
         _asmOpcodes["TGT"   ] = {0xD9, 0x00, TwoBytes,   vCpu, InVAC   };
@@ -286,6 +286,13 @@ namespace Assembler
         _asmOpcodes["MULB9" ] = {0xB1, 0x43, TwoBytes, vCpu, InOutVAC};
         _asmOpcodes["MULB10"] = {0xB1, 0x45, TwoBytes, vCpu, InOutVAC};
         _asmOpcodes["WAITVB"] = {0xB1, 0x47, TwoBytes, vCpu, NoVAC   };
+        _asmOpcodes["MULW3" ] = {0xB1, 0x49, TwoBytes, vCpu, InOutVAC};
+        _asmOpcodes["MULW5" ] = {0xB1, 0x4B, TwoBytes, vCpu, InOutVAC};
+        _asmOpcodes["MULW6" ] = {0xB1, 0x4D, TwoBytes, vCpu, InOutVAC};
+        _asmOpcodes["MULW7" ] = {0xB1, 0x4F, TwoBytes, vCpu, InOutVAC};
+        _asmOpcodes["MULW8" ] = {0xB1, 0x51, TwoBytes, vCpu, InOutVAC};
+        _asmOpcodes["MULW9" ] = {0xB1, 0x53, TwoBytes, vCpu, InOutVAC};
+        _asmOpcodes["MULW10"] = {0xB1, 0x55, TwoBytes, vCpu, InOutVAC};
 
         // PREFX2 vCPU instructions
         _asmOpcodes["LSLN"  ] = {0x2F, 0x11, ThreeBytes, vCpu, InOutVAC};
@@ -303,6 +310,8 @@ namespace Assembler
         _asmOpcodes["MODA"  ] = {0x2F, 0x2F, ThreeBytes, vCpu, InVAC   };
         _asmOpcodes["MODI"  ] = {0x2F, 0x32, ThreeBytes, vCpu, InVAC   };
         _asmOpcodes["SMPCPY"] = {0x2F, 0x34, ThreeBytes, vCpu, InOutVAC};
+        _asmOpcodes["CMPHS" ] = {0x2F, 0x37, ThreeBytes, vCpu, InOutVAC};
+        _asmOpcodes["CMPHU" ] = {0x2F, 0x3A, ThreeBytes, vCpu, InOutVAC};
         _asmOpcodes["LEEKA" ] = {0x2F, 0x3D, ThreeBytes, vCpu, InVAC   };
         _asmOpcodes["LOKEA" ] = {0x2F, 0x3F, ThreeBytes, vCpu, InVAC   };
         _asmOpcodes["FEEKA" ] = {0x2F, 0x41, ThreeBytes, vCpu, InVAC   };
@@ -324,6 +333,11 @@ namespace Assembler
         _asmOpcodes["ABSVW" ] = {0x2F, 0x67, ThreeBytes, vCpu, NoVAC   };
         _asmOpcodes["INCW"  ] = {0x2F, 0x6a, ThreeBytes, vCpu, NoVAC   };
         _asmOpcodes["DECW"  ] = {0x2F, 0x6c, ThreeBytes, vCpu, NoVAC   };
+        _asmOpcodes["WAITVV"] = {0x2F, 0x6e, ThreeBytes, vCpu, NoVAC   };
+        _asmOpcodes["POKEA+"] = {0x2F, 0x71, ThreeBytes, vCpu, InOutVAC};
+        _asmOpcodes["LSRV"  ] = {0x2F, 0x73, ThreeBytes, vCpu, NoVAC   };
+        _asmOpcodes["DEEKRI"] = {0x2F, 0x75, ThreeBytes, vCpu, InOutVAC};
+        _asmOpcodes["SCRLH" ] = {0x2F, 0x77, ThreeBytes, vCpu, NoVAC   };
 
         // PREFX3 vCPU instructions
         _asmOpcodes["STB2"  ] = {0xC7, 0x11, FourBytes, vCpu, InVAC   };
@@ -371,6 +385,10 @@ namespace Assembler
         _asmOpcodes["VADDBL"] = {0xC7, 0x83, FourBytes, vCpu, NoVAC   };
         _asmOpcodes["VSUBBL"] = {0xC7, 0x86, FourBytes, vCpu, NoVAC   };
         _asmOpcodes["CMPII" ] = {0xC7, 0x89, FourBytes, vCpu, InOutVAC};
+        _asmOpcodes["IMIDI" ] = {0xC7, 0x8B, FourBytes, vCpu, OutVAC  };
+        _asmOpcodes["PMIDI" ] = {0xC7, 0x8E, FourBytes, vCpu, OutVAC  };
+        _asmOpcodes["PMIDIV"] = {0xC7, 0x91, FourBytes, vCpu, OutVAC  };
+        _asmOpcodes["MERGE4"] = {0xC7, 0x94, FourBytes, vCpu, OutVAC  };
 
         // Gigatron vCPU branch instructions
         _asmOpcodes["BEQ"] = {0x35, 0x3F, ThreeBytes, vCpu, InVAC};
@@ -411,7 +429,7 @@ namespace Assembler
         _vcpuOpcodes[0x18] = {0x18, 0x00, TwoBytes,   vCpu, "LSRB"  , NoVAC   };
         _vcpuOpcodes[0x1A] = {0x1A, 0x00, TwoBytes,   vCpu, "LD"    , OutVAC  };
         _vcpuOpcodes[0x1C] = {0x1C, 0x00, FourBytes,  vCpu, "ADDBI" , NoVAC   };
-        _vcpuOpcodes[0x1F] = {0x1F, 0x00, TwoBytes,   vCpu, "CMPHS" , InOutVAC};
+        _vcpuOpcodes[0x1F] = {0x1F, 0x00, TwoBytes,   vCpu, "SPARE0", InOutVAC};
         _vcpuOpcodes[0x21] = {0x21, 0x00, TwoBytes,   vCpu, "LDW"   , OutVAC  };
         _vcpuOpcodes[0x23] = {0x23, 0x00, TwoBytes,   vCpu, "PEEKV+", OutVAC  };
         _vcpuOpcodes[0x25] = {0x25, 0x00, TwoBytes,   vCpu, "POKEI" , InVAC   };
@@ -450,7 +468,7 @@ namespace Assembler
         _vcpuOpcodes[0x75] = {0x75, 0x00, OneByte,    vCpu, "PUSH"  , NoVAC   };
         _vcpuOpcodes[0x77] = {0x77, 0x00, ThreeBytes, vCpu, "DOKEI" , InVAC   };
         _vcpuOpcodes[0x79] = {0x79, 0x00, ThreeBytes, vCpu, "ARRW"  , InOutVAC};
-        _vcpuOpcodes[0x7B] = {0x7B, 0x00, TwoBytes,   vCpu, "POKEA+", InOutVAC};
+        _vcpuOpcodes[0x7B] = {0x7B, 0x00, FourBytes,  vCpu, "SCRLHR", NoVAC   };
         _vcpuOpcodes[0x7D] = {0x7D, 0x00, TwoBytes,   vCpu, "DOKEA" , InVAC   };
         _vcpuOpcodes[0x7F] = {0x7F, 0x00, TwoBytes,   vCpu, "LUP"   , InOutVAC};
         _vcpuOpcodes[0x82] = {0x82, 0x00, TwoBytes,   vCpu, "ANDI"  , InOutVAC};
@@ -462,7 +480,7 @@ namespace Assembler
         _vcpuOpcodes[0x90] = {0x90, 0x00, TwoBytes,   vCpu, "BRA"   , NoVAC   };
         _vcpuOpcodes[0x93] = {0x93, 0x00, TwoBytes,   vCpu, "INC"   , NoVAC   };
         _vcpuOpcodes[0x95] = {0x95, 0x00, TwoBytes,   vCpu, "INCWA" , OutVAC  };
-        _vcpuOpcodes[0x97] = {0x97, 0x00, TwoBytes,   vCpu, "CMPHU" , InOutVAC};
+        _vcpuOpcodes[0x97] = {0x97, 0x00, TwoBytes,   vCpu, "SPARE1", InOutVAC};
         _vcpuOpcodes[0x99] = {0x99, 0x00, TwoBytes,   vCpu, "ADDW"  , InOutVAC};
         _vcpuOpcodes[0x9C] = {0x9C, 0x00, TwoBytes,   vCpu, "LDNI"  , OutVAC  };
         _vcpuOpcodes[0x9E] = {0x9E, 0x00, ThreeBytes, vCpu, "DBNE"  , NoVAC   };
@@ -484,7 +502,7 @@ namespace Assembler
         _vcpuOpcodes[0xCD] = {0xCD, 0x00, TwoBytes,   vCpu, "DEF"   , OutVAC  };
         _vcpuOpcodes[0xCF] = {0xCF, 0x00, TwoBytes,   vCpu, "CALL"  , NoVAC   };
         _vcpuOpcodes[0xD1] = {0xD1, 0x00, TwoBytes,   vCpu, "POKEV+", InVAC   };
-        _vcpuOpcodes[0xD3] = {0xD3, 0x00, TwoBytes,   vCpu, "LSRV"  , NoVAC   };
+        _vcpuOpcodes[0xD3] = {0xD3, 0x00, ThreeBytes, vCpu, "DOKEI+", InOutVAC};
         _vcpuOpcodes[0xD5] = {0xD5, 0x00, TwoBytes,   vCpu, "TGE"   , InVAC   };
         _vcpuOpcodes[0xD7] = {0xD7, 0x00, TwoBytes,   vCpu, "TLT"   , InVAC   };
         _vcpuOpcodes[0xD9] = {0xD9, 0x00, TwoBytes,   vCpu, "TGT"   , InVAC   };
@@ -529,6 +547,13 @@ namespace Assembler
         _vcpuOpcodes[0xB143] = {0xB1, 0x43, TwoBytes, vCpu, "MULB9" , InOutVAC};
         _vcpuOpcodes[0xB145] = {0xB1, 0x45, TwoBytes, vCpu, "MULB10", InOutVAC};
         _vcpuOpcodes[0xB147] = {0xB1, 0x47, TwoBytes, vCpu, "WAITVB", NoVAC   };
+        _vcpuOpcodes[0xB149] = {0xB1, 0x49, TwoBytes, vCpu, "MULW3",  InOutVAC};
+        _vcpuOpcodes[0xB14B] = {0xB1, 0x4B, TwoBytes, vCpu, "MULW5",  InOutVAC};
+        _vcpuOpcodes[0xB14D] = {0xB1, 0x4D, TwoBytes, vCpu, "MULW6",  InOutVAC};
+        _vcpuOpcodes[0xB14F] = {0xB1, 0x4F, TwoBytes, vCpu, "MULW7",  InOutVAC};
+        _vcpuOpcodes[0xB151] = {0xB1, 0x51, TwoBytes, vCpu, "MULW8",  InOutVAC};
+        _vcpuOpcodes[0xB153] = {0xB1, 0x53, TwoBytes, vCpu, "MULW9",  InOutVAC};
+        _vcpuOpcodes[0xB155] = {0xB1, 0x55, TwoBytes, vCpu, "MULW10", InOutVAC};
 
         // vCPU PREFX2 instructions
         _vcpuOpcodes[0x2F11] = {0x2F, 0x11, ThreeBytes, vCpu, "LSLN"  , InOutVAC};
@@ -546,6 +571,8 @@ namespace Assembler
         _vcpuOpcodes[0x2F2F] = {0x2F, 0x2F, ThreeBytes, vCpu, "MODA"  , InVAC   };
         _vcpuOpcodes[0x2F32] = {0x2F, 0x32, ThreeBytes, vCpu, "MODI"  , InVAC   };
         _vcpuOpcodes[0x2F34] = {0x2F, 0x34, ThreeBytes, vCpu, "SMPCPY", InOutVAC};
+        _vcpuOpcodes[0x2F37] = {0x2F, 0x37, ThreeBytes, vCpu, "CMPHS" , InOutVAC};
+        _vcpuOpcodes[0x2F3A] = {0x2F, 0x3A, ThreeBytes, vCpu, "CMPHU" , InOutVAC};
         _vcpuOpcodes[0x2F3D] = {0x2F, 0x3D, ThreeBytes, vCpu, "LEEKA" , InVAC   };
         _vcpuOpcodes[0x2F3F] = {0x2F, 0x3F, ThreeBytes, vCpu, "LOKEA" , InVAC   };
         _vcpuOpcodes[0x2F41] = {0x2F, 0x41, ThreeBytes, vCpu, "FEEKA" , InVAC   };
@@ -567,6 +594,11 @@ namespace Assembler
         _vcpuOpcodes[0x2F67] = {0x2F, 0x67, ThreeBytes, vCpu, "ABSVW" , NoVAC   };
         _vcpuOpcodes[0x2F6a] = {0x2F, 0x6a, ThreeBytes, vCpu, "INCW"  , NoVAC   };
         _vcpuOpcodes[0x2F6c] = {0x2F, 0x6c, ThreeBytes, vCpu, "DECW"  , NoVAC   };
+        _vcpuOpcodes[0x2F6e] = {0x2F, 0x6e, ThreeBytes, vCpu, "WAITVV", NoVAC   };
+        _vcpuOpcodes[0x2F71] = {0x2F, 0x71, ThreeBytes, vCpu, "POKEA+", InOutVAC};
+        _vcpuOpcodes[0x2F73] = {0x2F, 0x73, ThreeBytes, vCpu, "LSRV"  , NoVAC   };
+        _vcpuOpcodes[0x2F75] = {0x2F, 0x75, ThreeBytes, vCpu, "DEEKRI", InOutVAC};
+        _vcpuOpcodes[0x2F77] = {0x2F, 0x77, ThreeBytes, vCpu, "SCRLH" , NoVAC   };
 
         // vCPU PREFX3 instructions
         _vcpuOpcodes[0xC711] = {0xC7, 0x11, FourBytes, vCpu, "STB2"  , InVAC   };
@@ -614,6 +646,10 @@ namespace Assembler
         _vcpuOpcodes[0xC783] = {0xC7, 0x83, FourBytes, vCpu, "VADDBL", NoVAC   };
         _vcpuOpcodes[0xC786] = {0xC7, 0x86, FourBytes, vCpu, "VSUBBL", NoVAC   };
         _vcpuOpcodes[0xC789] = {0xC7, 0x89, FourBytes, vCpu, "CMPII" , InOutVAC};
+        _vcpuOpcodes[0xC78B] = {0xC7, 0x8B, FourBytes, vCpu, "IMIDI" , OutVAC  };
+        _vcpuOpcodes[0xC78E] = {0xC7, 0x8E, FourBytes, vCpu, "PMIDI" , OutVAC  };
+        _vcpuOpcodes[0xC791] = {0xC7, 0x91, FourBytes, vCpu, "PMIDIV", OutVAC  };
+        _vcpuOpcodes[0xC794] = {0xC7, 0x94, FourBytes, vCpu, "MERGE4", OutVAC  };
 
         // Native instructions
         _nativeOpcodes[0x00] = {0x00, 0x00, TwoBytes, Native, "LD"  };
@@ -865,7 +901,8 @@ namespace Assembler
                                                  operand0 == OPCODE_V_NOKEA   ||  operand0 == OPCODE_V_ADDVL   ||  operand0 == OPCODE_V_SUBVL   ||  operand0 == OPCODE_V_ANDVL   ||
                                                  operand0 == OPCODE_V_ORVL    ||  operand0 == OPCODE_V_XORVL   ||  operand0 == OPCODE_V_ANDBI   ||  operand0 == OPCODE_V_ORBI    ||
                                                  operand0 == OPCODE_V_XORBI   ||  operand0 == OPCODE_V_ANDBK   ||  operand0 == OPCODE_V_ORBK    ||  operand0 == OPCODE_V_XORBK   ||
-                                                 operand0 == OPCODE_V_VADDBW  ||  operand0 == OPCODE_V_VSUBBW  ||  operand0 == OPCODE_V_VADDBL  ||  operand0 == OPCODE_V_VSUBBL))
+                                                 operand0 == OPCODE_V_VADDBW  ||  operand0 == OPCODE_V_VSUBBW  ||  operand0 == OPCODE_V_VADDBL  ||  operand0 == OPCODE_V_VSUBBL  ||
+                                                 operand0 == OPCODE_V_IMIDI   ||  operand0 == OPCODE_V_PMIDI   ||  operand0 == OPCODE_V_PMIDIV))
             {
                 sprintf(mnemonic, "%04x %-6s $%02x %02x", address, _vcpuOpcodes[opc]._mnemonic.c_str(), operand1, operand2);
             }
@@ -943,8 +980,8 @@ namespace Assembler
         {
             sprintf(mnemonic, "%04x %-6s $%02x $%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand1, uint8_t(operand0 + BRANCH_ADJUSTMENT));
         }
-        // DOKEI ARRW opcodes
-        else if(opcode == OPCODE_V_DOKEI  ||  opcode == OPCODE_V_ARRW)
+        // DOKEI DOKEI+ ARRW opcodes
+        else if(opcode == OPCODE_V_DOKEI  ||  opcode == OPCODE_V_DOKEIp  ||  opcode == OPCODE_V_ARRW)
         {
             sprintf(mnemonic, "%04x %-6s $%02x%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand0, operand1);
         }
@@ -965,7 +1002,7 @@ namespace Assembler
             sprintf(mnemonic, "%04x %-6s $%02x $%02x $%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand2, operand1, operand0);
         }
         // ADDBI
-        else if(opcode == OPCODE_V_ADDBI)
+        else if(opcode == OPCODE_V_ADDBI  ||  opcode == OPCODE_V_SCRLHR)
         {
             sprintf(mnemonic, "%04x %-6s $%02x $%02x $%02x", address, _vcpuOpcodes[opcode]._mnemonic.c_str(), operand0, operand1, operand2);
         }
@@ -4052,8 +4089,8 @@ namespace Assembler
                                     instruction._operand0 = uint8_t(LO_BYTE(operand));
                                     instruction._operand1 = uint8_t(HI_BYTE(operand));
 
-                                    // DOKEI has it's operands swapped
-                                    if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_DOKEI)
+                                    // DOKEI and DOKEI+ have their operands swapped
+                                    if(opcodeType == vCpu  &&  (opcode0 == OPCODE_V_DOKEI  ||  opcode0 == OPCODE_V_DOKEIp))
                                     {
                                         std::swap(instruction._operand0, instruction._operand1);
                                     }
@@ -5032,6 +5069,138 @@ namespace Assembler
                                         if(!operandValid)
                                         {
                                             Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'VSUBBL' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
+                                            return false;
+                                        }
+                                    }
+
+                                    // PREFIX ARG1 OPCODE ARG0
+                                    instruction._operand0 = equates[1];
+                                    instruction._operand1 = opcode1;
+                                    instruction._operand2 = equates[0];
+                                    _instructions.push_back(instruction);
+                                    if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
+                                }
+                                // Special case IMIDI as it has multiple parseable tokens
+                                else if(opcode1 == OPCODE_V_IMIDI)
+                                {
+                                    if(tokens.size() < 3)
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'IMIDI <midiStream var>, <midiDelay var>' expects 2 parameters '%s'\n", filename.c_str(), _lineNumber+1,
+                                                                                                                                                                                           tokens[tokenIndex].c_str());
+                                        return false;
+                                    }
+
+                                    uint8_t equates[2] = {0x00};
+                                    for(int i=0; i<2; i++)
+                                    {
+                                        int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
+                                        if(tokIdx >= int(tokens.size()))
+                                        {
+                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'IMIDI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
+                                            return false;
+                                        }
+
+                                        // Search equates
+                                        if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
+                                        {
+                                            equates[i] = uint8_t(equate._operand);
+                                        }
+                                        // Can be a literal byte
+                                        else
+                                        {
+                                            operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
+                                        }
+                                        if(!operandValid)
+                                        {
+                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'IMIDI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
+                                            return false;
+                                        }
+                                    }
+
+                                    // PREFIX ARG1 OPCODE ARG0
+                                    instruction._operand0 = equates[1];
+                                    instruction._operand1 = opcode1;
+                                    instruction._operand2 = equates[0];
+                                    _instructions.push_back(instruction);
+                                    if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
+                                }
+                                // Special case PMIDI as it has multiple parseable tokens
+                                else if(opcode1 == OPCODE_V_PMIDI)
+                                {
+                                    if(tokens.size() < 3)
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'PMIDI <midiStream var>, <midiDelay var>' expects 2 parameters '%s'\n", filename.c_str(), _lineNumber+1,
+                                                                                                                                                                                           tokens[tokenIndex].c_str());
+                                        return false;
+                                    }
+
+                                    uint8_t equates[2] = {0x00};
+                                    for(int i=0; i<2; i++)
+                                    {
+                                        int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
+                                        if(tokIdx >= int(tokens.size()))
+                                        {
+                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'PMIDI' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
+                                            return false;
+                                        }
+
+                                        // Search equates
+                                        if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
+                                        {
+                                            equates[i] = uint8_t(equate._operand);
+                                        }
+                                        // Can be a literal byte
+                                        else
+                                        {
+                                            operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
+                                        }
+                                        if(!operandValid)
+                                        {
+                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'PMIDI' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
+                                            return false;
+                                        }
+                                    }
+
+                                    // PREFIX ARG1 OPCODE ARG0
+                                    instruction._operand0 = equates[1];
+                                    instruction._operand1 = opcode1;
+                                    instruction._operand2 = equates[0];
+                                    _instructions.push_back(instruction);
+                                    if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
+                                }
+                                // Special case PMIDIV as it has multiple parseable tokens
+                                else if(opcode1 == OPCODE_V_PMIDIV)
+                                {
+                                    if(tokens.size() < 3)
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'PMIDIV <midiStream var>, <midiDelay var>' expects 2 parameters '%s'\n", filename.c_str(), _lineNumber+1,
+                                                                                                                                                                                            tokens[tokenIndex].c_str());
+                                        return false;
+                                    }
+
+                                    uint8_t equates[2] = {0x00};
+                                    for(int i=0; i<2; i++)
+                                    {
+                                        int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
+                                        if(tokIdx >= int(tokens.size()))
+                                        {
+                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'PMIDIV' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
+                                            return false;
+                                        }
+
+                                        // Search equates
+                                        if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
+                                        {
+                                            equates[i] = uint8_t(equate._operand);
+                                        }
+                                        // Can be a literal byte
+                                        else
+                                        {
+                                            operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
+                                        }
+                                        if(!operandValid)
+                                        {
+                                            Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'PMIDIV' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
                                             return false;
                                         }
                                     }
@@ -6220,6 +6389,51 @@ namespace Assembler
                                 instruction._operand0 = equates[2]; // native code expects the operands swapped for CNVXY
                                 instruction._operand1 = equates[1];
                                 instruction._operand2 = equates[0];
+                                _instructions.push_back(instruction);
+                                if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
+                            }
+                            // Special case SCRLHR as it has multiple parseable tokens
+                            else if(opcodeType == vCpu  &&  opcode0 == OPCODE_V_SCRLHR)
+                            {
+                                if(tokens.size() < 4)
+                                {
+                                    Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SCRLHR <amount imm>, <start imm>, <count imm>' expects 4 parameters '%s'\n", filename.c_str(), _lineNumber+1,
+                                                                                                                                                                                             tokens[tokenIndex].c_str());
+                                    return false;
+                                }
+
+                                Equate equate;
+                                uint8_t equates[3] = {0x00};
+                                int commaTokenIndex = -1;
+                                for(int i=0; i<3; i++)
+                                {
+                                    int tokIdx = (commaTokenIndex >= 0) ? commaTokenIndex + 1 : tokenIndex + i;
+                                    if(tokIdx >= int(tokens.size()))
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SCRLHR' syntax error in '%s'\n", filename.c_str(), _lineNumber+1, lineToken._text.c_str());
+                                        return false;
+                                    }
+
+                                    // Search equates
+                                    if((operandValid = evaluateEquateOperand(tokens, tokIdx, equate, commaTokenIndex, compoundInstruction)) == true)
+                                    {
+                                        equates[i] = uint8_t(equate._operand);
+                                    }
+                                    // Can be a literal byte
+                                    else
+                                    {
+                                        operandValid = Expression::stringToU8(tokens[tokIdx], equates[i]);
+                                    }
+                                    if(!operandValid)
+                                    {
+                                        Cpu::reportError(Cpu::AsmError, stderr, "Assembler::assemble() : '%s:%d' : 'SCRLHR' invalid equate/literal '%s'\n", filename.c_str(), _lineNumber+1, tokens[tokIdx].c_str());
+                                        return false;
+                                    }
+                                }
+
+                                instruction._operand0 = equates[0];
+                                instruction._operand1 = equates[1];
+                                instruction._operand2 = equates[2];
                                 _instructions.push_back(instruction);
                                 if(!checkInvalidAddress(ParseType(parse), _currentAddress, uint16_t(outputSize), instruction, lineToken, filename, _lineNumber)) return false;
                             }

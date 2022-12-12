@@ -60,8 +60,8 @@ frame = 0 : anim = frame
 gosub initSprites
 
 repeat
-    poke &hB4, 0
-    sprites draw, SH
+    poke &hB8, 0
+    sprites draw, SORTY
 
     gosub updateSprites
     gosub convertVTableX
@@ -69,7 +69,7 @@ repeat
     vscroll  1, 10, 50
     vscroll -1, 60, 60
 
-    sprites restore, SH
+    sprites restore, WAITVB
 
     inc frame.lo
 &forever
@@ -140,24 +140,14 @@ kk = 255
 dim show(NUM_SPRITES-1) = &hFF
 toggleSprites:
     k = get("PS2_KEYBD")
-    if (kk = 255) AND (k < 255)
-        if (k >= 48) AND (k <= 55) '0 - 9
+    if (kk.lo = 255) AND (k.lo < 255)
+        if (k.lo >= 48) AND (k.lo <= 55) '0 - 9
             sh = k - 48 : show(sh) = NOT show(sh)
             sprite show, sh, show(sh)
         endif
     endif
     kk = k
 return
-
-dim spren(NUM_SPRITES-1) = 1
-48:  sprite show, 0, spren(0) : return
-49:  sprite show, 1, spren(1) : return
-50:  sprite show, 2, spren(2) : return
-51:  sprite show, 3, spren(3) : return
-52:  sprite show, 4, spren(4) : return
-53:  sprite show, 5, spren(5) : return
-54:  sprite show, 6, spren(6) : return
-55:  sprite show, 7, spren(7) : return
 
 
 onCheckBoundsX:

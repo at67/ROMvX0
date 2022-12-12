@@ -77,10 +77,7 @@ integerS_loop       PEEKV   intSrcAddr
                     SUBI    9
                     BGT     integerS_neg
                     LDW     intResult
-                    LSLW
-                    LSLW
-                    ADDW    intResult
-                    LSLW
+                    MULW10
                     ADDW    intDigit
                     STW     intResult                           ; result = result*10 + digit
                     INC     intSrcAddr

@@ -788,6 +788,76 @@ namespace Functions
                 numeric._params[0]._params.clear();
                 return numeric._params[0];
             }
+            else if(sysVarName == "BLIT_WIDTH"  &&  numeric._params.size() == 1)
+            {
+                if(Compiler::getCodeRomType() < Cpu::ROMv3)
+                {
+                    std::string romTypeStr;
+                    getRomTypeStr(Compiler::getCodeRomType(), romTypeStr);
+                    Cpu::reportError(Cpu::FncError, stderr, "Functions::GET() : '%s:%d' : version error, 'GET(\"BLIT_WIDTH\")' requires ROMv3 or higher, you are trying to link against '%s' : %s\n",
+                                                            moduleName.c_str(), codeLineStart, romTypeStr.c_str(), codeLineText.c_str());
+                    numeric._isValid = false;
+                    return numeric;
+                }
+
+                // Literal constant
+                if(numeric._params[0]._varType != Expression::Number)
+                {
+                    Cpu::reportError(Cpu::FncError, stderr, "Functions::GET() : '%s:%d' : version error, 'GET(\"BLIT_WIDTH\")' requires literal index : %s\n",
+                                                            moduleName.c_str(), codeLineStart, codeLineText.c_str());
+                    numeric._isValid = false;
+                    return numeric;
+                }
+
+                Compiler::getNextTempVar();
+                uint16_t width = Compiler::getDefDataBlits()[int(std::lround(numeric._params[0]._value))]._width;
+                if(width < 256)
+                {
+                    Compiler::emitVcpuAsm("LDI", Expression::byteToHexString(uint8_t(width)), false);
+                }
+                else
+                {
+                    Compiler::emitVcpuAsm("LDWI", Expression::wordToHexString(width), false);
+                }
+                Compiler::emitVcpuAsm("STW", Expression::byteToHexString(uint8_t(Compiler::getTempVarStart())), false);
+                numeric._params[0]._params.clear();
+                return numeric._params[0];
+            }
+            else if(sysVarName == "BLIT_HEIGHT"  &&  numeric._params.size() == 1)
+            {
+                if(Compiler::getCodeRomType() < Cpu::ROMv3)
+                {
+                    std::string romTypeStr;
+                    getRomTypeStr(Compiler::getCodeRomType(), romTypeStr);
+                    Cpu::reportError(Cpu::FncError, stderr, "Functions::GET() : '%s:%d' : version error, 'GET(\"BLIT_HEIGHT\")' requires ROMv3 or higher, you are trying to link against '%s' : %s\n",
+                                                            moduleName.c_str(), codeLineStart, romTypeStr.c_str(), codeLineText.c_str());
+                    numeric._isValid = false;
+                    return numeric;
+                }
+
+                // Literal constant
+                if(numeric._params[0]._varType != Expression::Number)
+                {
+                    Cpu::reportError(Cpu::FncError, stderr, "Functions::GET() : '%s:%d' : version error, 'GET(\"BLIT_HEIGHT\")' requires literal index : %s\n",
+                                                            moduleName.c_str(), codeLineStart, codeLineText.c_str());
+                    numeric._isValid = false;
+                    return numeric;
+                }
+
+                Compiler::getNextTempVar();
+                uint16_t height = Compiler::getDefDataBlits()[int(std::lround(numeric._params[0]._value))]._height;
+                if(height < 256)
+                {
+                    Compiler::emitVcpuAsm("LDI", Expression::byteToHexString(uint8_t(height)), false);
+                }
+                else
+                {
+                    Compiler::emitVcpuAsm("LDWI", Expression::wordToHexString(height), false);
+                }
+                Compiler::emitVcpuAsm("STW", Expression::byteToHexString(uint8_t(Compiler::getTempVarStart())), false);
+                numeric._params[0]._params.clear();
+                return numeric._params[0];
+            }
             else if(sysVarName == "BLIT_LUT"  &&  numeric._params.size() == 1)
             {
                 if(Compiler::getCodeRomType() < Cpu::ROMv3)

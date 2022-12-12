@@ -513,7 +513,7 @@ _id_    LDW     v1
 %ENDM
 
 %MACRO  WaitVBlank
-        CALLI   waitVBlank
+        WAITVV  frameCountPrev
 %ENDM
 
 %MACRO  GetVBlank
@@ -633,6 +633,10 @@ _id_    LDW     v1
         CALLI   drawBlitXY
 %ENDM
 
+%MACRO  ScrollBlitY
+        CALLI   scrollBlitY
+%ENDM
+
 %MACRO  GetBlitLUT
         CALLI   getBlitLUT
 %ENDM
@@ -657,16 +661,8 @@ _id_    LDW     v1
         CALLI   drawSprites
 %ENDM
 
-%MACRO  DrawSpritesH
-        CALLI   drawSpritesH
-%ENDM
-
 %MACRO  RestoreSprites
         CALLI   restoreSprites
-%ENDM
-
-%MACRO  RestoreSpritesH
-        CALLI   restoreSpritesH
 %ENDM
 
 %MACRO  SortSprites
@@ -675,6 +671,10 @@ _id_    LDW     v1
 
 %MACRO  SortSpritesLut
         CALLI   sortSpritesLut
+%ENDM
+
+%MACRO  MergeSpritesLut
+        CALLI   mergeSpritesLut
 %ENDM
 
 %MACRO  EnableSprites
@@ -810,7 +810,11 @@ _id_    LDW     v1
         LDI     0
         CALLI   resetMem
 %ENDM
-        
+
+%MACRO  ScrollH
+        SCRLH   giga_vAC
+%ENDM
+
 %MACRO  ScrollV
         CALLI   scrollV
 %ENDM

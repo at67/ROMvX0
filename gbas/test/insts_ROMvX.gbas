@@ -1,0 +1,71 @@
+_runtimePath_ "../runtime"
+_codeRomType_ ROMvX0
+
+
+restart:
+
+cls
+
+a = 1
+b = 2
+vec8 add, @a, @b, 2, 0
+
+a = 1
+a.lo = a AND 1
+a = 1
+if a.lo AND 1
+endif
+
+a = 1
+a.lo = a OR 1
+a = 1
+if a.lo OR 1
+endif
+
+a = 1
+a.lo = a XOR 1
+a = 1
+if a.lo XOR 1
+endif
+
+
+input "TESTING INPUT: ", a,"?";5;
+print
+input "Yo: ", a,"?";5;, b,"?";5; : print
+c = a=b
+d = a<>b
+e = a<b
+f = a>b
+g = a<=b
+h = a>=b
+if c
+    print "Yes"
+else
+    print "No "
+endif
+print "a=b:";c;" a<>b:";d;"  a<b:";e
+print "a>b:";f;" a<=b:";g;" a>=b:";h
+
+print "a:";hex$(a,4);" b:";hex$(b,4)
+xchg a.lo, b.lo
+print "a:";hex$(a,4);" b:";hex$(b,4)
+xchg a.hi, b.hi
+print "a:";hex$(a,4);" b:";hex$(b,4)
+xchg a.lo, b.hi
+print "a:";hex$(a,4);" b:";hex$(b,4)
+xchg a, b
+print "a:";hex$(a,4);" b:";hex$(b,4)
+
+for a=&h0800 to &h4300 step &h0100
+    swap BYTE, a, &h8700 - a, 160
+next a
+
+s0 = &h7f01
+s1 = &h7f02
+for i=0 to 1000
+    asm
+        swapb _s0, _s1
+    endasm
+next i
+
+print : input a : goto restart

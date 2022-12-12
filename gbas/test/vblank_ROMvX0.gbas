@@ -1,0 +1,80 @@
+'a simple example that shows how to enable the vertical blank interrupt, you can have up to
+'three interrupt handlers daisy chained together, two system, (time and midi), and 1 user
+
+_runtimePath_ "../runtime"
+_codeRomType_ ROMvX0
+
+mode 2
+cls
+tscroll off
+tfnt4x6 on
+
+'always load MIDI's first on a 32K RAM Gigatron, they are typically more efficient at filling
+'offscreen areas thus saving RAM and using less internal jump commands within the MIDI segments
+load midi, ../../res/audio/midi/bath.gtmid, 0
+
+'initialise interrupt handlers, (uses timeslicing on ROMv4 and lower and VBlank interrupt on ROMv5a and higher)
+init time, midiv, userProc
+
+'set midi stream and waveType, (mididv has embedded volume/velocity)
+play mididv, 0, 2
+
+const TIMER_POS = 65
+vram = 0x7F00
+
+set FGBG_COLOUR, 0x3F20
+at TIMER_POS, 112 : print "00:00:00"
+
+'time mode is not just limited to 12 and 24
+set TIME_MODE, 12
+set TIMER, 32000
+set TIME_H, 11 : set TIME_M, 11 : set TIME_S, 11
+
+seconds = 0
+
+loop:
+    set BG_COLOUR, rnd(0) AND &h3F
+    set FG_COLOUR, rnd(0) AND &h3F
+    rectf rnd(160), rnd(110), rnd(160), rnd(110)
+    circle rnd(100) + (- 50 + 80), rnd(50) + (- 20 + 50), rnd(30) + 1
+    line rnd(160), rnd(110), rnd(160), rnd(110)
+    
+    at rnd(160), rnd(102)
+    print "Gigatron!";
+    
+    set FGBG_COLOUR, 0x3F20
+    
+    at 38, 112 : print get("JIFFIES");" ";
+
+    if get("TIME_S") <> seconds
+        seconds = get("TIME_S")
+        
+        at 0, 112 : print get("TIMER");" ";
+            
+        'standard H:M:S time string
+        at TIMER_POS
+        print time$
+    
+        'standard H:M:S time bytes
+        at 116 : print get("TIME_H")
+        at 131 : print get("TIME_M")
+        at 146 : print get("TIME_S")
+    endif
+goto loop
+
+end
+
+'simple user vertical blank, flashes corner pixel
+'*NOTE* you can't use any complex gtBASIC statements functions or commands,
+'(poke and peek are trivial), you also can't use arithmetic helpers like *, /, MOD, etc
+'i.e. any commands/statements/functions/operators that use the internal register file
+'the safest way to use this is by using vasm code with your own variables
+'if you need to use gtBASIC commands then you need to save and restore any state that
+'could be overwritten by your interrupt, including but not limited to sysFn, sysArgs,
+'gtBASIC internal registers, etc
+userProc:
+    asm
+        PUSH
+    endasm
+    poke vram, peek(vram) + 1
+return

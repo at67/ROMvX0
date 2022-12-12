@@ -30,7 +30,6 @@ module "BoingData64k_ROMvX0.m"
 mode 3
 set FGBG_COLOUR, &h0000
 cls
-sound off
 
 set FG_COLOUR, 0
 rectf 0, 74, 159 + 96, 96 'clear text scrolling onscreen and offscreen area

@@ -3,145 +3,147 @@
 const BLIT_OVERLAP = 3 '12x9 blits displayed as 9x9
 
 const BlinkyUp = 0
-load blit, ../../res/image/PucMon//Blinky_u0.tga, BlinkyUp + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon//Blinky_u0.tga, BlinkyUp + 0, NoFlip, BLIT_OVERLAP
 
 const BlinkyDn = 1
-load blit, ../../res/image/PucMon//Blinky_d0.tga, BlinkyDn + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon//Blinky_d0.tga, BlinkyDn + 0, NoFlip, BLIT_OVERLAP
 
 const BlinkyLt = 2
-load blit, ../../res/image/PucMon/Blinky_l0.tga, BlinkyLt + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Blinky_l0.tga, BlinkyLt + 0, NoFlip, BLIT_OVERLAP
 
 const BlinkyRt = 3 'instance and hardware flip, (native code), in the X direction to save memory
-load blit, ../../res/image/PucMon/Blinky_l0.tga, BlinkyRt + 0, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Blinky_l0.tga, BlinkyRt + 0, FlipX, BLIT_OVERLAP
 
 const PinkyUp = 4
-load blit, ../../res/image/PucMon/Pinky_u0.tga, PinkyUp + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Pinky_u0.tga, PinkyUp + 0, NoFlip, BLIT_OVERLAP
 
 const PinkyDn = 5
-load blit, ../../res/image/PucMon/Pinky_d0.tga, PinkyDn + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Pinky_d0.tga, PinkyDn + 0, NoFlip, BLIT_OVERLAP
 
 const PinkyLt = 6
-load blit, ../../res/image/PucMon/Pinky_l0.tga, PinkyLt + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Pinky_l0.tga, PinkyLt + 0, NoFlip, BLIT_OVERLAP
 
 const PinkyRt = 7 'instance and hardware flip, (native code), in the X direction to save memory
-load blit, ../../res/image/PucMon/Pinky_l0.tga, PinkyRt + 0, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Pinky_l0.tga, PinkyRt + 0, FlipX, BLIT_OVERLAP
 
 const InkyUp = 8
-load blit, ../../res/image/PucMon/Inky_u0.tga, InkyUp + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Inky_u0.tga, InkyUp + 0, NoFlip, BLIT_OVERLAP
 
 const InkyDn = 9
-load blit, ../../res/image/PucMon/Inky_d0.tga, InkyDn + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Inky_d0.tga, InkyDn + 0, NoFlip, BLIT_OVERLAP
 
 const InkyLt = 10
-load blit, ../../res/image/PucMon/Inky_l0.tga, InkyLt + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Inky_l0.tga, InkyLt + 0, NoFlip, BLIT_OVERLAP
 
 const InkyRt = 11 'instance and hardware flip, (native code), in the X direction to save memory
-load blit, ../../res/image/PucMon/Inky_l0.tga, InkyRt + 0, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Inky_l0.tga, InkyRt + 0, FlipX, BLIT_OVERLAP
 
 const ClydeUp = 12
-load blit, ../../res/image/PucMon/Clyde_u0.tga, ClydeUp + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Clyde_u0.tga, ClydeUp + 0, NoFlip, BLIT_OVERLAP
 
 const ClydeDn = 13
-load blit, ../../res/image/PucMon/Clyde_d0.tga, ClydeDn + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Clyde_d0.tga, ClydeDn + 0, NoFlip, BLIT_OVERLAP
 
 const ClydeLt = 14
-load blit, ../../res/image/PucMon/Clyde_l0.tga, ClydeLt + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Clyde_l0.tga, ClydeLt + 0, NoFlip, BLIT_OVERLAP
 
 const ClydeRt = 15 'instance and hardware flip, (native code), in the X direction to save memory
-load blit, ../../res/image/PucMon/Clyde_l0.tga, ClydeRt + 0, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Clyde_l0.tga, ClydeRt + 0, FlipX, BLIT_OVERLAP
 
 const PucUp = 16
-load blit, ../../res/image/PucMon/Puc_u0.tga, PucUp + 0, NoFlip, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_u1.tga, PucUp + 1, NoFlip, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_u2.tga, PucUp + 2, NoFlip, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_u3.tga, PucUp + 3, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_u0.tga, PucUp + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_u1.tga, PucUp + 1, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_u2.tga, PucUp + 2, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_u3.tga, PucUp + 3, NoFlip, BLIT_OVERLAP
 
 const PucDn = 20 'instance and hardware flip, (native code), in the Y direction to save memory
-load blit, ../../res/image/PucMon/Puc_u0.tga, PucDn + 0, FlipY, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_u1.tga, PucDn + 1, FlipY, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_u2.tga, PucDn + 2, FlipY, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_u3.tga, PucDn + 3, FlipY, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_u0.tga, PucDn + 0, FlipY, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_u1.tga, PucDn + 1, FlipY, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_u2.tga, PucDn + 2, FlipY, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_u3.tga, PucDn + 3, FlipY, BLIT_OVERLAP
 
 const PucLt = 24
-load blit, ../../res/image/PucMon/Puc_l0.tga, PucLt + 0, NoFlip, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_l1.tga, PucLt + 1, NoFlip, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_l2.tga, PucLt + 2, NoFlip, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_l3.tga, PucLt + 3, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_l0.tga, PucLt + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_l1.tga, PucLt + 1, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_l2.tga, PucLt + 2, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_l3.tga, PucLt + 3, NoFlip, BLIT_OVERLAP
 
 const PucRt = 28 'instance and hardware flip, (native code), in the X direction to save memory
-load blit, ../../res/image/PucMon/Puc_l0.tga, PucRt + 0, FlipX, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_l1.tga, PucRt + 1, FlipX, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_l2.tga, PucRt + 2, FlipX, BLIT_OVERLAP
-load blit, ../../res/image/PucMon/Puc_l3.tga, PucRt + 3, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_l0.tga, PucRt + 0, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_l1.tga, PucRt + 1, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_l2.tga, PucRt + 2, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Puc_l3.tga, PucRt + 3, FlipX, BLIT_OVERLAP
 
 const ScaredUp = 32
-load blit, ../../res/image/PucMon/Scared_u0.tga, ScaredUp + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Scared_u0.tga, ScaredUp + 0, NoFlip, BLIT_OVERLAP
 
 const ScaredDn = 33
-load blit, ../../res/image/PucMon/Scared_d0.tga, ScaredDn + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Scared_d0.tga, ScaredDn + 0, NoFlip, BLIT_OVERLAP
 
 const ScaredLt = 34
-load blit, ../../res/image/PucMon/Scared_u0.tga, ScaredLt + 0, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Scared_u0.tga, ScaredLt + 0, NoFlip, BLIT_OVERLAP
 
 const ScaredRt = 35
-load blit, ../../res/image/PucMon/Scared_u0.tga, ScaredRt + 0, FlipX, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Scared_u0.tga, ScaredRt + 0, FlipX, BLIT_OVERLAP
 
 const EyesUp = 36
-load blit, ../../res/image/PucMon/Eyes_d.tga, EyesUp, FlipY, 0
+load blit, ../../../res/image/PucMon/Eyes_d.tga, EyesUp, FlipY, 0
 
 const EyesDn = 37
-load blit, ../../res/image/PucMon/Eyes_d.tga, EyesDn, NoFlip, 0
+load blit, ../../../res/image/PucMon/Eyes_d.tga, EyesDn, NoFlip, 0
 
 const EyesLt = 38
-load blit, ../../res/image/PucMon/Eyes_l.tga, EyesLt, NoFlip, 0
+load blit, ../../../res/image/PucMon/Eyes_l.tga, EyesLt, NoFlip, 0
 
 const EyesRt = 39
-load blit, ../../res/image/PucMon/Eyes_l.tga, EyesRt, FlipX, 0
+load blit, ../../../res/image/PucMon/Eyes_l.tga, EyesRt, FlipX, 0
 
 const Tunnel = 40
-load blit, ../../res/image/PucMon/Black12x9.tga, Tunnel, NoFlip, 0
+load blit, ../../../res/image/PucMon/Black12x9.tga, Tunnel, NoFlip, 0
 
 const Pill = 41
 const Erase6x6 = Pill + 1
-load blit, ../../res/image/PucMon/Pill.tga,     Pill + 0, NoFlip, 0
-load blit, ../../res/image/PucMon/Black6x6.tga, Pill + 1, NoFlip, 0
+load blit, ../../../res/image/PucMon/Pill.tga,     Pill + 0, NoFlip, 0
+load blit, ../../../res/image/PucMon/Black6x6.tga, Pill + 1, NoFlip, 0
 
 const Erase12x9 = 43
-load blit, ../../res/image/PucMon/Black12x9.tga, Erase12x9, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Black12x9.tga, Erase12x9, NoFlip, BLIT_OVERLAP
 
 const Life = 44
-load blit, ../../res/image/PucMon/Life.tga, Life, NoFlip, 0
+load blit, ../../../res/image/PucMon/Life.tga, Life, NoFlip, 0
 
 const Level = 45
-load blit, ../../res/image/PucMon/Level.tga, Level, NoFlip, 0
+load blit, ../../../res/image/PucMon/Level.tga, Level, NoFlip, 0
 
 const Digit = 46
-load blit, ../../res/image/PucMon/Zero.tga,  Digit + 0, NoFlip, 0
-load blit, ../../res/image/PucMon/One.tga,   Digit + 1, NoFlip, 0
-load blit, ../../res/image/PucMon/Two.tga,   Digit + 2, NoFlip, 0
-load blit, ../../res/image/PucMon/Three.tga, Digit + 3, NoFlip, 0
-load blit, ../../res/image/PucMon/Four.tga,  Digit + 4, NoFlip, 0
-load blit, ../../res/image/PucMon/Five.tga,  Digit + 5, NoFlip, 0
-load blit, ../../res/image/PucMon/Six.tga,   Digit + 6, NoFlip, 0
-load blit, ../../res/image/PucMon/Seven.tga, Digit + 7, NoFlip, 0
-load blit, ../../res/image/PucMon/Eight.tga, Digit + 8, NoFlip, 0
-load blit, ../../res/image/PucMon/Nine.tga,  Digit + 9, NoFlip, 0
+load blit, ../../../res/image/PucMon/Zero.tga,  Digit + 0, NoFlip, 0
+load blit, ../../../res/image/PucMon/One.tga,   Digit + 1, NoFlip, 0
+load blit, ../../../res/image/PucMon/Two.tga,   Digit + 2, NoFlip, 0
+load blit, ../../../res/image/PucMon/Three.tga, Digit + 3, NoFlip, 0
+load blit, ../../../res/image/PucMon/Four.tga,  Digit + 4, NoFlip, 0
+load blit, ../../../res/image/PucMon/Five.tga,  Digit + 5, NoFlip, 0
+load blit, ../../../res/image/PucMon/Six.tga,   Digit + 6, NoFlip, 0
+load blit, ../../../res/image/PucMon/Seven.tga, Digit + 7, NoFlip, 0
+load blit, ../../../res/image/PucMon/Eight.tga, Digit + 8, NoFlip, 0
+load blit, ../../../res/image/PucMon/Nine.tga,  Digit + 9, NoFlip, 0
 
 const Blinky_1 = 56
-load blit, ../../res/image/PucMon/Blinky_1.tga, Blinky_1, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Blinky_1.tga, Blinky_1, NoFlip, BLIT_OVERLAP
 
 const Pinky_1 = 57
-load blit, ../../res/image/PucMon/Pinky_1.tga, Pinky_1, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Pinky_1.tga, Pinky_1, NoFlip, BLIT_OVERLAP
 
 const Inky_1 = 58
-load blit, ../../res/image/PucMon/Inky_1.tga, Inky_1, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Inky_1.tga, Inky_1, NoFlip, BLIT_OVERLAP
 
 const Clyde_1 = 59
-load blit, ../../res/image/PucMon/Clyde_1.tga, Clyde_1, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Clyde_1.tga, Clyde_1, NoFlip, BLIT_OVERLAP
 
 const Scared_1 = 60
-load blit, ../../res/image/PucMon/Scared_1.tga, Scared_1, NoFlip, BLIT_OVERLAP
+load blit, ../../../res/image/PucMon/Scared_1.tga, Scared_1, NoFlip, BLIT_OVERLAP
 
+const at67 = 61
+load blit, ../../../res/image/at67.tga, at67
 
 dim maze%(23, 27) = {&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,&hF0,
                      &hF0,&h01,&h01,&h01,&h01,&h01,&hD1,&h01,&h01,&h01,&h01,&h01,&h01,&hF0,&hF0,&h01,&h01,&h01,&h01,&h01,&h01,&hD1,&h01,&h01,&h01,&h01,&h01,&hF0,
@@ -191,10 +193,10 @@ def byte(&h0700, x, 0.0, 360.0, 64, 4) = sin(x)*31.0 + 32.0
 'def byte(&h0700, x, 0.0, 360.0, 64, 4) = (sin(x) - sin(3*x)/9 + sin(5*x)/25 - sin(7*x)/49 + sin(9*x)/81 - sin(11*x)/121 + sin(13*x)/169)*26 + 32.0 
 
 'overwrite waveform 1 in audio memory, (eat dots)
-load wave, ../../res/audio/PucMon/eat.gtwav, &h0701, 4
+load wave, ../../../res/audio/PucMon/eat.gtwav, &h0701, 4
 
 'overwrite waveform 3 in audio memory, (puc death)
-load wave, ../../res/audio/PucMon/death.gtwav, &h0703, 4
+load wave, ../../../res/audio/PucMon/death.gtwav, &h0703, 4
 
 const ORIGIN_X = 2
 const ORIGIN_Y = 2
@@ -288,6 +290,7 @@ dim ghostsY(NUM_GHOSTS - 1) = (36+ORIGIN_Y), (46+ORIGIN_Y), (56+ORIGIN_Y), (46+O
 dim ghostsXd(NUM_GHOSTS - 1) = -1, -1, -1, -1
 dim ghostsYd(NUM_GHOSTS - 1) = 0, 0, 0, 0
 dim ghostsFlags%(NUM_GHOSTS - 1) = 0, 0, 0, 0
+dim igcnt%(NUM_GHOSTS - 1) = 0, 0, 0, 0
 
 const SCORE_LEN = 7
 dim highBCD%(SCORE_LEN - 1) = 0

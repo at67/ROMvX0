@@ -1,10 +1,10 @@
-_runtimePath_ "../runtime"
+_runtimePath_ "../../runtime"
 _runtimeStart_ &h7FFF
 _arraysStart_ &h7FFF
 _codeRomType_ ROMvX0
 
 'use this after _runtimeStart_ to specify maximum number of blits if you have more than 48
-_maxNumBlits_ 56
+_maxNumBlits_ 57
 
 'size of your most complex expression, (temporary variables required)*2, defaults to 8
 _tempVarSize_ 4
@@ -125,7 +125,7 @@ const INVADER_DEAD = &h8000
 const NUM_IBULLETS = 3
 dim ibxy(NUM_IBULLETS - 1) = 0
 
-def livesLevel, delayLevel, px, py, ixorigin, iyorigin, ii, jj, xflip, iflip, icurrent, ishoot, sevol, timeTicks, pflip, iscore, imarch, endgame, pbxy, pbullet, ipbcount, ibindex, iexplode, itimer, bexplode, btimer, saucerxy, satimer, sefreq, stimer, sexplode, audmarch, audshoot, aviexplode, oldbutton
+def livesLevel, delayLevel, px, py, ixorigin, iyorigin, ii, jj, xflip, iflip, icurrent, ishoot, sevol, timeTicks, pflip, iscore, imarch, endgame, pbxy, pbullet, ipbcount, ibindex, iexplode, itimer, bexplode, btimer, saucerxy, satimer, sefreq, stimer, sexplode, audmarch, audshoot, aviexplode, oldbutton, sc, scp
 
 
 call initSystem
@@ -153,6 +153,8 @@ repeat
     call drawInvaderBullets
     call checkInvaderBullets
     call drawInvaders
+    
+    call at67Scroll
     
     call updateSaucer
     call updateScore
@@ -187,8 +189,7 @@ proc drawPlayerBullet
 
     if (pbullet.lo)
         asm 'draw bullet
-            LDI     0xF8
-            ST      giga_sysArg2
+            MOVQB   giga_sysArg2, 0xF8
             SYS     134
         endasm
         
@@ -197,8 +198,7 @@ proc drawPlayerBullet
             pbullet = 0
             
             asm 'erase bullet if top of screen
-                LDI     0x00
-                ST      giga_sysArg2
+                MOVQB   giga_sysArg2, 0
                 SYS     134
             endasm
         endif
@@ -206,8 +206,7 @@ proc drawPlayerBullet
     endif
     
     asm 'erase bullet if pbullet.lo = 0
-        LDI     0x00
-        ST      giga_sysArg2
+        MOVQB   giga_sysArg2, 0
         SYS     134
     endasm
     
@@ -244,9 +243,9 @@ playerBullet:
 
     pbullet = &h0101
     if (pflip.lo)
-        pbxy = (px + 6) + ((py - 5 + 8) LSL 8)
+        pbxy = (px + 6) + (py + (-5 + 8) LSL 8)
     else
-        pbxy = (px + 5) + ((py - 5 + 8) LSL 8)
+        pbxy = (px + 5) + (py + (-5 + 8) LSL 8)
     endif
 return
 
@@ -287,14 +286,8 @@ proc drawInvaders
         return
     endif
 
-    'draw invader, (erase edge for last invader left to right)
+    'draw invader
     if xflip > 0
-        if xflip = 3
-            if x > 0
-                'we can call a proc inside another proc because called proc does not modify local/param slots
-                call eraseInvaderEdge, x, y
-            endif
-        endif
         blit FlipX, irblits(invader.hi - 1) + ((x LSR 1) AND 1), x, y
     else
         blit NoFlip, ilblits(invader.hi - 1) + ((x LSR 1) AND 1), x, y
@@ -346,11 +339,10 @@ psmashBarrier:
         ST      giga_sysArg2
         SYS     134                 'left damage
         INC     giga_sysArg4
-        LDI     0x00
-        ST      giga_sysArg2
+        MOVQB   giga_sysArg2, 0
         SYS     134                 'center damage
         INC     giga_sysArg4
-        LD      giga_rand2
+        LD      giga_rand1
         ANDI    0xC0
         ST      giga_sysArg2
         SYS     134                 'right damage
@@ -484,23 +476,20 @@ proc drawInvaderBullets
             asm 'draw bullet
                 LDW     _drawInvaderBullets_bxy
                 STW     giga_sysArg4
-                LDI     0x1F
-                ST      giga_sysArg2
+                MOVQB   giga_sysArg2, 0x1F
                 SYS     134
             endasm
 
             inc bxy.hi
             if bxy.hi >= 121
                 asm 'erase bullet at bottom of screen
-                    LDI     0x00
-                    ST      giga_sysArg2
+                    MOVQB   giga_sysArg2, 0
                     SYS     134
                 endasm
                 bxy = 0
             elseif peek(bxy + &h0700) = &h0C
                 asm 'erase bullet
-                    LDI     0x00
-                    ST      giga_sysArg2
+                    MOVQB   giga_sysArg2, 0
                     SYS     134
                 endasm
             
@@ -617,8 +606,7 @@ proc eraseInvaderBullet, xy
         STW     giga_sysArg0
         LDW     _eraseInvaderBullet_xy
         STW     giga_sysArg4
-        LDI     0x00
-        ST      giga_sysArg2
+        MOVQB   giga_sysArg2, 0
         SYS     134
     endasm
 endproc
@@ -631,8 +619,7 @@ proc erasePlayerBullet
         STW     giga_sysArg0
         LDW     _pbxy
         STW     giga_sysArg4
-        LDI     0x00
-        ST      giga_sysArg2
+        MOVQB   giga_sysArg2, 0
         SYS     134
     endasm
 endproc
@@ -649,36 +636,15 @@ ismashBarrier:
         ST      giga_sysArg2
         SYS     134                 'left damage
         INC     giga_sysArg4
-        LDI     0x00
-        ST      giga_sysArg2
+        MOVQB   giga_sysArg2, 0
         SYS     134                 'center damage
         INC     giga_sysArg4
-        LD      giga_rand2
+        LD      giga_rand1
         ANDI    0x03
         ST      giga_sysArg2
         SYS     134                 'right damage
     endasm
 return
-
-proc eraseInvaderEdge, x, y
-    asm
-        LDWI    SYS_VDrawBits_134
-        STW     giga_sysFn              'setup SYS function
-        LDWI    0x0000
-        STW     giga_sysArg0            'FGBG colour
-        LD      _eraseInvaderEdge_x
-        SUBI    1                       'x - 1 to account for extra pixel when marching by 3
-        ST      register0
-        LD      _eraseInvaderEdge_y
-        ADDI    8
-        ST      register0 + 1
-        LDW     register0
-        STW     giga_sysArg4            'addr = x + ((y + 8) LSL 8)
-        LDI     0x00
-        ST      giga_sysArg2
-        SYS     134
-    endasm
-endproc
 
 proc gameOver
     endgame.hi = 1
@@ -1012,6 +978,35 @@ proc resetLevel
 
     px = PLAYER_X : py = PLAYER_Y
     call uneasterEgg
+endproc
+
+proc at67Scroll
+    if (timeTicks.lo AND 15) = 1
+        if scp = 0
+            blit SCROLLY, at67, 73, 0, 0, sc
+            call at67Phase, 1
+        elseif scp = 1
+            blit SCROLLY, at67, 73, 0, 0, 7 - sc
+            call at67Phase, 0
+        elseif scp = 2
+            sc1 = 7 - sc
+            if sc = 0 then sc1 = 0
+            blit SCROLLY, at67, 73, sc, sc1, 0
+            call at67Phase, 1
+        elseif scp = 3
+            blit SCROLLY, at67, 73, 7 - sc, sc, 0
+            call at67Phase, 0
+        endif
+    endif
+endproc
+
+proc at67Phase, scc
+    inc sc
+    if sc = 7
+        sc = scc
+        INC scp.lo
+        scp.lo = scp.lo AND 3
+    endif
 endproc
 
 proc initSystem

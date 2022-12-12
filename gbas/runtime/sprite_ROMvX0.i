@@ -48,21 +48,17 @@ animateSprite       MOVQW   giga_sysFn, SYS_SpritePattern_vX_134
 
 %SUB                initSprites
 initSprites         MOVQW   giga_sysFn, SYS_MemCopyByte_vX_40
-                    LDWI    _spritesXposLut_
-                    STW     giga_sysArg0
-                    LDWI    _spritesTmpLut_ + 0                 ; index 0
-                    STW     giga_sysArg2
-                    LDWI    0x0401                              ; src step = 1, dst step = 4
-                    STW     giga_sysArg4
+                    LDI     giga_sysArg0
+                    DOKEI+  _spritesXposLut_
+                    DOKEI+  _spritesTmpLut_ + 0                 ; index 0
+                    DOKEI+  0x0401                              ; src step = 1, dst step = 4
                     LD      spritesCount
                     SYS     40
 
-                    LDWI    _spritesYposLut_
-                    STW     giga_sysArg0
-                    LDWI    _spritesTmpLut_ + 1                 ; index 1
-                    STW     giga_sysArg2
-                    LDWI    0x0401                              ; src step = 1, dst step = 4
-                    STW     giga_sysArg4
+                    LDI     giga_sysArg0
+                    DOKEI+  _spritesYposLut_
+                    DOKEI+  _spritesTmpLut_ + 1                 ; index 1
+                    DOKEI+  0x0401                              ; src step = 1, dst step = 4
                     LD      spritesCount
                     SYS     40
                     RET
@@ -70,48 +66,29 @@ initSprites         MOVQW   giga_sysFn, SYS_MemCopyByte_vX_40
 
 
 %SUB                drawSprites
-drawSprites         LDWI    _spritesXposTmpLut_
-                    STW     spritesXposLut
-                    PEEKA   spritesXYpos
-                    LDWI    _spritesYposTmpLut_
-                    STW     spritesYposLut
-                    PEEKA   spritesXYpos + 1
-                    LDWI    _spritesTmpLut_
-                    STW     spritesLut
-                    PEEKA   spritesAdrHt + 1
-                    MOVQW   giga_sysFn, SYS_DrawSprite_vX_132
-
-drawSpr_loop        MOVQB    spritesAdrHt, _SH
-                    SYS     132
-                    DBNE    spritesCount, drawSpr_loop
-                    RET
-%ENDS
-
-                    ; constant height sprites
-%SUB                drawSpritesH
-drawSpritesH        LDWI    SYS_DrawSpriteH_vX_140
-                    STW     giga_sysFn
-                    LDWI    _vtX
-                    STW     giga_sysArg0
+drawSprites         LDI     giga_sysFn
+                    DOKEI+  SYS_DrawSprite_vX_140
+                    DOKEI+  _vtX
                     LDWI    _spritesTmpLut_
                     STW     spritesLut
                     PEEKA+  spritesXYpos                        ; x pos
                     PEEKA+  spritesXYpos + 1                    ; y pos
                     PEEKA+  spritesAdrHt                        ; height
                     PEEKA+  spritesAdrHt + 1                    ; data
-                    SYS     136
+                    SYS     146
                     RET
 %ENDS
 
-                    ; constant height sprites
-%SUB                restoreSpritesH
-restoreSpritesH     STW     spritesLut                          ; _spritesTmpLut_ + numSprites*4 - 2
+%SUB                restoreSprites
+restoreSprites      STW     spritesLut                          ; _spritesTmpLut_ + numSprites*4 - 2
                     PEEKA+  spritesAdrHt                        ; height
                     PEEKA+  spritesAdrHt + 1                    ; data
-            
-                    WAITVB
-                    
-                    LDWI    SYS_RestoreSprite_vX_126
+
+%if SPRITES_WAITVB
+                    WAITVV  frameCountPrev                      ; more robust WAITVB
+%endif
+
+                    LDWI    SYS_RestoreSprite_vX_124
                     STW     giga_sysFn
                     SYS     124
                     RET
@@ -119,35 +96,29 @@ restoreSpritesH     STW     spritesLut                          ; _spritesTmpLut
 
 %SUB                sortSpritesLut
                     ; sort _spritesLut_ using sorted indices
-sortSpritesLut      MOVQW   giga_sysFn, SYS_SortViaIndices_vX_44
-                    LDWI    _spritesIndicesLut_
-                    STW     giga_sysArg0
-                    LDWI    _spritesLut_
-                    STW     giga_sysArg2
-                    LDWI    _spritesTmpLut_ + 3                 ; index 3
-                    STW     giga_sysArg4
+sortSpritesLut      LDI     giga_sysFn
+                    DOKEI+  SYS_SortViaIndices_vX_44
+                    DOKEI+  _spritesIndicesLut_
+                    DOKEI+  _spritesLut_
+                    DOKEI+  _spritesTmpLut_ + 3                 ; index 3
                     MOVQB   giga_sysArg6, 4                     ; dst step
                     LD      spritesCount
                     SYS     44
                     
                     ; sort _spritesXposLut_ using sorted indices
-                    LDWI    _spritesIndicesLut_
-                    STW     giga_sysArg0
-                    LDWI    _spritesXposLut_
-                    STW     giga_sysArg2
-                    LDWI    _spritesTmpLut_ + 0                 ; index 0
-                    STW     giga_sysArg4
+                    LDI     giga_sysArg0
+                    DOKEI+  _spritesIndicesLut_
+                    DOKEI+  _spritesXposLut_
+                    DOKEI+  _spritesTmpLut_ + 0                 ; index 0
                     MOVQB   giga_sysArg6, 4                     ; dst step
                     LD      spritesCount
                     SYS     44
 
                     ; sort _spritesHeightLut_ using sorted indices
-                    LDWI    _spritesIndicesLut_
-                    STW     giga_sysArg0
-                    LDWI    _spritesHeightLut_
-                    STW     giga_sysArg2
-                    LDWI    _spritesTmpLut_ + 2                 ; index 2
-                    STW     giga_sysArg4
+                    LDI     giga_sysArg0
+                    DOKEI+  _spritesIndicesLut_
+                    DOKEI+  _spritesHeightLut_
+                    DOKEI+  _spritesTmpLut_ + 2                 ; index 2
                     MOVQB   giga_sysArg6, 4                     ; dst step
                     LD      spritesCount
                     SYS     44
@@ -156,32 +127,27 @@ sortSpritesLut      MOVQW   giga_sysFn, SYS_SortViaIndices_vX_44
 
 
 %SUB                sortSprites
-sortSprites         LDWI    SYS_FillByteSeq_vX_36
-                    STW     giga_sysFn
-                    LDWI    _spritesIndicesLut_
-                    STW     giga_sysArg0                        ; dst address
-                    MOVQB   giga_sysArg2, 0                     ; offset
-                    MOVQB   giga_sysArg3, 1                     ; step
+sortSprites         LDI     giga_sysFn
+                    DOKEI+  SYS_FillByteSeq_vX_36
+                    DOKEI+  _spritesIndicesLut_                 ; dst address
+                    DOKEI+  0x0100                              ; step : offset
                     MOVB    spritesCount, giga_sysArg4          ; num sprites
                     SYS     36                                  ; reset indices
 
                     ; init y
-                    MOVQW   giga_sysFn, SYS_MemCopyByte_vX_40
-                    LDWI    _spritesYposLut_
-                    STW     giga_sysArg0
-                    LDWI    _spritesYposTmpLut_
-                    STW     giga_sysArg2
-                    LDWI    0x0101                              ; src step = 1, dst step = 1
-                    STW     giga_sysArg4
+                    LDI     giga_sysFn
+                    DOKEI+  SYS_MemCopyByte_vX_40
+                    DOKEI+  _spritesYposLut_
+                    DOKEI+  _spritesYposTmpLut_
+                    DOKEI+  0x0101                              ; src step : dst step
                     LD      spritesCount                        ; num sprites
                     SYS     40
                     
                     ; sort y and indices
-                    MOVQW   giga_sysFn, SYS_SortSprites_vX_62
-                    LDWI    _spritesYposTmpLut_
-                    STW     giga_sysArg0
-                    LDWI    0x0101
-                    STW     giga_sysArg2                        ; i:j
+                    LDI     giga_sysFn
+                    DOKEI+  SYS_SortSprites_vX_62
+                    DOKEI+  _spritesYposTmpLut_
+                    DOKEI+  0x0101                              ; i : j
                     LDWI    _spritesYposTmpLut_ + 1
                     PEEKA   giga_sysArg4                        ; key0
                     MOVB    spritesCount, giga_sysArg5          ; num sprites
@@ -191,13 +157,54 @@ sortSprites         LDWI    SYS_FillByteSeq_vX_36
                     PEEKA   0x82                                ; key1
                     SYS     62
                     
-                    MOVQW   giga_sysFn, SYS_MemCopyByte_vX_40
-                    LDWI    _spritesYposTmpLut_
-                    STW     giga_sysArg0
-                    LDWI    _spritesTmpLut_ + 1                 ; index 1
-                    STW     giga_sysArg2
-                    LDWI    0x0401                              ; src step = 1, dst step = 4
-                    STW     giga_sysArg4
+                    LDI     giga_sysFn
+                    DOKEI+  SYS_MemCopyByte_vX_40
+                    DOKEI+  _spritesYposTmpLut_
+                    DOKEI+  _spritesTmpLut_ + 1                 ; index 1
+                    DOKEI+  0x0401                              ; src step = 1, dst step = 4
+                    LD      spritesCount
+                    SYS     40
+                    RET
+%ENDS
+
+%SUB                mergeSpritesLut
+mergeSpritesLut     LDI     0xB0
+                    DOKEI+  _spritesXposLut_
+                    DOKEI+  _spritesYposLut_
+                    DOKEI+  _spritesHeightLut_
+                    DOKEI+  _spritesLut_
+                    MOVWA   spritesCount, giga_sysArg4
+                    MERGE4  _spritesTmpLut_
+                    RET
+%ENDS
+
+%SUB                mergeSpritesLutOld
+mergeSpritesLutOld  LDI     giga_sysFn
+                    DOKEI+  SYS_MemCopyByte_vX_40
+                    DOKEI+  _spritesXposLut_
+                    DOKEI+  _spritesTmpLut_ + 0                 ; index 0
+                    DOKEI+  0x0401                              ; src step = 1, dst step = 4
+                    LD      spritesCount
+                    SYS     40
+
+                    LDI     giga_sysArg0
+                    DOKEI+  _spritesYposLut_
+                    DOKEI+  _spritesTmpLut_ + 1                 ; index 1
+                    DOKEI+  0x0401                              ; src step = 1, dst step = 4
+                    LD      spritesCount
+                    SYS     40
+
+                    LDI     giga_sysArg0
+                    DOKEI+  _spritesHeightLut_
+                    DOKEI+  _spritesTmpLut_ + 2                 ; index 2
+                    DOKEI+  0x0401                              ; src step = 1, dst step = 4
+                    LD      spritesCount
+                    SYS     40
+
+                    LDI     giga_sysArg0
+                    DOKEI+  _spritesLut_
+                    DOKEI+  _spritesTmpLut_ + 3                 ; index 3
+                    DOKEI+  0x0401                              ; src step = 1, dst step = 4
                     LD      spritesCount
                     SYS     40
                     RET

@@ -86,8 +86,9 @@ namespace Compiler
     enum StatementResult {StatementError, StatementSuccess, StatementExpression, SingleStatementParsed, MultiStatementParsed, StringStatementParsed, RedoStatementParse};
     enum CodeOptimiseType {CodeSpeed, CodeSize};
     enum BlitFlipType {NoFlip, FlipX, FlipY, FlipXY};
+    enum BlitScrollType {ScrollX, ScrollY, ScrollXY};
     enum SpriteCmd {SpriteMove, SpritePattern, SpriteShow};
-    enum SpritesCmd {SpritesInit, SpritesDraw, SpritesRestore, SpritesShow};
+    enum SpritesCmd {SpritesInit, SpritesDraw, SpritesRestore};
     enum Vec8Cmd {Vec8Add, Vec8Sub, Vec8Mul, Vec8Div, Vec8Chk};
     enum DataType {DataInteger, DataString};
     enum ForNextType {AutoTo, UpTo, DownTo};
@@ -389,6 +390,7 @@ namespace Compiler
         std::vector<uint8_t> _data;
         BlitFlipType _flipType = NoFlip;
         bool _isInstanced = false;
+        uint16_t _overlap = 0;
     };
     struct BlitsAddrLut
     {
@@ -443,6 +445,7 @@ namespace Compiler
         uint16_t _width, _height;
         std::vector<uint16_t> _addrs;
         std::vector<uint8_t> _data;
+        bool _isInstanced = false;
     };
     struct PatternAddrLut
     {

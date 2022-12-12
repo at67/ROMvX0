@@ -300,7 +300,7 @@ namespace Memory
         return false;
     }
 
-    bool getFreeRAMLargest(uint16_t& address, int& size)
+    bool getFreeRAMLargest(uint16_t min, uint16_t max, uint16_t& address, uint16_t& size)
     {
         // Sort entries from highest size to lowest size
         std::sort(_freeRam.begin(), _freeRam.end(), [](const RamEntry& ramEntryA, const RamEntry& ramEntryB)
@@ -312,12 +312,21 @@ namespace Memory
 
         if(_freeRam.size() == 0) return false;
 
-        address = _freeRam[0]._address;
-        size = _freeRam[0]._size;
+        bool found = false;
+        for(int i=0; i<int(_freeRam.size()); i++)
+        {
+            address = _freeRam[i]._address;
+            size = uint16_t(_freeRam[i]._size);
+            if(address >= min  &&  address <= max)
+            {
+                found = true;
+                break;
+            }
+        }
 
         updateFreeRAM();
 
-        return true;
+        return found;
     }
 
     // Attempts to returns RAM request of a given size : withinPage returns page boundary crossings

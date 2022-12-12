@@ -26,12 +26,12 @@ const EntryError = 3
 
 def execAddr, commsAddr, commsSize, commsRetn, browserIdx, browserY, cursorY, cursOldY, isLast, length, runStrAddr, execRtn, waitRtn
 
-runName$ = ""
+runName$  = ""
 execName$ = ""
 pathName$ = ""
 
-dim commsCmd%(PACKET_SIZE-1) = 0
-dim buffer%(PROTOCOL_SIZE-1) = 0
+dim commsCmd%(PACKET_SIZE-1)
+dim buffer%(PROTOCOL_SIZE-1)
 dim browser%(MAX_FILES-1, PACKET_SIZE-1) 
 
 
@@ -68,17 +68,14 @@ end
 
 findLoader:
     romType = get("ROM_TYPE")
-    if romType     &= &h20  'ROMv2
-        execAddr = &hE23E
-    elseif romType &= &h28  'ROMv3
-        execAddr = &hB4A8
-    elseif romType &= &h38  'ROMv4
-        execAddr = &hAD5A
-    elseif romType &&>= &h40 'ROMv5 or higher
+    if romType &&= &h20 then execAddr = &hE23E      'ROMv2
+    if romType &&= &h28 then execAddr = &hB4A8      'ROMv3
+    if romType &&= &h38 then execAddr = &hAD5A      'ROMv4
+    if romType &>= &h40 'ROMv5 or higher
         repeat
             'create name string
             execAddr = get("ROM_READ_DIR", execAddr)
-            if &(execAddr)
+            if (execAddr)
                 poke @execName$, 6
                 for j=sysArg0 &to sysArg7
                     poke @execName$ + j - (sysArg0 - 1), peek(j)
@@ -86,9 +83,9 @@ findLoader:
 
                 if execName$ = "Loader" then return
             endif
-        until execAddr &&= 0
+        until execAddr &= 0
 
-        print "Loader not found!"
+        'print "Loader not found!"
         end
     endif
 return
@@ -177,11 +174,11 @@ fillBrowser:
             poke addr(browser(browserIdx, cIdx)), char
             inc bIdx.lo
             inc cIdx.lo
-        until char &&= 0
+        until char &= 0
 
         inc browserIdx.lo
         if browserIdx &&= MAX_FILES then return
-    until (bIdx - 2) &&= length
+    until (bIdx - 2) &= length
 return
 
 
@@ -193,18 +190,12 @@ printBrowser:
         strLen = peek(strAddr)
         isFile = peek(strAddr - 1)
         if (i-browserY) &&= cursorY
-            if isFile &&= 1
-                set FGBG_COLOUR, &h203F
-            else
-                set FGBG_COLOUR, &h202A
-            endif
+            set FGBG_COLOUR, &h202A
+            if isFile &&= 1 then set FGBG_COLOUR, &h203F
             runStrAddr = strAddr
         else
-            if isFile &&= 1
-                set FGBG_COLOUR, &h3F20
-            else
-                set FGBG_COLOUR, &h2A20
-            endif
+            set FGBG_COLOUR, &h2A20
+            if isFile &&= 1 then set FGBG_COLOUR, &h3F20
         endif
         at 2, (i-browserY) LSL 3
         print string$(strAddr);spc$(12 - strLen);
@@ -219,11 +210,8 @@ updateBrowser:
     prevAddr = addr(browser(prevY, 0)) + 1
     prevLen = peek(prevAddr)
     isFile = peek(prevAddr - 1)
-    if isFile &&= 1
-        set FGBG_COLOUR, &h3F20
-    else
-        set FGBG_COLOUR, &h2A20
-    endif        
+    set FGBG_COLOUR, &h2A20
+    if isFile &&= 1 then set FGBG_COLOUR, &h3F20
     at 2, (prevY - startY) LSL 3
     print string$(prevAddr);spc$(12 - prevLen);
     cursOldY = cursorY
@@ -232,11 +220,8 @@ updateBrowser:
     currAddr = addr(browser(currY, 0)) + 1
     currLen = peek(currAddr)
     isFile = peek(currAddr - 1)
-    if isFile &&= 1
-        set FGBG_COLOUR, &h203F
-    else
-        set FGBG_COLOUR, &h202A
-    endif        
+    set FGBG_COLOUR, &h202A
+    if isFile &&= 1 then set FGBG_COLOUR, &h203F
     at 2, (currY - startY) LSL 3
     print string$(currAddr);spc$(12 - currLen);
     runStrAddr = currAddr
@@ -246,21 +231,17 @@ return
 getRomType:
     romType = get("ROM_TYPE")
     
-    NextByteIn_32 = &h02E9                           'ROMv1
-    if romType &&= &h20 then NextByteIn_32 = &h0BB1  'ROMv2
-    if romType &&= &h28 then NextByteIn_32 = &h0BDF  'ROMv3
-    if romType &&= &h38 then NextByteIn_32 = &h8A31  'ROMv4
-    if romType &&= &h40 then NextByteIn_32 = &h5907  'ROMv5a
-    if romType &&= &hf0 then NextByteIn_32 = &h1300  'SDCARD
-    if romType &&= &hf8                              'DEVROM
-       if execAddr.hi &&= &h5A
-            NextByteIn_32 = &h5907                   'DEVROM v5a+, initial
-       endif
-       if execAddr.hi &&= &h5C
-            NextByteIn_32 = &h5B07                   'DEVROM v5a+, last before interface.json
-       endif
+    NextByteIn_32 = &h02E9                                  'ROMv1
+    if romType &&= &h20 then NextByteIn_32 = &h0BB1         'ROMv2
+    if romType &&= &h28 then NextByteIn_32 = &h0BDF         'ROMv3
+    if romType &&= &h38 then NextByteIn_32 = &h8A31         'ROMv4
+    if romType &&= &h40 then NextByteIn_32 = &h5907         'ROMv5a
+    if romType &&= &hf0 then NextByteIn_32 = &h1300         'SDCARD
+    if romType &&= &hf8                                     'DEVROM
+       if execAddr.hi &&= &h5A then NextByteIn_32 = &h5907  'DEVROM v5a+, initial
+       if execAddr.hi &&= &h5C then NextByteIn_32 = &h5B07  'DEVROM v5a+, last before interface.json
     endif
-    if romType &= &h80                               'ROMvX0
+    if romType &&= &h80                                     'ROMvX0
         asm
             LDWI    SYS_LoaderNextByteIn_32
             STW     _NextByteIn_32
@@ -273,7 +254,7 @@ openSDCard:
     poke @commsCmd, CmdSDOpen
     len = peek(@pathName$)
     commsSize = 1 + len + 1
-    if len &> 0
+    if len &&> 0
         for i=1 &to len + 1
             poke @commsCmd + i, peek(@pathName$ + i)
         next i
@@ -307,12 +288,12 @@ return
 'repeat delay and auto repeat
 handleInput:
     k = get("SERIAL_RAW")
-    if k &<> kk
+    if k &&<> kk
         f = 0
         kk = k
         gosub k
     endif
-    if f &&> 20
+    if f &> 20
         if &((f LSR 1) AND 1)
             gosub k
         endif
@@ -348,7 +329,7 @@ return
 
 'up
 247:    dec cursorY
-        if cursorY &&< 0 then cursorY = min(browserIdx - 1, 14)
+        if cursorY &< 0 then cursorY = min(browserIdx - 1, 14)
         gosub updateBrowser
         return
 
@@ -364,7 +345,7 @@ execOrList:
         execRtn = 0
         gosub execApp
     endif
-    if entry &&= EntryError
+    if entry &= EntryError
         execRtn = 2
         pathName$ = ""
     endif

@@ -1676,6 +1676,36 @@ namespace Compiler
         return true;
     }
 
+    // ArrayXd expression type
+    uint32_t getArrayXdVarExpressionType(int codeLineIndex, std::string& expression, const Expression::Numeric& numeric, const std::string& arrIndex, std::string& output)
+    {
+        int varIndex, constIndex, strIndex;
+        uint32_t expressionType = isExpression(expression, varIndex, constIndex, strIndex);
+        if(((expressionType & Expression::HasIntVars)  &&  (expressionType & Expression::HasOperators))  ||  (expressionType & Expression::HasFunctions)  ||
+           (expressionType & Expression::HasKeywords)  ||  (expressionType & Expression::HasStringKeywords))
+        {
+            output = Expression::byteToHexString(uint8_t(_tempVarStart));
+        }
+        else if(expressionType & Expression::HasIntVars)
+        {
+            switch(numeric._int16Byte)
+            {
+                case Expression::Int16Low:  output = "_" + _integerVars[varIndex]._name;          break;
+                case Expression::Int16High: output = "_" + _integerVars[varIndex]._name + " + 1"; break;
+                case Expression::Int16Both: output = "_" + _integerVars[varIndex]._name;          break;
+
+                default: break;
+            }
+        }
+        else
+        {
+            emitVcpuAsm("LDI", std::to_string(uint8_t(std::lround(numeric._value))), false, codeLineIndex);
+            emitVcpuAsm("STW", arrIndex, false, codeLineIndex);
+            output = arrIndex;
+        }
+
+        return expressionType;
+    }
     // ArrayXd LDW expression parser
     uint32_t parseArrayXdVarExpression(int codeLineIndex, std::string& expression, Expression::Numeric& numeric)
     {
@@ -1806,31 +1836,48 @@ namespace Compiler
                                                                                                                                                      int(indexTokens.size()), codeLine._text.c_str());
             return false;
         }
-
         for(int i=0; i<int(indexTokens.size()); i++)
         {
-            Expression::Numeric arrIndex;
-            std::string indexToken = indexTokens[i];
-            Expression::stripWhitespace(indexToken);
-            if(parseArrayXdVarExpression(codeLineIndex, indexToken, arrIndex) == Expression::IsInvalid) return false;
-            emitVcpuAsm("STW", "memIndex" + std::to_string(i), false, codeLineIndex);
+            Expression::stripWhitespace(indexTokens[i]);
         }
 
-        emitVcpuAsm("LDWI", Expression::wordToHexString(arrayPtr), false, codeLineIndex);
+        // Save indices for ROM's != ROMvX0
+        if(_codeRomType < Cpu::ROMvX0  ||  _codeRomType >= Cpu::SDCARD)
+        {
+            for(int i=0; i<int(indexTokens.size()); i++)
+            {
+                Expression::Numeric arrIndex;
+                if(parseArrayXdVarExpression(codeLineIndex, indexTokens[i], arrIndex) == Expression::IsInvalid) return false;
+                emitVcpuAsm("STW", "memIndex" + std::to_string(i), false, codeLineIndex);
+            }
+        }
+
         if(_codeRomType >= Cpu::ROMvX0  &&  _codeRomType < Cpu::SDCARD)
         {
+            Expression::Numeric arrIndex;
+            std::string memIndex[3];
+            getArrayXdVarExpressionType(codeLineIndex, indexTokens[0], arrIndex, "memIndex0", memIndex[0]);
+            getArrayXdVarExpressionType(codeLineIndex, indexTokens[1], arrIndex, "memIndex1", memIndex[1]);
+            getArrayXdVarExpressionType(codeLineIndex, indexTokens[2], arrIndex, "memIndex2", memIndex[2]);
+            emitVcpuAsm("LDWI", Expression::wordToHexString(arrayPtr), false, codeLineIndex);
+
             switch(intSize)
             {
                 case Int8:
                 {
-                    emitVcpuAsm("CALLI", "convert8Arr3d", false, codeLineIndex);
-                    emitVcpuAsm("POKEA", "memValue", false, codeLineIndex);
+                    emitVcpuAsm("DEEKR", memIndex[0], false, codeLineIndex);
+                    emitVcpuAsm("DEEKR", memIndex[1], false, codeLineIndex);
+                    emitVcpuAsm("ADDW",  memIndex[2], false, codeLineIndex);
+                    emitVcpuAsm("POKEA", "memValue",  false, codeLineIndex);
                 }
                 break;
     
                 case Int16:
                 {
-                    emitVcpuAsm("CALLI", "convert16Arr3d", false, codeLineIndex);
+                    emitVcpuAsm("DEEKR", memIndex[0], false, codeLineIndex);
+                    emitVcpuAsm("DEEKR", memIndex[1], false, codeLineIndex);
+                    emitVcpuAsm("ADDW",  memIndex[2], false, codeLineIndex);
+                    emitVcpuAsm("ADDW",  memIndex[2], false, codeLineIndex);
                     switch(codeLine._int16Byte)
                     {
                         case Expression::Int16Low:  emitVcpuAsm("POKEA", "memValue", false, codeLineIndex);                                                         break;
@@ -1847,6 +1894,8 @@ namespace Compiler
         }
         else
         {
+            emitVcpuAsm("LDWI", Expression::wordToHexString(arrayPtr), false, codeLineIndex);
+
             switch(intSize)
             {
                 case Int8:
@@ -5430,12 +5479,16 @@ REDO_STATEMENT:
         {
             int patternId = it->first;
             std::vector<uint16_t> addrs = it->second._addrs;
+            uint16_t isInstanced = it->second._isInstanced;
 
-            // For each column of pattern data
-            int dataIndex = 0;
-            for(int j=0; j<int(addrs.size()); j++)
+            if(!isInstanced)
             {
-                outputPatternDef(patternId, addrs[j], dataIndex);
+                // For each column of pattern data
+                int dataIndex = 0;
+                for(int j=0; j<int(addrs.size()); j++)
+                {
+                    outputPatternDef(patternId, addrs[j], dataIndex);
+                }
             }
         }
         _output.push_back("\n");

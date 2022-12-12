@@ -1,0 +1,37 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+
+mode 2
+cls
+
+for i=10 &downto 1
+    s = 0
+    for j=1000 &downto 1
+        s = s + j
+    next j
+    print ".";
+next i
+print s
+
+v = 13123
+r = 0
+b = &h4000
+repeat
+    t = r + b
+    r = r LSR 1
+    if t <= v
+        r = r + b
+        v = v - t
+    endif
+    b = b LSR 2
+until b = 0
+print r
+
+v = 13123
+v = sqrt(v)
+print v
+
+for i=11 &downto 0 step 2
+    print i;" ";
+next i

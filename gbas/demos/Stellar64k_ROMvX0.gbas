@@ -1,0 +1,263 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &hFFFF
+_codeRomType_ ROMvX0
+_enable8BitAudioEmu_ ON 'experimental
+
+'defines the amount of contiguous RAM needed for blit stripes, (in this case 40*6 + 1), also min address and search direction
+_blitStripeChunks_ 40, &h8000, &hFFFF, descending
+
+const SW = 9
+const SH = 10
+const SY_MIN = 30
+const NUM_SPRITES = 4
+const NUM_FREE_SCANLINES = 0
+
+'not using strings
+free STRINGWORKAREA
+
+'first 10 scanlines are free for code and data
+'free &h0800, 160, NUM_FREE_SCANLINES, 0x0100
+
+
+load image, ../../res/image/Parallax.tga
+
+load sprite, ../../res/image/Stellar/Bird0.tga,      0
+load sprite, ../../res/image/Stellar/Bird1.tga,      1
+load sprite, ../../res/image/Stellar/Bird2.tga,      2
+load sprite, ../../res/image/Stellar/Bird3.tga,      3
+'load sprite, ../../res/image/Stellar/Rudolph0_0.tga, 5
+'load sprite, ../../res/image/Stellar/Rudolph0_1.tga, 6
+'load sprite, ../../res/image/Stellar/Rudolph0_2.tga, 7
+
+load pattern, ../../res/image/Stellar/Bird0.tga, 0
+load pattern, ../../res/image/Stellar/Bird1.tga, 1
+load pattern, ../../res/image/Stellar/Bird2.tga, 2
+load pattern, ../../res/image/Stellar/Bird3.tga, 3
+load pattern, ../../res/image/Stellar/Bird4.tga, 4
+load pattern, ../../res/image/Stellar/Bird3.tga, 5 'automatically instanced
+load pattern, ../../res/image/Stellar/Bird2.tga, 6 'automatically instanced
+load pattern, ../../res/image/Stellar/Bird1.tga, 7 'automatically instanced
+'load pattern, ../../res/image/Stellar/Rudolph0_0.tga, 8
+'load pattern, ../../res/image/Stellar/Rudolph0_1.tga, 9
+'load pattern, ../../res/image/Stellar/Rudolph0_2.tga, 10
+'load pattern, ../../res/image/Stellar/Rudolph1_0.tga, 11
+'load pattern, ../../res/image/Stellar/Rudolph1_1.tga, 12
+'load pattern, ../../res/image/Stellar/Rudolph1_2.tga, 13
+'load pattern, ../../res/image/Stellar/Rudolph2_0.tga, 14
+'load pattern, ../../res/image/Stellar/Rudolph2_1.tga, 15
+'load pattern, ../../res/image/Stellar/Rudolph2_2.tga, 16
+'load pattern, ../../res/image/Stellar/Rudolph3_0.tga, 17
+'load pattern, ../../res/image/Stellar/Rudolph3_1.tga, 18
+'load pattern, ../../res/image/Stellar/Rudolph3_2.tga, 19
+'load pattern, ../../res/image/Stellar/Rudolph4_0.tga, 20
+'load pattern, ../../res/image/Stellar/Rudolph4_1.tga, 21
+'load pattern, ../../res/image/Stellar/Rudolph4_2.tga, 22
+'load pattern, ../../res/image/Stellar/Rudolph5_0.tga, 23
+'load pattern, ../../res/image/Stellar/Rudolph5_1.tga, 24
+'load pattern, ../../res/image/Stellar/Rudolph5_2.tga, 25
+
+load blit, ../../res/image/Stellar/Rudolph_bot0.tga, 0
+load blit, ../../res/image/Stellar/Rudolph_bot1.tga, 1
+load blit, ../../res/image/Stellar/Rudolph_bot2.tga, 2
+load blit, ../../res/image/Stellar/Rudolph_bot3.tga, 3
+load blit, ../../res/image/Stellar/Rudolph_bot4.tga, 4
+load blit, ../../res/image/Stellar/Rudolph_bot5.tga, 5
+load blit, ../../res/image/Stellar/Rudolph_top.tga,  6
+
+const at67 = 7
+load blit, ../../res/image/at67.tga, at67
+
+
+' initialise internal sprite positions
+const xAddr = get("SPRITE_LUTS", 3)
+const yAddr = get("SPRITE_LUTS", 5)
+
+dim xs%(NUM_SPRITES-1) = 1
+dim ybs(NUM_SPRITES-1) = 0
+dim ys(128)
+def word(@ys, x, 0.0, 360.0, 128) = cos(x)*128.0
+
+dim vtX%(119) = 0
+
+
+'overwrite interlaced waveform 0 in audio memory
+'def byte(&h0700, x, 0.0, 360.0, 64, 4) = (sin(x)*0.5 + 0.5)*63.0
+load wave, ../../res/rich.gtwav, &h0700, 4
+load midi, ../../res/audio/midi/interstellar_v.gtmid, 0
+init scrollParallax, midiv
+play mididv, 0
+sound mod, 1, 0
+sound mod, 2, 0
+sound mod, 3, 0
+sound mod, 4, 0
+
+
+frame = 0 : fr = frame : ph = fr : sc = ph : scp = sc
+ra = 0 : rb = 2 : rc = 4
+astep = 1
+
+gosub initSprites
+gosub initBlits
+
+repeat
+    poke &hB8, 0
+
+    sprites draw', SORTY
+
+    gosub updateSprites
+    
+    gosub at67Scroll
+
+    sprites restore, WAITVB
+    gosub convertVTableX
+    inc frame.lo
+forever
+
+
+scrollParallax:
+    asm
+        PUSH
+    endasm
+    
+    hscroll 2, NUM_FREE_SCANLINES, 24
+    hscroll 1, 24, 21
+    if frame.lo AND 1 then hscroll 1, 45, 14
+    if (frame.lo AND 3) == 2 then hscroll 1, 60, 5
+    if frame.lo AND 1 then hscroll 1, 65, 8
+    hscroll 1, 73, 12
+    hscroll 2, 85, 8
+    'hscroll 3, 93, 12
+    'hscroll 4, 105, 15
+return
+
+
+convertVTableX:
+    asm
+        LDWI    SYS_ConvertVTableX_66
+        STW     giga_sysFn
+        LDWI    _vtX
+        STW     giga_sysArg0
+        MOVQW   giga_sysArg2, 1        'sys_Args2=1, sys_Args3=0
+        MOVQB   giga_sysArg4, 40        'sys call process 3 entries per loop, 120/3=40
+        SYS     66
+    endasm
+return
+
+
+initSprites:
+    mode 2
+    set VIDEO_TOP, NUM_FREE_SCANLINES*2
+
+    ii = 0
+    for i=NUM_SPRITES-1 &downto 0
+        asm
+            LD      _i
+            MULB10
+            LSLW
+            STW     _ii
+        endasm
+        poke xAddr + i, ii + 160
+        poke yAddr + i, 50
+    next i
+
+    x = peek(xAddr)
+    y = peek(yAddr)
+
+    sprites init
+    'sprite move, 5, 40, 95
+    'sprite move, 6, 49, 95
+    'sprite move, 7, 58, 95
+return
+
+
+initBlits:
+    blit noFlip, 6, 35, 94
+    blit noFlip, 6, 65, 94
+    blit noFlip, 6, 95, 94
+    
+    set FG_COLOUR, &h2A
+    rect 1, 108, 22, 118
+    set FG_COLOUR, &h15
+    rect 2, 109, 21, 117
+return
+
+
+updateSprites:
+    'bird x positions
+    if frame.lo AND 1
+        vec8 add, @xs, xAddr, NUM_SPRITES, 0
+    endif
+
+    'bird y postions
+    fr = frame AND 127
+    for i=NUM_SPRITES-1 downto 0
+        asm
+            LD      _i
+            MULB5
+            MULB3
+            ADDW    _fr
+            ANDI    127
+            STW     _ph
+        endasm
+        
+        if ph = 0 then ybs(i) = 0
+        ybs(i) = ybs(i) + ys(ph) : yss = ybs(i)
+        poke yAddr + i, yss.hi + 50
+    next i
+    
+    'bird pattern animations
+    for i=NUM_SPRITES-1 downto 0
+        sprite pattern, i, (peek(xAddr + i) LSR 1) AND 7
+    next i
+    
+    'rudolph blit animations
+    if (frame.lo AND 3) = 0
+        inc ra : inc rb : inc rc
+        if ra = 6 then ra = 0
+        if rb = 6 then rb = 0
+        if rc = 6 then rc = 0
+        blit noFlip, ra, 35, 107
+        blit noFlip, rb, 65, 107
+        blit noFlip, rc, 95, 107
+    endif    
+    
+    'rudolph pattern animations
+    'if (frame.lo AND 3) = 0
+    '    ra = ra + 3
+    '    if ra = 18 then ra = 0
+    '    sprite pattern, 5, 8 + ra
+    '    sprite pattern, 6, 9 + ra
+    '    sprite pattern, 7, 10 + ra
+    'endif
+return
+
+
+at67Scroll:
+    if (frame.lo AND 15) = 1
+        if scp = 0
+            blit SCROLLY, at67, 3, 110, 0, sc
+            call at67Phase, 1
+        elseif scp = 1
+            blit SCROLLY, at67, 3, 110, 0, 7 - sc
+            call at67Phase, 0
+        elseif scp = 2
+            sc1 = 7 - sc
+            if sc = 0 then sc1 = 0
+            blit SCROLLY, at67, 3, sc + 110, sc1, 0
+            call at67Phase, 1
+        elseif scp = 3
+            blit SCROLLY, at67, 3, 7 - sc + 110, sc, 0
+            call at67Phase, 0
+        endif
+    endif
+return
+
+
+proc at67Phase, scc
+    inc sc
+    if sc = 7
+        sc = scc
+        INC scp.lo
+        scp.lo = scp.lo AND 3
+    endif
+endproc

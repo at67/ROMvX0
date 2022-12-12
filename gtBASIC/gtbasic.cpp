@@ -2,19 +2,19 @@
 #include <stdlib.h>
 #include <sstream>
 
-#include "memory.h"
-#include "loader.h"
-#include "cpu.h"
-#include "expression.h"
-#include "assembler.h"
-#include "compiler.h"
-#include "operators.h"
-#include "functions.h"
-#include "keywords.h"
-#include "pragmas.h"
-#include "optimiser.h"
-#include "validater.h"
-#include "linker.h"
+#include "../../memory.h"
+#include "../../loader.h"
+#include "../../cpu.h"
+#include "../../expression.h"
+#include "../../assembler.h"
+#include "../../compiler.h"
+#include "../../operators.h"
+#include "../../functions.h"
+#include "../../keywords.h"
+#include "../../pragmas.h"
+#include "../../optimiser.h"
+#include "../../validater.h"
+#include "../../linker.h"
 
 
 #define GTBASIC_VERSION_STR "gtbasic v" MAJOR_VERSION "." MINOR_VERSION
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     Linker::initialise();
 
     // Choose memory model
-    if(name.find("64k") != std::string::npos  ||  name.find("64K") != std::string::npos)
+    if(name.find("64K") != std::string::npos)
     {
         Cpu::setMemoryModel(RAM_SIZE_HI);
     }
@@ -59,6 +59,7 @@ int main(int argc, char* argv[])
     std::string includepath = (argc == 3) ? std::string(argv[2]) : ".";
 
     // Output file
+    name = std::string(argv[1]);
     size_t nameSuffix = name.find_last_of(".");
     std::string output = name.substr(0, nameSuffix) + ".gasm";
 

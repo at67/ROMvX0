@@ -1,0 +1,38 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &hFFFF
+_arraysStart_ &hFFFF
+_codeRomType_ ROMvX0
+
+const SIZE = 8190
+
+DIM FLAGS%(SIZE)
+
+cls
+
+PRINT "10 iterations"
+
+mode 3
+
+set TIMER, 0
+FOR IT=0 to 9
+    COUNT = 0
+    FOR I=0 TO SIZE
+        FLAGS(I) = 1
+    NEXT I
+
+    FOR I=0 TO SIZE
+        IF FLAGS(I)
+            PRIME = I + I + 3 : K = PRIME + I
+            WHILE K <= SIZE 
+                FLAGS(K) = 0
+                K = K + PRIME
+            WEND
+            INC COUNT
+        ENDIF
+    NEXT I
+NEXT IT
+jiffies = get("JIFFIES")
+seconds = get("TIMER")
+
+PRINT "PRIMES: ";COUNT
+PRINT "TIME: ";seconds;" ";jiffies;"/60"

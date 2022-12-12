@@ -1,4 +1,4 @@
-_runtimePath_ "../runtime"
+_runtimePath_ "../../runtime"
 _runtimeStart_ &h7FFF
 _codeRomType_ ROMvX0
 

@@ -91,13 +91,3 @@ timeString          PUSH
                     POP
                     RET
 %ENDS
-
-%SUB                initCursorTimer
-                    ; dummy that's never called or loaded, keeps the linker happy
-initCursorTimer     RET
-%ENDS
-
-%SUB                getCursorFlash
-                    ; dummy that's never called or loaded, keeps the linker happy
-getCursorFlash      RET
-%ENDS

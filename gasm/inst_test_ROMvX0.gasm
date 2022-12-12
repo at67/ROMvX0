@@ -32,6 +32,7 @@ INS70           EQU     0x0500
 INS89           EQU     0x0600
 INS106          EQU     0x08A0
 INS116          EQU     0x09A0
+INS123          EQU     0x0AA0
 
 entry_point     LD      giga_romType
                 ANDI    0xFC
@@ -54,7 +55,7 @@ inst_loop       MOVQB   giga_soundTimer, 5
                 LDWI    (_test_equ >>8) + 1
                 LDI     50
                 STW     0x32
-                CALL    INS120 ;STACK_CHK
+                CALL    INS123 ;STACK_CHK
                 BRA     inst_loop
 
 STACK_CHK       PUSH
@@ -704,4 +705,30 @@ INS120          LDWI    -5700
                 STW     0x30
 _breakpoint_
                 ABSVW   0x30
+                RET
+
+INS121          LDWI    3100
+                MULW10
+_breakpoint_
+                RET
+
+INS122          LDWI    0x0200
+                STW     0xB0
+                LDWI    0x0300
+                STW     0xB2
+                LDWI    0x0400
+                STW     0xB4
+                LDWI    0x0500
+                STW     0xB6
+                MOVQW   giga_sysArg4, 4
+                MERGE4  0x0800
+_breakpoint_
+                RET
+
+INS123          LDI     0xB0
+                DOKEI+  0x0200
+                DOKEI+  0x0300
+                DOKEI+  0x0400
+                DOKEI+  0x0500
+_breakpoint_
                 RET

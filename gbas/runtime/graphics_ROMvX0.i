@@ -85,34 +85,10 @@ scanlineMode        LDWI    SYS_SetMode_v2_80
 %ENDS   
 
 %SUB                waitVBlanks
-waitVBlanks         DECWA   waitVBlankNum
-                    BGE     waitVB_vblank
-                    RET
-    
-waitVB_vblank       PUSH
-                    CALLI   waitVBlank
-                    POP
-                    BRA     waitVBlanks
-%ENDS
-
-%SUB                waitVBlank
-waitVBlank          LD      giga_jiffiesTick
-                    XORW    frameCountPrev
-                    BEQ     waitVBlank
-                    LD      giga_jiffiesTick
-                    STW     frameCountPrev
+waitVBlanks         WAITVV  frameCountPrev
+                    DBNE    waitVBlankNum, waitVBlanks
                     RET
 %ENDS
-
-%SUB                readPixel
-                    ; dummy
-readPixel           RET
-%ENDS
-
-%SUB                drawPixel
-                    ; dummy
-drawPixel           RET
-%ENDS   
 
 %SUB                drawHLine
 drawHLine           CNVXY   drawHLine_x1, drawHLine_y1, giga_sysArg2
@@ -185,9 +161,9 @@ drawL_ext           CNVXY   drawLine_x1, drawLine_y1, drawLine_xy1      ; xy1 = 
                     ADDW    drawLine_dx2
                     STW     drawLine_dxy2                               ; dxy2 = dx2 + (dy2<<8)
                     
-                    MOVQW   giga_sysFn, SYS_DrawLine_vX_86              ; self starting sys call, performs
+                    MOVQW   giga_sysFn, SYS_DrawLine_vX_86              ; self re-starting sys call, performs
                     SYS     86                                          ; the inner loop of drawLineLoop
-                    POP                                                 ; matches drawLine's PUSH
+                    POP
                     RET
 %ENDS
 
@@ -250,7 +226,7 @@ drawVTL_flip        ADDVW   drawLine_dxy2, drawLine_xy1, drawLine_xy1   ; xy1 +=
                     SUBVW   drawLine_xy2, drawLine_dxy2, drawLine_xy2   ; xy2 -= dxy2
                     
 drawVTL_count       DBNE    drawLine_count, drawVTLineLoop
-                    POP                                                 ; matches drawVTLine's PUSH
+                    POP
                     RET
 %ENDS   
     

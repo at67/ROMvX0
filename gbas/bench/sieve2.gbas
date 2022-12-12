@@ -1,0 +1,89 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &hFFFF
+_arraysStart_ &hFFFF
+_codeRomType_ ROMvX0
+
+const SIZE = 8190
+
+DIM FLAGS(SIZE)
+
+cls : mode 3
+
+'init TIME
+
+PRINT "1 iteration"
+
+def COUNT, F, S, I, K, PRIME
+
+set TIMER, 0
+
+asm
+    MOVQW   _COUNT, 0
+    LDWI    _FLAGS
+    STW     _F
+    LDWI    _SIZE
+    STW     _S
+    STW     _I
+
+
+'FOR I = 0 TO SIZE
+'    FLAGS(I) = 1
+'NEXT I
+
+L0: LDI     1
+    DOKE    _F
+    ADDVI   _F, _F, 2
+    DECWA   _I
+    JGE     _L0
+
+
+'9   FOR I = 0 TO SIZE
+'10      IF FLAGS(I) = 0 THEN 18
+'11      PRIME = I+I + 3
+'12      K = I + PRIME
+'13      IF K > SIZE THEN 17
+'14      FLAGS(K) = 0
+'15      K = K + PRIME
+'16      GOTO 13
+'17      COUNT = COUNT + 1
+'18  NEXT I
+
+    MOVQW   _I, 0
+    LDWI    _FLAGS
+    
+L1: DEEK
+    JEQ     _L4
+    LDW     _I
+    ADDW    _I
+    ADDI    3
+    STW     _PRIME
+    ADDW    _I
+    STW     _K
+    
+L2: SUBW    _S
+    JGT     _L3
+    LDWI    _FLAGS
+    ADDW    _K
+    ADDW    _K
+    DOKEI   0
+    ADDVW   _PRIME, _K, _K
+    BRA     _L2
+    
+L3: INCW    _COUNT
+
+L4: LDW     _I
+    SUBW    _S
+    BGT     _DONE
+    INCWA   _I
+    ADDWI   _FLAGS
+    ADDW    _I
+    BRA     _L1
+endasm    
+
+DONE:
+
+seconds = get("TIMER")
+jiffies = get("JIFFIES")
+
+PRINT "PRIMES: ";COUNT
+PRINT "TIME: ";seconds;" ";jiffies;"/60"

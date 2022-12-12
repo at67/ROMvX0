@@ -124,7 +124,6 @@ SYS_MemCopyByte_vX_40           EQU     0x00c2
 SYS_MemCopyWord_vX_48           EQU     0x00c5
 SYS_MemCopyDWord_vX_58          EQU     0x00c8
 SYS_DrawVLine_vX_66             EQU     0x00cb
-SYS_DrawSprite_vX_132           EQU     0x00ce
 SYS_DrawBullet_vX_140           EQU     0x00d1
 SYS_CmpByteBounds_vX_54         EQU     0x00d4
 SYS_Divide_u168_vX_56           EQU     0x00d7
@@ -138,9 +137,9 @@ SYS_FillByteSeq_vX_36           EQU     0x1360
 SYS_AddInt8Array_vX_40          EQU     0x1380
 SYS_ParityFill_vX_44            EQU     0x13a0
 SYS_ConvertVTableX_66           EQU     0x1fc0
-SYS_DrawSpriteH_vX_140          EQU     0x2000
+SYS_DrawSprite_vX_140           EQU     0x2000
 SYS_ScrollVTableY_vX_38         EQU     0x20c0
-SYS_RestoreSprite_vX_126        EQU     0x2100
+SYS_RestoreSprite_vX_124        EQU     0x2100
 SYS_ScrollRectVTableY_vX_44     EQU     0x21a0
 SYS_LoadSerialIn_vX_56          EQU     0x3080
 

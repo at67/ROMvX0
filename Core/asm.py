@@ -105,8 +105,8 @@ def label(name):
   if address not in _labels:
     _labels[address] = [] # There can be more than one
   _labels[_romSize].append(name)
-  if name.isalnum():
-    gtBasicSymbolsFile.write('const ' + name + ' = &h' + hex(address)[2:] + '\n')
+  #if name.isalnum():
+  #  gtBasicSymbolsFile.write('const ' + name + ' = &h' + hex(address)[2:] + '\n')
 
 def C(line, prefix=';'):
   """Insert comment to print in disassembly"""
@@ -123,6 +123,8 @@ def define(name, newValue):
     if newValue != oldValue:
       highlight('Warning: redefining %s (old %s new %s)' % (name, oldValue, newValue))
   _symbols[name] = newValue
+  if name.isalnum():
+    gtBasicSymbolsFile.write('const ' + name + ' = &h' + hex(newValue)[2:] + '\n')
 
 def symbol(name):
   """Lookup a symbol, return None if not defined"""

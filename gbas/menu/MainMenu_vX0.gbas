@@ -116,7 +116,7 @@ blinkenLights:
     if (t AND &h03) = 0
         poke XOUT_MASK, blnkns(leds)
         inc leds
-        if leds = 24 then leds = 0
+        if leds = NUM_BLNKNS then leds = 0
     endif
 return
 
@@ -144,13 +144,13 @@ drawStars:
         if abs(xp) > 79*256 then gosub newStar
         if abs(yp) > 31*256 then gosub newStar
         
-        px = xr.hi + STARS_ORG_X : py = yr.hi + STARS_ORG_Y
+        px.lo = xr.hi + STARS_ORG_X : py.lo = yr.hi + STARS_ORG_Y
         if point(px, py) AND &h80
             pset px, py, 0
         endif
                 
         ss = star(i)
-        px = xp.hi + STARS_ORG_X : py = yp.hi + STARS_ORG_Y
+        px.lo = xp.hi + STARS_ORG_X : py.lo = yp.hi + STARS_ORG_Y
         if point(px, py) = 0
             if ss > 20
                 pset px, py, &h3F OR &h80 'white

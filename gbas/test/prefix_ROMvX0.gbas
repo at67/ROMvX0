@@ -1,0 +1,34 @@
+_runtimePath_ "../runtime"
+_runtimeStart_ &h7FFF
+_codeRomType_ ROMvX0
+_enable6BitAudioEmu_ ON 'experimental
+
+'not using strings
+free STRINGWORKAREA
+
+load midi, ../../res/audio/midi/agony.gtmid, 0
+
+init test, midiv
+play mididv, 0
+
+a = 0
+b = 0
+
+mode 2 : cls
+
+repeat
+    asm
+        LDW     _a
+        STW2    0x0800
+        INCWA   _a
+    endasm
+&forever
+
+
+test:
+    asm
+        LDW     _b
+        STW2    0x0804
+        INCWA   _b
+    endasm
+ret

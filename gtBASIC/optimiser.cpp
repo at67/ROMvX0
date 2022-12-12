@@ -34,7 +34,7 @@ namespace Optimiser
         MovwaLdwiAddwPeeka, MovqwLdwiAddiPokea, LdwiAddwPeek, LdwiAddwPeeka, MovwaLdarrbSt, StwLdwiAddwPokea, LdwiAddwPokea, LdwiAddwPokei, StwMovb, StwPokeArray, StwDokeArray, LdiSt, LdiStw, LdSubLoHi, LdiSubLoHi,
         LdwSubLoHi, LdiAddi, LdiSubi, LdiAndi, LdiOri, LdiXori, LdwStw, TeqStw, TneStw, TltStw, TgtStw, TleStw, TgeStw, TeqJump, TneJump, TltJump, TgtJump, TleJump, TgeJump, TeqCondii, TeqCondib, TeqCondbi,
         TeqCondbb, MovbMovb0, MovbMovb1, MovbMovb2, PackvwLdw, PackvwStpx, XyToVram, AddiAddi, AddiSubi, SubiAddi, SubiSubi, LdiZeroAddw, LdwAddwStw1, LdwSubwStw1, LdAddiSt1, LdwAddiSt1, LdwSubiStw1, LdSubiSt1,
-        LdwSubiSt1, LdwAddiStw1, 
+        LdwSubiSt1, LdwAddiStw1, LdiAddwAddi, LdiSubwAddi, LdiAddwSubi, LdiSubwSubi, MovqbMovqbLdw,
 
         // Opcodes AND operands are manually matched
         MovwaStarrb, AddiZero, SubiZero, LdwiNeg, LdwiSml, NumOptimiseTypes
@@ -1340,6 +1340,31 @@ namespace Optimiser
                 Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + "",
                 Expression::createPaddedString("STW",  OPCODE_TRUNC_SIZE, ' ') + ""}},
 
+        // LdiAddwAddi
+        {0, 0, {Expression::createPaddedString("LDI",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ADDW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdiSubwAddi
+        {0, 0, {Expression::createPaddedString("LDI",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("SUBW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("ADDI", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdiAddwSubi
+        {0, 0, {Expression::createPaddedString("LDI",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("ADDW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // LdiSubwSubi
+        {0, 0, {Expression::createPaddedString("LDI",  OPCODE_TRUNC_SIZE, ' ') + "", 
+                Expression::createPaddedString("SUBW", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("SUBI", OPCODE_TRUNC_SIZE, ' ') + ""}},
+
+        // MovqbMovqbLdw
+        {0, 2, {Expression::createPaddedString("MOVQB", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("MOVQB", OPCODE_TRUNC_SIZE, ' ') + "",
+                Expression::createPaddedString("LDW",   OPCODE_TRUNC_SIZE, ' ') + ""}},
+
         /******************************************************************************************/
         /* Opcodes are manually matched here on in
         /******************************************************************************************/
@@ -2311,6 +2336,7 @@ namespace Optimiser
                                         {
                                             bccOpcode = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._opcode.substr(0, 5);
                                             if(bccOpcode != "BEQ"  &&  bccOpcode != "BNE"  &&  bccOpcode != "BLE"  &&  bccOpcode != "BGE"  &&  bccOpcode != "BLT"  &&  bccOpcode != "BGT"  &&
+                                               bccOpcode != "TEQ"  &&  bccOpcode != "TNE"  &&  bccOpcode != "TLE"  &&  bccOpcode != "TGE"  &&  bccOpcode != "TLT"  &&  bccOpcode != "TGT"  &&
                                                bccOpcode != "JEQ"  &&  bccOpcode != "JNE"  &&  bccOpcode != "JLE"  &&  bccOpcode != "JGE"  &&  bccOpcode != "JLT"  &&  bccOpcode != "JGT"  &&
                                                bccOpcode != "%Jump")
                                             {
@@ -2318,8 +2344,8 @@ namespace Optimiser
                                             }
                                         }
 
-                                        // Bail if next instruction is a read or write
-                                        if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
+                                        // Bail if next instruction reads vAC and bccOpcode was not one of TCC
+                                        if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size())  &&  bccOpcode[0] != 'T')
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
                                             if(vAcType == Assembler::InVAC  ||  vAcType == Assembler::InOutVAC) break;
@@ -2348,7 +2374,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2375,7 +2401,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2403,7 +2429,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2593,7 +2619,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2728,7 +2754,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2761,7 +2787,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2795,7 +2821,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2825,7 +2851,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2854,7 +2880,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2882,7 +2908,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2911,7 +2937,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -2939,7 +2965,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -3025,7 +3051,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -3052,7 +3078,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -3111,7 +3137,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -3805,7 +3831,7 @@ namespace Optimiser
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                         if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                        // Bail if next instruction is a read or write
+                                        // Bail if next instruction reads vAC
                                         if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                         {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -3894,7 +3920,7 @@ namespace Optimiser
                                     if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a read or write
+                                    // Bail if next instruction reads vAC
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._vAcType;
@@ -4042,7 +4068,7 @@ namespace Optimiser
                                     if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a read or write
+                                    // Bail if next instruction reads vAC
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._vAcType;
@@ -4737,7 +4763,7 @@ namespace Optimiser
                                     if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a read or write
+                                    // Bail if next instruction reads vAC
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._vAcType;
@@ -4764,7 +4790,7 @@ namespace Optimiser
                                     if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a read or write
+                                    // Bail if next instruction reads vAC
                                     if(firstMatch + 2 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._vAcType;
@@ -5113,8 +5139,8 @@ namespace Optimiser
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
                                     // Bail if operands don't match corectly
-                                    std::string movbOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 0);
-                                    std::string movbOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 1);
+                                    std::string movbOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 0);
+                                    std::string movbOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 1);
                                     std::string movbOperand10 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 0);
                                     std::string movbOperand11 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 1);
                                     if(movbOperand10.find(movbOperand00) == std::string::npos) break;
@@ -5140,8 +5166,8 @@ namespace Optimiser
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
                                     // Bail if operands don't match corectly
-                                    std::string movbOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 0);
-                                    std::string movbOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 1);
+                                    std::string movbOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 0);
+                                    std::string movbOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 1);
                                     std::string movbOperand10 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 0);
                                     std::string movbOperand11 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 1);
                                     if(movbOperand01 != "giga_vAC"  ||  (movbOperand11 != "giga_vAC+1"  &&  movbOperand11 != "giga_vAC + 1")) break;
@@ -5164,8 +5190,8 @@ namespace Optimiser
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
 
                                     // Bail if operands don't match corectly
-                                    std::string movbOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 0);
-                                    std::string movbOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch]._operand, 1);
+                                    std::string movbOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 0);
+                                    std::string movbOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 1);
                                     std::string movbOperand10 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 0);
                                     std::string movbOperand11 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 1);
                                     if(movbOperand01 == "giga_vAC"  ||  movbOperand11.find(movbOperand01) == std::string::npos  ||  
@@ -5479,7 +5505,7 @@ namespace Optimiser
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a read or write
+                                    // Bail if next instruction reads vAC
                                     if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -5531,7 +5557,7 @@ namespace Optimiser
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
                                     if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
 
-                                    // Bail if next instruction is a read or write
+                                    // Bail if next instruction reads vAC
                                     if(firstMatch + 3 < int(Compiler::getCodeLines()[codeLine]._vasm.size()))
                                     {
                                             Assembler::VACType vAcType = Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 3]._vAcType;
@@ -5571,6 +5597,108 @@ namespace Optimiser
                                     itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
                                     itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
                                     adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"ADDI", "STW"});
+                                }
+                                break;
+
+                                case LdiAddwAddi:
+                                case LdiSubwAddi:
+                                {
+                                    // Bail if ADDW/SUBW or ADDI has a label
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Get operands
+                                    uint8_t ldi, addi;
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand), ldi);
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand), addi);
+
+                                    // Replace LDI and it's operand
+                                    uint16_t result = ldi + addi;
+                                    if(result >=0  &&  result < 256)
+                                    {
+                                        updateVasm(codeLine, firstMatch, "LDI", std::to_string(uint8_t(result)));
+                                    }
+                                    else
+                                    {
+                                        updateVasm(codeLine, firstMatch, "LDWI", std::to_string(result));
+                                    }
+
+                                    // Delete second ADDI
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 2);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 2, {"ADDI"});
+                                }
+                                break;
+
+                                case LdiAddwSubi:
+                                case LdiSubwSubi:
+                                {
+                                    // Bail if ADDW/SUBW or SUBI has a label
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Get operands
+                                    uint8_t ldi, subi;
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand), ldi);
+                                    Expression::stringToU8(Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand), subi);
+
+                                    // Replace LDI and it's operand
+                                    int16_t result = ldi - subi;
+                                    if(result >=0  &&  result < 256)
+                                    {
+                                        updateVasm(codeLine, firstMatch, "LDI", std::to_string(uint8_t(result)));
+                                    }
+                                    else
+                                    {
+                                        if(Compiler::getCodeRomType() >= Cpu::ROMvX0  &&  Compiler::getCodeRomType() < Cpu::SDCARD)
+                                        {
+                                            if(result < 0  &&  result > -256)
+                                            {
+                                                updateVasm(codeLine, firstMatch, "LDNI", std::to_string(abs(result)));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            updateVasm(codeLine, firstMatch, "LDWI", std::to_string(result));
+                                        }
+                                    }
+
+                                    // Delete second SUBI
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 2);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 2, {"SUBI"});
+                                }
+                                break;
+
+                                // Match MOVQB MOVQB, LDW, replace with LDWI
+                                case MovqbMovqbLdw:
+                                {
+                                    // Bail if wrong ROM version or if second MOVQB or LDW have labels
+                                    if(Compiler::getCodeRomType() < Cpu::ROMvX0  ||  Compiler::getCodeRomType() >= Cpu::SDCARD) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._labelIndex >= 0) break;
+                                    if(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._labelIndex >= 0) break;
+
+                                    // Bail if operands don't match corectly
+                                    std::string movqbOperand00 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 0);
+                                    std::string movqbOperand01 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 0]._operand, 1);
+                                    std::string movqbOperand10 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 0);
+                                    std::string movqbOperand11 = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 1]._operand, 1);
+                                    std::string ldwOperand     = Expression::getVasmOperand(Compiler::getCodeLines()[codeLine]._vasm[firstMatch + 2]._operand, 0);
+                                    if(movqbOperand10.find("+1") == std::string::npos  &&  movqbOperand10.find("+ 1") == std::string::npos) break;
+                                    if(movqbOperand10.find(movqbOperand00) == std::string::npos  ||  movqbOperand00 != ldwOperand) break;
+
+                                    // Replace first MOVQB with LDWI
+                                    uint8_t imm0 = 0;
+                                    uint8_t imm1 = 0;
+                                    if(!Expression::stringToU8(movqbOperand01, imm0)) break;
+                                    if(!Expression::stringToU8(movqbOperand11, imm1)) break;
+                                    updateVasm(codeLine, firstMatch, "LDWI", Expression::wordToHexString(imm1*256 + imm0));
+
+                                    // Delete second MOVQB and LDW
+                                    linesDeleted = true;
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(Compiler::getCodeLines()[codeLine]._vasm.begin() + firstMatch + 1);
+                                    itVasm = Compiler::getCodeLines()[codeLine]._vasm.erase(itVasm);
+                                    adjustLabelAndVasmAddresses(codeLine, firstMatch + 1, {"MOVQB", "LDW"});
                                 }
                                 break;
 

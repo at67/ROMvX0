@@ -1,4 +1,4 @@
-_runtimePath_ "../runtime"
+_runtimePath_ "../../runtime"
 _runtimeStart_ &h7FFF
 _arraysStart_ &h7FFF
 _codeRomType_ ROMvX0
@@ -16,7 +16,7 @@ free &h7E00, 160
 free &h7F00, 160
 
 'use this after _runtimeStart_ to specify maximum number of blits if you have more than 48
-_maxNumBlits_ 61
+_maxNumBlits_ 62
 
 'defines the amount of contiguous RAM needed for blit stripes, (in this case 15*6 + 1), also min address and search direction
 _blitStripeChunks_ 15, &h3BA0, &h7FFF, descending
@@ -29,7 +29,8 @@ module "PucMonData_ROMv5a.m"
 'flags <8:puc flags><8:ghost flags>, puc flags XXXXXXXD, ghost flags XXXXXXSD : where S = slowed, D = dead
 
 'define vars without intitialisation, (initialised in initVars)
-def livesDots, levelPain, timeTicks, flags, gmode, gx, gy, gxd, gyd, gdir, mz, pyd, oxd, oyd, puci, pucj, ti, tj, bi, bj, zi, zj, px, py, pxd, bonus, eatTicks, scaredTicks
+def livesDots, levelPain, timeTicks, flags, gmode, gx, gy, gxd, gyd, gdir, mz, pyd, oxd, oyd, puci, pucj, ti, tj, bi, bj, zi, zj, px, py, pxd, bonus, eatTicks, scaredTicks, sc, scp, gcnt
+
 
 gosub initSystem
 'call drawGrid
@@ -68,6 +69,7 @@ repeat
     if flags.hi = 1
         flags.hi = 0
         livesDots.hi = livesDots.hi - 1
+        call at67Scroll, 1
         call drawDeath
         call drawDots, 0 'refresh
         if livesDots.hi = 0
@@ -81,6 +83,8 @@ repeat
     blit NoFlip, Tunnel, (123+ORIGIN_X), (51+ORIGIN_Y)
     
     call drawPills
+    
+    call at67Scroll, 0
     
     gosub setGhostsMode
     call moveGhosts
@@ -181,7 +185,7 @@ drawGhosts:
             call drawNormalGhost
         endif
         
-drawNextGhost:        
+drawNextGhost:
     next gidx
 return
 
@@ -360,15 +364,22 @@ proc moveGhosts
         gi = ci - gxd
         gj = cj - gyd
 
+        if igcnt(gidx) = 1
+            inc gcnt.lo
+            if gcnt.lo > 4 then gcnt.lo = 4
+            igcnt(gidx) = 0
+        endif
+
         'ghost replaces dot
         mz = maze(dj, di)
         if slowed = 0 then gosub replaceDot
 
         'ghost leaves home
         if maze(gj, gi) = EXIT
-            if (flags.lo XOR 255 AND 1)
+            if flags.lo XOR 255 AND 1
                 if gmode <> SCARED_MODE
                     gxd = 0 : gyd = -1
+                    igcnt(gidx) = 1
                 endif
             endif
         endif
@@ -379,6 +390,10 @@ proc moveGhosts
         'ghost home
         if gi = 13
             if gj = 10
+                if (flags.lo AND 1)
+                    dec gcnt.lo
+                    if gcnt.lo > 4 then gcnt.lo = 0
+                endif
                 flags.lo = flags.lo AND &hFE : ghostsFlags(gidx) = flags.lo
             endif
         endif
@@ -573,9 +588,18 @@ return
 
 replaceDot:
     if (mz AND &h0F) = DOT
-        di = (di LSL 2) + di + ORIGIN_X   'di = di*5 + 12
-        dj = (dj LSL 2) + dj + ORIGIN_Y   'dj = dj*5 + 2
-        poke ((dj + 8) LSL 8) + di, &h2B  'convert dj, di to vram address
+        asm
+            LD      _di
+            MULB5
+            ADDI    _ORIGIN_X
+            STW     _di                     'di = di*5 + ORIGIN_X
+            LD      _dj
+            MULB5
+            ADDI    _ORIGIN_Y
+            STW     _dj                     'dj = dj*5 + ORIGIN_Y
+        endasm
+        
+        poke ((dj + 8) LSL 8) + di, &h2B    'convert dj, di to vram address
     endif
 return
 
@@ -760,7 +784,7 @@ proc drawDots, redraw
             if redraw = 1
                 if (mz AND &h0F) = RDOT         'reset dots
                     mz = (mz AND &hF0) OR DOT
-                elseif (mz AND &h0F) = RPILL   'reset pills
+                elseif (mz AND &h0F) = RPILL    'reset pills
                     mz = (mz AND &hF0) OR PILL
                 endif
                 maze(cj, ci) = mz
@@ -778,12 +802,59 @@ nextLevel:
     inc levelPain.hi
 goto start
 
+
+proc at67Scroll, reset
+    local sc1
+    
+    if reset OR ((gcnt.lo = 4) AND (gcnt.hi < 4))
+        sc = 0 : scp = sc : timeTicks.lo = scp
+    endif
+    
+    if (gcnt.lo < 4) OR reset
+        if (gcnt.hi = 4) OR reset
+            set FG_COLOUR, &h00
+            rectf 61, 54, 79, 61
+        endif
+        gcnt.hi = gcnt.lo
+        return
+    endif
+    gcnt.hi = gcnt.lo
+    
+    if (timeTicks.lo AND 15) = 0
+        if scp = 0
+            blit SCROLLY, at67, 61, 54, 0, sc
+            call at67Phase, 1
+        elseif scp = 1
+            blit SCROLLY, at67, 61, 54, 0, 7 - sc
+            call at67Phase, 0
+        elseif scp = 2
+            sc1 = 7 - sc
+            if sc = 0 then sc1 = 0
+            blit SCROLLY, at67, 61, sc + 54, sc1, 0
+            call at67Phase, 1
+        elseif scp = 3
+            blit SCROLLY, at67, 61, 7 - sc + 54, sc, 0
+            call at67Phase, 0
+        endif
+    endif
+endproc
+
+proc at67Phase, scc
+    inc sc
+    if sc = 7
+        sc = scc
+        INC scp.lo
+        scp.lo = scp.lo AND 3
+    endif
+endproc
+
 proc initVars
     local i, corner
     
     'initialises all variables, (to zero), starting at @timeTicks
     clear vars, @timeTicks
     
+    gcnt = 1
     px = (63+ORIGIN_X)
     py = (86+ORIGIN_Y)
     pxd = -1
@@ -811,12 +882,13 @@ startLevel:
     bcdint @pointsBCD, 0
     bcdint @levelBCD, levelPain.lo
     if levelPain.hi > 7 then levelPain.hi = 7
-    
+
     call drawDots, 1 'redraw
     call drawScore
     call drawHigh
     call drawLives
     call drawLevel
+    call at67Scroll, 1
     
     if levelPain.lo = 0
         play music, MUSIC_INTRO, 2

@@ -472,8 +472,8 @@ namespace Cpu
             case ROMv4:  // fallthrough
             case ROMv5a: // fallthrough
             case DEVROM: // fallthrough
-            case SDCARD: // fallthrough
-            case ROMvX0: _stateS._PC = ROM_ACTIVE_INTERPRETER; break;
+            case SDCARD: _stateS._PC = ROM_ACTIVE_INTERPRETER; break;
+            case ROMvX0: _stateS._PC = ROM_ROMvX0_INTERPRETER; break;
 
             default:
             {
@@ -761,9 +761,9 @@ namespace Cpu
 #if 1
         switch(audioMode)
         {
-            case Audio4bit: Compiler::setAudioBitMask(0x0F); break;
-            case Audio6bit: Compiler::setAudioBitMask(0x03); break;
-            case Audio8bit: Compiler::setAudioBitMask(0x00); break;
+            case Audio4bit: Compiler::setAudioBitMask(0x0F);  Cpu::setRAM(0x0008, 0x0F); break;
+            case Audio6bit: Compiler::setAudioBitMask(0x03);  Cpu::setRAM(0x0008, 0x03); break;
+            case Audio8bit: Compiler::setAudioBitMask(0x00);  Cpu::setRAM(0x0008, 0x00); break;
         }
 #else
         const std::vector<uint16_t> romvXAddrs        = {0x0136, 0x014C, 0x0196, 0x02D6};
@@ -820,7 +820,8 @@ namespace Cpu
     void enableAudioMode(RomType romType, AudioMode audioMode)
     {
         // ROMvX0 has a different audio startup
-        if(readRomType(reinterpret_cast<uint8_t*>(_ROM)) == ROMvX0) return enableAudioModeRomX(audioMode);
+        if(romType == ROMvX0) return enableAudioModeRomX(audioMode);
+        //if(readRomType(reinterpret_cast<uint8_t*>(_ROM)) == ROMvX0) return enableAudioModeRomX(audioMode);
 
         const std::vector<uint16_t> romv5aAddrs        = {0x0056, 0x012C, 0x015C, 0x01A6, 0x01A7, 0x02D6, 0x02D7};
         const std::vector<uint8_t>  romv5aOpcodes      = {0x00,   0x00,   0x00,   0x40,   0x20,   0x40,   0x20  };

@@ -134,6 +134,14 @@ namespace Operators
         changeToTmpVar(numeric);
     }
 
+    void handleMulDivOp(const std::string& opcode, const std::string& operand, Expression::Numeric& numeric)
+    {
+        Compiler::getNextTempVar();
+        Operators::handleSingleOp("LDW", numeric);
+        Compiler::emitVcpuAsm(opcode, operand, false);
+        Compiler::emitVcpuAsm("STW", Expression::byteToHexString(uint8_t(Compiler::getTempVarStart())), false);
+    }
+
     void selectSingleOp(const std::string& opcode, Expression::Numeric& numeric)
     {
         if(numeric._varType == Expression::Number)
@@ -1868,8 +1876,118 @@ namespace Operators
         if(right._varType == Expression::Number  &&  right._value == 1) return left;
 
         // Optimise multiply with 2
-        if(left._varType  == Expression::Number  &&  left._value  == 2) return right;
-        if(right._varType == Expression::Number  &&  right._value == 2) return left;
+        if(left._varType == Expression::Number  &&  left._value == 2)
+        {
+            handleMulDivOp("LSLW", "", right);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 2)
+        {
+            handleMulDivOp("LSLW", "", left);
+            return left;
+        }
+
+        // Optimise multiply with 3
+        if(left._varType == Expression::Number  &&  left._value  == 3)
+        {
+            handleMulDivOp("MULW3", "", right);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 3)
+        {
+            handleMulDivOp("MULW3", "", left);
+            return left;
+        }
+
+        // Optimise multiply with 4
+        if(left._varType == Expression::Number  &&  left._value  == 4)
+        {
+            Compiler::getNextTempVar();
+            Compiler::emitVcpuAsm("LSLW", "", false);
+            Compiler::emitVcpuAsm("LSLW", "", false);
+            Compiler::emitVcpuAsm("STW", Expression::byteToHexString(uint8_t(Compiler::getTempVarStart())), false);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 4)
+        {
+            Compiler::getNextTempVar();
+            Compiler::emitVcpuAsm("LSLW", "", false);
+            Compiler::emitVcpuAsm("LSLW", "", false);
+            Compiler::emitVcpuAsm("STW", Expression::byteToHexString(uint8_t(Compiler::getTempVarStart())), false);
+            return left;
+        }
+
+        // Optimise multiply with 5
+        if(left._varType == Expression::Number  &&  left._value  == 5)
+        {
+            handleMulDivOp("MULW5", "", right);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 5)
+        {
+            handleMulDivOp("MULW5", "", left);
+            return left;
+        }
+
+        // Optimise multiply with 6
+        if(left._varType == Expression::Number  &&  left._value  == 6)
+        {
+            handleMulDivOp("MULW6", "", right);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 6)
+        {
+            handleMulDivOp("MULW6", "", left);
+            return left;
+        }
+
+        // Optimise multiply with 7
+        if(left._varType == Expression::Number  &&  left._value  == 7)
+        {
+            handleMulDivOp("MULW7", "", right);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 7)
+        {
+            handleMulDivOp("MULW7", "", left);
+            return left;
+        }
+
+        // Optimise multiply with 8
+        if(left._varType == Expression::Number  &&  left._value  == 8)
+        {
+            handleMulDivOp("MULW8", "", right);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 8)
+        {
+            handleMulDivOp("MULW8", "", left);
+            return left;
+        }
+
+        // Optimise multiply with 9
+        if(left._varType == Expression::Number  &&  left._value  == 9)
+        {
+            handleMulDivOp("MULW9", "", right);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 9)
+        {
+            handleMulDivOp("MULW9", "", left);
+            return left;
+        }
+
+        // Optimise multiply with 10
+        if(left._varType == Expression::Number  &&  left._value  == 10)
+        {
+            handleMulDivOp("MULW10", "", right);
+            return right;
+        }
+        if(right._varType == Expression::Number  &&  right._value == 10)
+        {
+            handleMulDivOp("MULW10", "", left);
+            return left;
+        }
 
         left._isValid = (Compiler::getCodeRomType() >= Cpu::ROMv5a) ? handleMathOp("CALLI", "multiply16bit", left, right) : handleMathOp("CALL", "multiply16bit", left, right);
 
@@ -1896,6 +2014,38 @@ namespace Operators
 
         // Optimise divide by 1
         if(right._varType == Expression::Number  &&  right._value == 1) return left;
+
+        // ROMvX0 optimisations
+        if(Compiler::getCodeRomType() >= Cpu::ROMvX0  &&  Compiler::getCodeRomType() < Cpu::SDCARD)
+        {
+            // Optimise divide by 2
+            if(right._varType == Expression::Number  &&  right._value == 2)
+            {
+                handleMulDivOp("LSRV", "giga_vAC", left);
+                return left;
+            }
+
+            // Optimise divide by 4
+            if(right._varType == Expression::Number  &&  right._value == 4)
+            {
+                Compiler::getNextTempVar();
+                Compiler::emitVcpuAsm("LSRV", "giga_vAC", false);
+                Compiler::emitVcpuAsm("LSRV", "giga_vAC", false);
+                Compiler::emitVcpuAsm("STW", Expression::byteToHexString(uint8_t(Compiler::getTempVarStart())), false);
+                return left;
+            }
+
+            // Optimise divide by 8
+            if(right._varType == Expression::Number  &&  right._value == 8)
+            {
+                Compiler::getNextTempVar();
+                Compiler::emitVcpuAsm("LSRV", "giga_vAC", false);
+                Compiler::emitVcpuAsm("LSRV", "giga_vAC", false);
+                Compiler::emitVcpuAsm("LSRV", "giga_vAC", false);
+                Compiler::emitVcpuAsm("STW", Expression::byteToHexString(uint8_t(Compiler::getTempVarStart())), false);
+                return left;
+            }
+        }
 
         left._isValid = (Compiler::getCodeRomType() >= Cpu::ROMv5a) ? handleMathOp("CALLI", "divide16bit", left, right) : handleMathOp("CALL", "divide16bit", left, right);
 

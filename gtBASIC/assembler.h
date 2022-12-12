@@ -71,6 +71,7 @@
 #define OPCODE_V_LDWM   0x72
 #define OPCODE_V_DOKEI  0x77
 #define OPCODE_V_ARRW   0x79
+#define OPCODE_V_SCRLHR 0x7B
 #define OPCODE_V_DBGE   0x8E
 #define OPCODE_V_BRA    0x90
 #define OPCODE_V_INCWA  0x95
@@ -89,6 +90,7 @@
 #define OPCODE_V_JGE    0xC5
 #define OPCODE_V_PREFX3 0xC7
 #define OPCODE_V_CALL   0xCF
+#define OPCODE_V_DOKEIp 0xD3
 #define OPCODE_V_DECWA  0xDD
 #define OPCODE_V_PACKVW 0xE1
 
@@ -108,6 +110,13 @@
 #define OPCODE_V_MULB9  0x43
 #define OPCODE_V_MULB10 0x45
 #define OPCODE_V_WAITVB 0x47
+#define OPCODE_V_MULW3  0x49
+#define OPCODE_V_MULW5  0x4B
+#define OPCODE_V_MULW6  0x4D
+#define OPCODE_V_MULW7  0x4F
+#define OPCODE_V_MULW8  0x51
+#define OPCODE_V_MULW9  0x53
+#define OPCODE_V_MULW10 0x55
 
 // PREFX2 instructions
 #define OPCODE_V_LSLN   0x11
@@ -146,6 +155,13 @@
 #define OPCODE_V_SUBBA  0x62
 #define OPCODE_V_NOTB   0x64
 #define OPCODE_V_ABSVW  0x67
+#define OPCODE_V_INCW   0x6a
+#define OPCODE_V_DECW   0x6c
+#define OPCODE_V_WAITVV 0x6e
+#define OPCODE_V_POKEAP 0x71
+#define OPCODE_V_LSRV   0x73
+#define OPCODE_V_DEEKRI 0x75
+#define OPCODE_V_SCRLH  0x77
 
 // PREFX3 instructions
 #define OPCODE_V_STB2   0x11
@@ -193,6 +209,10 @@
 #define OPCODE_V_VADDBL 0x83
 #define OPCODE_V_VSUBBL 0x86
 #define OPCODE_V_CMPII  0x89
+#define OPCODE_V_IMIDI  0x8B
+#define OPCODE_V_PMIDI  0x8E
+#define OPCODE_V_PMIDIV 0x91
+#define OPCODE_V_MERGE4 0x94
 
 #define OPCODE_V_HALT   0xB4
 #define OPERAND_V_HALT  0x80

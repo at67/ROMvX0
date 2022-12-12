@@ -2,8 +2,9 @@
 blitId              EQU     register0
 blitXY              EQU     register1
 blitAddrs           EQU     register2
+blitScrollY         EQU     register3
 
-    
+
 %SUB                drawBlit_
 drawBlit_           ARRVW   blitId, _blitsLut_
                     DEEKA   blitAddrs                     ; get blit address table
@@ -16,8 +17,7 @@ drawB_loop          STW     giga_sysArg0
 
 drawB_check         DEEKV+  blitAddrs
                     BNE     drawB_loop
-                    
-drawB_exit          RET
+                    RET
 %ENDS
 
 %SUB                drawBlit
@@ -53,6 +53,24 @@ drawBlitXY          PUSH
                     STW     giga_sysFn
                     CALLI   drawBlit_
                     POP
+                    RET
+%ENDS
+
+%SUB                scrollBlitY
+scrollBlitY         LDWI    SYS_Sprite6_v3_64
+                    STW     giga_sysFn
+                    ARRVW   blitId, _blitsLut_
+                    DEEKA   blitAddrs                     ; get blit address table
+                    BRA     scrollBY_check
+                    
+scrollBY_loop       ADDW    blitScrollY
+                    STW     giga_sysArg0
+                    DEEKV+  blitAddrs
+                    ADDW    blitXY
+                    SYS     64
+
+scrollBY_check      DEEKV+  blitAddrs
+                    BNE     scrollBY_loop
                     RET
 %ENDS
 

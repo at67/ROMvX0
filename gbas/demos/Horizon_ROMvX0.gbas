@@ -52,7 +52,7 @@ loop:   i = x AND 255
             j = j + i
         next y
         
-        i = i + i
+        i = i LSL 1
         p = &h0101 + horizonY + horizonY            
 
         wait

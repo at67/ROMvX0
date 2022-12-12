@@ -16,7 +16,7 @@ copies of this license document.
  1a. Outright copyright infringement - Don't just copy this and change the name.
  1b. Selling the unmodified original with no work done what-so-ever, that's REALLY being a dick.
  1c. Modifying the original work to contain hidden harmful content. That would make you a PROPER dick.
- 1d. Using all or parts therein of this code/ROM in competing code/ROM without written permission.
+ 1d. Using all or parts therein of this code or ROM in your own ROM without written permission.
 
 2. If you become rich through modifications, related works/services, or supporting the original work,
 share the love. Only a dick would make loads off this work and not buy the original work's
@@ -25,6 +25,12 @@ creator(s) a pint.
 3. Code is provided with no warranty. Using somebody else's code and bitching when it goes wrong makes
 you a DONKEY dick. Fix the problem yourself. A non-dick would submit the fix back.
 
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
