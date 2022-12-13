@@ -508,12 +508,12 @@ _id_    LDW     v1
         CALLI   scanlineMode
 %ENDM
 
-%MACRO  WaitVBlanks
-        CALLI   waitVBlanks
-%ENDM
-
 %MACRO  WaitVBlank
         WAITVV  frameCountPrev
+%ENDM
+
+%MACRO  WaitVBlanks
+        CALLI   waitVBlanks
 %ENDM
 
 %MACRO  GetVBlank

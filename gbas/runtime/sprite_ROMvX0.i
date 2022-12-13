@@ -173,7 +173,7 @@ mergeSpritesLut     LDI     0xB0
                     DOKEI+  _spritesYposLut_
                     DOKEI+  _spritesHeightLut_
                     DOKEI+  _spritesLut_
-                    MOVWA   spritesCount, giga_sysArg4
+                    MOVWA   spritesCount, giga_sysArg4          ; count : 0
                     MERGE4  _spritesTmpLut_
                     RET
 %ENDS

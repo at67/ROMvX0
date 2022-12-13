@@ -3,6 +3,10 @@ blitId              EQU     register0
 blitXY              EQU     register1
 blitAddrs           EQU     register2
 blitScrollY         EQU     register3
+blitTemp            EQU     register8
+blitAdrTmp          EQU     register9
+blitScrollY6        EQU     register10
+blitScrollSize      EQU     register11
 
 
 %SUB                drawBlit_
@@ -57,20 +61,42 @@ drawBlitXY          PUSH
 %ENDS
 
 %SUB                scrollBlitY
-scrollBlitY         LDWI    SYS_Sprite6_v3_64
+scrollBlitY         PUSH
+                    LDWI    SYS_Sprite6_v3_64
                     STW     giga_sysFn
+                    LDW     blitScrollY
+                    MULB6
+                    STW     blitScrollY6
                     ARRVW   blitId, _blitsLut_
                     DEEKA   blitAddrs                     ; get blit address table
                     BRA     scrollBY_check
                     
-scrollBY_loop       ADDW    blitScrollY
+scrollBY_loop       CALLI   scrollSize
+                    ADDW    blitScrollY6
                     STW     giga_sysArg0
                     DEEKV+  blitAddrs
                     ADDW    blitXY
                     SYS     64
+                    CALLI   scrollSize
 
 scrollBY_check      DEEKV+  blitAddrs
+                    STW     blitTemp
                     BNE     scrollBY_loop
+                    POP
+                    RET
+
+scrollSize          LD      blitScrollSize
+                    BNE     scrollS_calc
+                    LDW     blitTemp
+                    RET
+                    
+scrollS_calc        MULB6
+                    ADDW    blitTemp
+                    STW     blitAdrTmp
+                    PEEK
+                    NOTB    giga_vAC
+                    POKE    blitAdrTmp
+                    LDW     blitTemp
                     RET
 %ENDS
 

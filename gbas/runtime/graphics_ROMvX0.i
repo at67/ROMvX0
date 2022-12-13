@@ -86,7 +86,7 @@ scanlineMode        LDWI    SYS_SetMode_v2_80
 
 %SUB                waitVBlanks
 waitVBlanks         WAITVV  frameCountPrev
-                    DBNE    waitVBlankNum, waitVBlanks
+                    DJNE    waitVBlankNum, waitVBlanks
                     RET
 %ENDS
 
