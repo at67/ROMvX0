@@ -9,7 +9,7 @@ def byte         = &h91, &h40, &h92, &h43, &h93, &h48, &h24, &h80, &h81, &h82, &
 
 module "../SymbolTable.m"
 
-const NUM_APPS = 10
+const NUM_APPS =  8
 const DIV_X    =  0
 const DIV_Y0   = 24
 const DIV_Y1   = 72
@@ -21,11 +21,11 @@ const CURS_DX  =  6
 const CURS_X   = LIST_X0 - CURS_DX
 const CURS_Y   = 38
 
-const dim apps$(NUM_APPS-1) = {"SDCARD", "SNAKE", "MANDELBROT", "CREDITS", "RACER",
-                               "LOADER", "TICTACTOE", "BASIC", "MS BASIC", "APPLE-1"}
+const dim apps$(NUM_APPS-1) = {"SDCARD", "CLOCK", "CREDITS", "RACER",
+                               "INVADER", "LOADER", "BASIC", "APPLE-1"}
 
-dim execs(NUM_APPS-1) = {SDCard, Snake, Mandelbrot, Credits, Racer,
-                         Loader, TicTac, TinyBASIC, MSBASIC, Apple1}
+dim execs(NUM_APPS-1) = {SDCard, Clock, Credits, Racer,
+                         Invader, Loader, TinyBASIC, Apple1}
 
 init time, NORESET
 set TIME_MODE, 13

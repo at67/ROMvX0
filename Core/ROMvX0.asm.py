@@ -564,7 +564,6 @@ romTypeValue = symbol('romTypeValue_ROMvX0')
 
 #ROM's from ROMvX0 onwards will always have the romType at a fixed and known location
 ld(romTypeValue)
-st([romType])
 
 # Give a first sign of life that can be checked with a voltmeter
 ld(0b1111)                      # LED's
@@ -676,9 +675,6 @@ ld(syncBits^hSync,OUT)
 ld(syncBits,OUT)                # turn off real LED's
 st([xout])                      # Setup for control by video loop
 st([xoutMask])                  # audio = 0, SW LED's = 0
-
-ld(0x0f)                        # default 4bit sound
-st([audioBitMask])
 
 ld(hi('startVideo'),Y)          # Enter video loop at vertical blank
 jmp(Y,'startVideo')
@@ -5359,13 +5355,7 @@ ld([0x33])                      #26
 st([vAC+1])                     #27
 nop()                           #28
 nop()                           #29
-nop()                           #30
-nop()                           #31
-nop()                           #32
-nop()                           #33
-nop()                           #34
-nop()                           #35
-nop()                           #36 #0 This MUST match maxTicks, (ie maxTicks=36)
+nop()                           #30 #0 This MUST match maxTicks, (ie maxTicks=30)
 ld(hi('RESYNC'),Y)              #1
 jmp(Y,'RESYNC')                 #2
 ld([vTicks])                    #3

@@ -13,7 +13,7 @@ const MAX_FILES     = 100
 const PAYLOAD_SIZE  = 63
 const PROTOCOL_SIZE = 1 + 1 + PAYLOAD_SIZE
 const PACKET_SIZE   = 1 + 1 + 12 + 1
-const MAX_LINES     = 20
+const MAX_LINES     = 18
 
 const CmdSDList  = 1
 const CmdSDExec  = 2
@@ -68,17 +68,21 @@ end
 
 
 sendCommsCmd:
-    asm
-        LDWI    SYS_SendSerial1_v3_80
-        STW     giga_sysFn
-        MOVWA   _commsAddr, giga_sysArg0
-        MOVQW   giga_sysArg2, 1
-        LD      _commsSize
-        MULB8
-        STW     giga_sysArg3
-        SYS     80
-        STW     _commsRetn
-    endasm
+    repeat
+        asm
+            LDWI    SYS_SendSerial1_v3_80
+            STW     giga_sysFn
+            MOVWA   _commsAddr, giga_sysArg0
+            MOVQW   giga_sysArg2, 1
+            LD      _commsSize
+            LSLW
+            LSLW
+            LSLW
+            STW     giga_sysArg3
+            SYS     80
+            STW     _commsRetn
+        endasm
+    until commsRetn = 0
 return
 
 
@@ -388,10 +392,26 @@ beginSDCard:
 return
 
 
+const help0$ = " [ARROWS] "
+const help1$ = " [A][ENTER][DEL] "
+
 initialise:
     clear vars, @commsSize
     gosub getLoaderNextByte
     commsAddr = @commsCmd
 
-    mode 2 : set FGBG_COLOUR, &h3F20 : cls INIT : cls : tfnt4x6 on
+    mode 2 : set FGBG_COLOUR, &h2A20 : cls INIT : cls : tfnt4x6 on
+
+    tscroll off
+    set BG_COLOUR, &h10
+    at 0, 108 : print "USE";   : call help, @help0$, &h3F : print "TO SELECT and PAGE UP/DOWN ";
+    at 0, 114 : print "PRESS"; : call help, @help1$, &h3F : print "TO LIST OR EXECUTE";
+    set FGBG_COLOUR, &h2A20
+    tscroll on
 return
+
+
+proc help, text, colour
+    set FG_COLOUR, colour : print string$(text);
+    set FG_COLOUR, &h2A
+endproc

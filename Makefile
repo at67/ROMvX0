@@ -72,15 +72,12 @@ ROMvX0.rom: Core/* Apps/*/* gasm/loader/* gbas/browser/* gbas/menu/* Makefile RO
 		SYS_Racer_v1.py\
 		zippedRacerHorizon=Apps/Racer/Horizon-256x16.rgb\
 		Racer=Apps/Racer/Racer_v2.gcl\
-		Mandelbrot=Apps/Mandelbrot/Mandelbrot_v1.gcl\
-		Credits=Apps/Credits/Credits_v3.gcl\
-		Snake=Apps/Snake/Snake_v3.gcl\
+		Credits=gbas/menu/Credits_vX0.gt1\
+		Clock=gbas/menu/Clock_vX0.gt1\
+        Invader=gbas/menu/Invader_vX0.gt1\
 		TinyBASIC=Apps/TinyBASIC/TinyBASIC_v4.gcl\
-		TicTac=Apps/TicTac/LoadTicTac_v1.gcl\
-		TicTacGtb=Apps/TicTac/TicTac_v2.gtb\
 		WozMon=Apps/WozMon/WozMon_v2.gcl\
 		Apple1=Apps/Apple-1/Apple-1_v2.gt1\
-		MSBASIC=Apps/MSBASIC/MSBASIC_v1.gt1\
 		Egg=Apps/Horizon/Horizon_at67_v1.gt1\
         SDCard=gbas/browser/Browser_SDCard_ROMvX0.gt1\
         Loader=gasm/loader/Loader_ROMvX0.gt1\
