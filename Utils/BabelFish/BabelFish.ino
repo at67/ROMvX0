@@ -59,7 +59,6 @@
 
 #if defined(ARDUINO_AVR_UNO)
 #define platform "ArduinoUno"
-#define maxStorage 32256
 
 // Pinout reference:
 // https://i2.wp.com/marcusjenkins.com/wp-content/uploads/2014/06/ARDUINO_V2.png
@@ -118,7 +117,6 @@
 
 #if defined(ARDUINO_AVR_NANO)
 #define platform "ArduinoNano"
-#define maxStorage 30720
 
 // Pinout reference:
 // http://lab.dejaworks.com/wp-content/uploads/2016/08/Arduino-Nano-1024x500.png
@@ -180,7 +178,6 @@
 #if defined(ARDUINO_AVR_MICRO)
  // WattSekunde's setup
 #define platform "ArduinoMicro"
-#define maxStorage 28672
 
 // Pinout reference:
 // http://1.bp.blogspot.com/-xqhL0OrJcxo/VJhVxUabhCI/AAAAAAABEVk/loDafkdqLxM/s1600/micro_pinout.png
@@ -228,7 +225,6 @@
 
 #if defined(ARDUINO_attiny)
 #define platform "ATtiny85"
-#define maxStorage 8192
 
 // Pins for Gigatron (must be on PORTB)
 #define gigatronDataPin  PB2
@@ -264,7 +260,6 @@
 
 #if defined(ARDUINO_AVR_PROMICRO)
 #define platform "ArduinoProMicro"
-#define maxStorage 9999
 
 // Pins for Gigatron (must be on PORTB)
 #define gigatronDataPin  8
@@ -295,16 +290,16 @@ void (*resetFunc)(void) = 0;
  |      Built-in GT1 images                                             |
  |                                                                      |
  +----------------------------------------------------------------------*/
-const byte WozMon_gt1[]    PROGMEM = {
+const uint8_t WozMon_gt1[]    PROGMEM = {
   #include "WozMon.h"
 };
-const byte Terminal_gt1[]  PROGMEM = {
+const uint8_t Terminal_gt1[]  PROGMEM = {
   #include "Terminal.h"
 };
-const byte Blinky_gt1[]    PROGMEM = {
+const uint8_t Blinky_gt1[]    PROGMEM = {
   #include "Blinky.h"
 };
-const struct { const byte *gt1; const char *name; } gt1Files[] =
+const struct { const uint8_t *gt1; const char *name; } gt1Files[] =
 {
     {WozMon_gt1,   "WozMon"           }, // 595 bytes
     {Terminal_gt1, "Terminal"         }, // 256 bytes
@@ -321,18 +316,18 @@ const struct { const byte *gt1; const char *name; } gt1Files[] =
  /*
   *  Bit masks for pins
   */
-byte gigatronDataBit;
-byte gigatronLatchBit;
-byte gigatronPulseBit;
+uint8_t gigatronDataBit;
+uint8_t gigatronLatchBit;
+uint8_t gigatronPulseBit;
 
 /*
  *  Loader protocol
  */
-#define N 60         // Payload bytes per transmission frame
-byte checksum;       // Global is simplest
-byte outBuffer[256]; // sendFrame() will read up to index 299 but that's ok.
-                     // outBuffer[] is global, because having it on the stack
-                     // can cause trouble on the ATtiny85 (not fully clear why)
+#define N 60            // Payload bytes per transmission frame
+uint8_t checksum;       // Global is simplest
+uint8_t outBuffer[256]; // sendFrame() will read up to index 299 but that's ok.
+                        // outBuffer[] is global, because having it on the stack
+                        // can cause trouble on the ATtiny85 (not fully clear why)
 /*
  *  Game controller button mapping
  */
@@ -366,20 +361,21 @@ static bool echo = false;
 
 struct EEPROMlayout
 {
-    byte keymapIndex;
-    byte savedFile[];
+    uint8_t keymapIndex;
+    uint8_t savedFile[];
 };
 
-#define fileStart offsetof(struct EEPROMlayout, savedFile)
-static word saveIndex = fileStart; // Write pointer into EEPROM for file (BASIC)
-static word EEPROM_length;
+#include <stddef.h>
+static const uint16_t kFileStart = offsetof(EEPROMlayout, savedFile);
+static uint16_t saveIndex = kFileStart; // Write pointer into EEPROM for file (BASIC)
+static uint16_t EEPROM_length;
 
 #define arrayLen(a) ((int) (sizeof(a) / sizeof((a)[0])))
-extern const byte nrKeymaps; // From in PS2.ino
+extern const uint8_t nrKeymaps; // From in PS2.ino
 
 
 // Current location for Gt1 transfer from internal storage
-byte *gt1ProgmemLoc;
+uint8_t *gt1ProgmemLoc;
 
 #if sdChipSelectPin >= 0
 // SD card libraries
@@ -389,7 +385,7 @@ byte *gt1ProgmemLoc;
 // Current file to be transfered from SD card
 File rootSD;
 String pathSD = "";
-byte dirDepthSD = 0;
+uint8_t dirDepthSD = 0;
 bool validSD = false;
 bool createBackDirSD = false;
 File transferFileSD;
@@ -448,7 +444,7 @@ void loop()
     static bool hasChars = false;     // keeps track of partial lines
     static bool cmdSDComm = false;    // blocks all input from affecting SDCard comms
     static bool cmdSDMulti = false;   // Some SDCard comms commands have multiple bytes with a 0 terminator
-    static byte cmdSDCard = CmdSDEnd; // valid SDCard comms command
+    static uint8_t cmdSDCard = CmdSDEnd; // valid SDCard comms command
 
     // Check Gigatron's vPulse for incoming data
     int inByte = vSyncByte();
@@ -535,7 +531,7 @@ void loop()
 
                         // Files in root and sub dirs are treated differently
                         String pathFile = (dirDepthSD == 0) ? pathSD + filename : pathSD + "/" + filename;
-                        Serial.println(pathFile);
+                        //Serial.println(pathFile);
                         doSDFileTransfer((char*)pathFile.c_str(), false, false);
                     }
                 }
@@ -659,7 +655,7 @@ void loop()
             else if(inByte == '\n')
             {
                 if(!hasChars)                    // Empty lines delete the old program
-                    saveIndex = fileStart;
+                    saveIndex = kFileStart;
                 if(saveIndex < EEPROM_length)    // EOF terminator
                     EEPROM.write(saveIndex, 255);
                 hasChars = false;
@@ -674,9 +670,9 @@ void loop()
 #if gameControllerDataPin >= 0
     for(;;)
     {
-        byte serialByte = 0;
+        uint8_t serialByte = 0;
         sendPulse(gameControllerLatchPin);
-        for(byte i = 0; i < 8; i++)         // Shift in all 8 bits
+        for(uint8_t i = 0; i < 8; i++)         // Shift in all 8 bits
         {       
             serialByte <<= 1;
             serialByte |= digitalRead(gameControllerDataPin);
@@ -698,10 +694,10 @@ void loop()
 #endif
 
     // PS/2 keyboard events
-    byte key = keyboard_getState();
+    uint8_t key = keyboard_getState();
     if(key != 255)
     {
-        byte f = fnKey(key ^ 64);           // Ctrl+Fn key?
+        uint8_t f = fnKey(key ^ 64);           // Ctrl+Fn key?
         if(f)
         {
             doLoader();
@@ -711,7 +707,7 @@ void loop()
             {
                 if(gt1Files[f - 2].gt1)
                 {
-                    gt1ProgmemLoc = (byte*)gt1Files[f - 2].gt1; // Set Location of built-in GT1 file
+                    gt1ProgmemLoc = (uint8_t*)gt1Files[f - 2].gt1; // Set Location of built-in GT1 file
                     doTransfer(readNextProgmem, NULL); // Send GT1 file to Gigatron
                 }
                 else
@@ -737,7 +733,7 @@ void loop()
 #if hasSerial
 #define lineBuffer outBuffer
     static char next = 0, last;
-    static byte lineIndex = 0;
+    static uint8_t lineIndex = 0;
     while(Serial.available())
     {
         last = next;
@@ -767,7 +763,7 @@ bool wakeBrowser()
 void prompt()
 {
 #if hasSerial
-    Serial.println(detectGigatron() ? F(":Gigatron OK") : F("!Gigatron offline"));
+    Serial.println(detectGigatron() ? F(":OK") : F("!BAD"));
     Serial.println(F("Cmd?"));
 #endif
 }
@@ -780,7 +776,7 @@ bool detectGigatron()
     // Sample the sync signals coming out of the controller port
     while(millis() < timeout)
     {
-        byte pinb = PINB; // capture SER_PULSE and SER_LATCH at the same time
+        uint8_t pinb = PINB; // capture SER_PULSE and SER_LATCH at the same time
         T[(pinb & gigatronLatchBit ? 2 : 0) + (pinb & gigatronPulseBit ? 1 : 0)]++;
     }
 
@@ -824,7 +820,7 @@ void doCommand(char line[])
         case 'K': doSDFileTransfer(&line[1], true, true); break;
         case 'J': doPrintSDFiles(&line[1]);               break;
         case '.': doLine(&line[1]);                       break;
-        case 'C': doEcho(!echo);                          break;
+        //case 'C': doEcho(!echo);                          break;
         case 'T': doTerminal();                           break;
         case 'W': sendController(~buttonUp, 2);           break;
         case 'A': sendController(~buttonLeft, 2);         break;
@@ -838,7 +834,7 @@ void doCommand(char line[])
 
         default:
 #if hasSerial
-        Serial.println(F("!Unknown command (type 'H' for help)"));
+        Serial.println(F("!Unknown command"));
 #endif
         break;
     }
@@ -847,6 +843,14 @@ void doCommand(char line[])
 
 void doVersion()
 {
+#if 1
+    Serial.println(F(":Platform=" platform));
+    Serial.println(F(":EEPROM:"));
+    Serial.print(F(": size="));
+    Serial.print(EEPROM.length());
+    //doEcho(echo);
+    Serial.println(F(":'H' help"));
+#else
 #if hasSerial
     Serial.println(F(":BabelFish platform=" platform));
     Serial.println(F(":Pins:"));
@@ -864,29 +868,30 @@ void doVersion()
     Serial.print(F(" mapping="));
     Serial.println(getKeymapName());
     Serial.println(F(":PROGMEM slots:"));
-    for(byte i = 0; i < arrayLen(gt1Files); i++)
+    for(uint8_t i = 0; i < arrayLen(gt1Files); i++)
     {
         Serial.print(F(": P"));
         Serial.print(i);
         Serial.print(F(") "));
         Serial.println(gt1Files[i].name);
     }
-    doEcho(echo);
+    //doEcho(echo);
     Serial.println(F(":Type 'H' for help"));
+#endif
 #endif
 }
 
 // Show keymapping in Loader screen (Loader must be running)
 void doMapping()
 {
-    word pos = 0x800;
-    char text[] = "Ctrl-F1  This help";
+    uint16_t pos = 0x800;
+    char text[] = "Ctrl-F1 Help";
     //             0123456789
     pos = renderLine(pos, text);
     text[9] = 0;
-    for(byte i = 0; i < arrayLen(gt1Files); i++)
+    for(uint8_t i = 0; i < arrayLen(gt1Files); i++)
     {
-        byte f = i + 2;
+        uint8_t f = i + 2;
         // To save space avoid itoa() or sprintf()
         text[6] = '0' + f / 10;
         text[7] = ' ';
@@ -896,23 +901,23 @@ void doMapping()
     }
     pos = renderString(pos, "Keymap: ");
     pos = renderString(pos, getKeymapName());
-    pos = renderLine(pos, " (Change with Ctrl-Alt-Fxx)");
+    pos = renderLine(pos, " (Ctrl-Alt-Fxx Change)");
     pos = renderString(pos, "Available:");
-    for(byte i = 0; i < nrKeymaps; i++)
+    for(uint8_t i = 0; i < nrKeymaps; i++)
     {
         pos = renderString(pos, " ");
         pos = renderString(pos, getKeymapName(i));
     }
 }
 
-void doEcho(byte value)
-{
-#if hasSerial
-    echo = value;
-    Serial.print(F(":Echo "));
-    Serial.println(value ? F("on") : F("off"));
-#endif
-}
+//void doEcho(uint8_t value)
+//{
+//#if hasSerial
+//    echo = value;
+//    Serial.print(F(":Echo "));
+//    Serial.println(value ? F("on") : F("off"));
+//#endif
+//}
 
 void doHelp()
 {
@@ -943,7 +948,7 @@ void doReset(int n)
 {
     // Soft reset: hold start for >128 frames (>2.1 seconds)
 #if hasSerial
-    Serial.println(F(":Resetting Gigatron"));
+    Serial.println(F(":Resetting"));
     Serial.flush();
 #endif
     sendController(~buttonStart, n ? n : 175);
@@ -956,7 +961,7 @@ void doLoader()
 {
     // Navigate menu. 'Loader' is at the bottom
 #if hasSerial
-    Serial.println(F(":Starting Loader from menu"));
+    Serial.println(F(":Loading"));
     Serial.flush();
 #endif
 
@@ -973,7 +978,7 @@ void doLoader()
 void doLine(char *line)
 {
     // Pass through the line of text
-    for(byte i = 0; line[i]; i++)
+    for(uint8_t i = 0; line[i]; i++)
     {
         sendController(line[i], 2);
         delay(20); // Allow Gigatron software to process key code
@@ -990,7 +995,7 @@ void doBytes(char *line)
     {
         if(*line >= '0')
         {
-            byte b = 0;
+            uint8_t b = 0;
             do
                 b = (10 * b) + (*line++ - '0');
             while(*line >= '0');
@@ -1011,15 +1016,14 @@ void doBytes(char *line)
 void doTerminal()
 {
 #if hasSerial
-    Serial.println(F(":Entering terminal mode"));
-    Serial.println(F(":Exit with Ctrl-D"));
+    Serial.println(F("Terminal: exit (Ctrl-D)"));
     char next = 0, last;
     bool ansi = false;
     for(;;)
     {
         if(Serial.available())
         {
-            byte out;
+            uint8_t out;
             last = next;
             next = nextSerial();
             sendEcho(next, last);
@@ -1063,11 +1067,11 @@ void doTerminal()
 void doProgmemFileTransfer(int arg)
 {
 #if hasSerial
-    Serial.println(F(":Sending from PROGMEM"));
+    //Serial.println(F(":Sending from PROGMEM"));
 #endif
     if(0 <= arg && arg < arrayLen(gt1Files))
     {
-        gt1ProgmemLoc = (byte*)gt1Files[arg].gt1; // Set Location of built-in GT1 file
+        gt1ProgmemLoc = (uint8_t*)gt1Files[arg].gt1; // Set Location of built-in GT1 file
         doTransfer(readNextProgmem, NULL); // Send GT1 file to Gigatron
     }
 }
@@ -1116,22 +1120,22 @@ void doSDDirPayload()
 {
     enum EntryType {EntryFile=1, EntryDir=2, EntryError=3};
 
-    const byte kNameLength = 12;
+    const uint8_t kNameLength = 12;
     static char paths[8][kNameLength + 1];
 
     File entry;
-    byte isLast = 0;
-    byte index=0, payload[N+3];
+    uint8_t isLast = 0;
+    uint8_t index=0, payload[N+3];
 
 
     // Gigatron payload is 63 bytes, protocol is <isLast>, <len>, <payload 0...62>
     // Entry is maximum 15 bytes, <type> <len> <name:12> <0>, where name <= 12
     // Try and fit as many entry packets into the payload as possible before shipping it
-    byte packets = 0;
+    uint8_t packets = 0;
     const char parentDir[] = "..";
     for(;;)
     {
-        byte nameSize = 0;
+        uint8_t nameSize = 0;
         char *nameEntry = nullptr;
 
         // SDCard error, (missing or incorrect format, etc)
@@ -1218,7 +1222,7 @@ void doSDDirPayload()
     critical();
     sendFirstByte(isLast);         // isLast 0, 1
     sendBits(index, 6);            // length 0..63
-    for(byte i=0; i<N+3; i++)      // payload bytes
+    for(uint8_t i=0; i<N+3; i++)      // payload bytes
     {
         sendBits(payload[i], 8);
     }
@@ -1260,27 +1264,27 @@ void doPrintSDFiles(char *filepath)
 }
 
 // Render line in Loader screen
-word renderLine(word pos, const char *text)
+uint16_t renderLine(uint16_t pos, const char *text)
 {
     pos = renderString(pos, text);
     return (pos & 0xff00) + 0x600; // Goes to new line
 }
 
 // Render string in Loader screen
-word renderString(word pos, const char text[])
+uint16_t renderString(uint16_t pos, const char text[])
 {
     // Send 6 pixel lines to Gigatron
     // The ATtiny85 doesn't have sufficient RAM for separate bitmap[] and
     // pixelLine[] arrays. Therefore the rendering must be redone with each
     // iteration, followed by an in-place conversion to pixel colors
 
-    word p = pos;
-    byte x;
-    for(byte b = 32; b; b >>= 1)
+    uint16_t p = pos;
+    uint8_t x;
+    for(uint8_t b = 32; b; b >>= 1)
     {
         // (Re-)render line of text in bitmap
         x = 0;
-        for(byte i = 0; text[i] != 0; i++)
+        for(uint8_t i = 0; text[i] != 0; i++)
         {
             // Get pixel data for character
             int pixels = pgm_read_word(&tinyfont[text[i] - 32]);
@@ -1305,9 +1309,9 @@ word renderString(word pos, const char text[])
         }
 
         // Convert bitmap to pixels
-        const byte bgColor = 32; // Blue
-        const byte fgColor = 63; // White
-        for(byte i = 0; i < x; i++)
+        const uint8_t bgColor = 32; // Blue
+        const uint8_t fgColor = 63; // White
+        for(uint8_t i = 0; i < x; i++)
             outBuffer[i] = (outBuffer[i] & b) ? fgColor : bgColor;
 
         // Send line of pixels to Gigatron
@@ -1378,7 +1382,7 @@ void doTransfer(int(*readNext)(), void(*ask)(int))
     if(ask) ask(3);
 
     nextByte = readNext();
-    word address = nextByte;
+    uint16_t address = nextByte;
 
     // Any number n of segments (n>0)
     do {
@@ -1448,7 +1452,7 @@ int nextSerial()
 
     int nextByte = Serial.read();
     if(nextByte < 0)
-        Serial.println(F("!Timeout error (no data)"));
+        Serial.println(F("!Timeout"));
 
     // Workaround suspected bug in USB support for ATmega32U4 (Arduino Micro,
     // Leonardo, etcetera) in Arduino's USBCore.cpp. These boards don't have a
@@ -1506,9 +1510,9 @@ static inline void nonCritical()
 
 // Send a 1..256 byte code or data segment into the Gigatron by
 // repacking it into Loader frames of max N=60 payload bytes each.
-void sendGt1Segment(word address, int len)
+void sendGt1Segment(uint16_t address, int len)
 {
-    byte n = min(N, len);
+    uint8_t n = min(N, len);
     resetChecksum();
 
     // Send segment data
@@ -1526,7 +1530,7 @@ void sendGt1Segment(word address, int len)
 }
 
 // Send execute command
-void sendGt1Execute(word address, byte data[])
+void sendGt1Execute(uint16_t address, uint8_t data[])
 {
     critical();
     resetChecksum();
@@ -1536,7 +1540,7 @@ void sendGt1Execute(word address, byte data[])
 
 // Pretend to be a game controller
 // Send the same byte a few frames, just like a human user
-bool sendController(byte value, int n)
+bool sendController(uint8_t value, int n)
 {
     // Send controller code for n frames
     // E.g. 4 frames = 3/60s = ~50 ms
@@ -1562,7 +1566,7 @@ void resetChecksum()
     checksum = 'g';
 }
 
-void sendFrame(byte firstByte, byte len, word address, byte message[])
+void sendFrame(uint8_t firstByte, uint8_t len, uint16_t address, uint8_t message[])
 {
     // Send one frame of data
     //
@@ -1582,15 +1586,15 @@ void sendFrame(byte firstByte, byte len, word address, byte message[])
     sendBits(len, 6);            // Length 0, 1..60
     sendBits(address & 255, 8);  // Low address bits
     sendBits(address >> 8, 8);   // High address bits
-    for(byte i = 0; i < N; i++)  // Payload bytes
+    for(uint8_t i = 0; i < N; i++)  // Payload bytes
         sendBits(message[i], 8);
-    byte lastByte = -checksum;   // Checksum must come out as 0
+    uint8_t lastByte = -checksum;   // Checksum must come out as 0
     sendBits(lastByte, 8);
     checksum = lastByte;         // Concatenate checksums
     PORTB |= gigatronDataBit;    // Send 1 when idle
 }
 
-bool sendFirstByte(byte value)
+bool sendFirstByte(uint8_t value)
 {
     // Wait vertical sync NEGATIVE edge to sync with loader
     while(~PINB & gigatronLatchBit); // Ensure vSync is HIGH first
@@ -1616,10 +1620,10 @@ bool sendFirstByte(byte value)
 }
 
 // Send n bits, highest first
-bool sendBits(byte value, byte n)
+bool sendBits(uint8_t value, uint8_t n)
 {
-    byte count = 0;
-    for(byte bit=1<<(n-1); bit; bit>>=1)
+    uint8_t count = 0;
+    for(uint8_t bit=1<<(n-1); bit; bit>>=1)
     {
         // Send next bit
         if(value & bit)
@@ -1646,10 +1650,10 @@ bool sendBits(byte value, byte n)
 // Return each completed byte value, -1 for idle, < -1 for busy
 int vSyncByte()
 {
-    static byte inByte, inBit;
+    static uint8_t inByte, inBit;
 
     critical();
-    byte count = waitVSync();
+    uint8_t count = waitVSync();
     nonCritical();
 
     inByte &= ~inBit;                       // Clear current bit
@@ -1675,9 +1679,9 @@ int vSyncByte()
 
 // Count number of hSync pulses during vPulse
 // This is a way for the Gigatron to send information out
-byte waitVSync()
+uint8_t waitVSync()
 {
-    word timeout = 0; // 2^16 cycles must give at least 17 ms
+    uint16_t timeout = 0; // 2^16 cycles must give at least 17 ms
 
     // Wait vertical sync NEGATIVE edge
 
@@ -1690,7 +1694,7 @@ byte waitVSync()
             return 0;
 
     // Now count horizontal sync POSITIVE edges
-    byte count = 0;
+    uint8_t count = 0;
     for(;;)
     {
         while(PINB & gigatronPulseBit);  // Ensure hSync is LOW first
@@ -1705,7 +1709,7 @@ byte waitVSync()
 }
 
 // For polling the game controller
-void sendPulse(byte pin)
+void sendPulse(uint8_t pin)
 {
     digitalWrite(pin, HIGH);
     delayMicroseconds(50);
@@ -1723,12 +1727,12 @@ void sendPulse(byte pin)
 void sendSavedFile()
 {
 #if hasSerial
-    Serial.println(F(":Sending from EEPROM"));
+    //Serial.println(F(":Sending from EEPROM"));
 #endif
-    word i = fileStart, j = 0;            // i is the file index. j is the line index
+    uint16_t i = kFileStart, j = 0;            // i is the file index. j is the line index
     int lineDelay = 50;                   // Default extra delay time for "line feed"
     do {
-        byte nextByte = EEPROM.read(i++);   // Fetch next byte from saved program
+        uint8_t nextByte = EEPROM.read(i++);   // Fetch next byte from saved program
         if(j++ == 0 && nextByte == 255)    // EOF. Note that in MSBASIC, 255 means Pi.
             break;                            // So we only check this after a newline.
         sendController(nextByte, 2);        // A single frame is sometimes too fast
