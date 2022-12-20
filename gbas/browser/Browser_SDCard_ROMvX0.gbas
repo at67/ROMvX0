@@ -266,7 +266,7 @@ execApp:
         poke @commsCmd + i, peek(@runName$ + i)
     next i
     'print "Loading..."
-    set FGBG_COLOUR, &hFF00 : cls INIT : cls : tfnt4x6 off
+    set FGBG_COLOUR, &hFF00 : cls INIT : cls : tfnt4x6 off : sound off
     commsSize = 1 + len + 1
     gosub sendCommsCmd
     poke &h04, 00  'reset stack page
