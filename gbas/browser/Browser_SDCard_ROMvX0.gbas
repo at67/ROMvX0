@@ -12,8 +12,9 @@ const sysArg7 = &h2B
 const MAX_FILES     = 100
 const PAYLOAD_SIZE  = 63
 const PROTOCOL_SIZE = 1 + 1 + PAYLOAD_SIZE
-const PACKET_SIZE   = 1 + 1 + 12 + 1
-const MAX_LINES     = 18
+const NAME_SIZE     = 32
+const PACKET_SIZE   = 1 + 1 + NAME_SIZE + 1
+const MAX_LINES     = 16
 
 const CmdSDList  = 1
 const CmdSDExec  = 2
@@ -30,7 +31,6 @@ const EntryError = 3
 def commsAddr, commsSize, commsRetn, browserIdx, browserY, cursorY, cursOldY, isLast, length, runStrAddr, execRtn, waitRtn
 
 runName$ = ""
-execName$ = ""
 pathName$ = ""
 
 dim commsCmd%(PACKET_SIZE-1) = 0
@@ -174,12 +174,13 @@ printBrowser:
         ii = i - browserY 'multiply by 6 to get to correct row for font4x6
         if ii >= 0
             asm
-                LD  _ii
-                MULB6
-                ST  cursorXY + 1
+                LD      _ii
+                MULB6   
+                ADDI    4
+                ST      cursorXY + 1
             endasm
-            at 2
-            print string$(strAddr);spc$(12 - strLen);
+            at 4
+            print string$(strAddr);spc$(NAME_SIZE + 6 - strLen);
         endif
     next i
 return
@@ -199,12 +200,13 @@ updateBrowser:
     endif
     yy = prevY - startY 'multiply by 6 to get to correct row for font4x6
     asm
-        LD  _yy
-        MULB6
-        ST  cursorXY + 1
+        LD      _yy
+        MULB6   
+        ADDI    4
+        ST      cursorXY + 1
     endasm
-    at 2
-    print string$(prevAddr);spc$(12 - prevLen);
+    at 4
+    print string$(prevAddr);spc$(NAME_SIZE + 6 - prevLen);
     cursOldY = cursorY
 
     currY = startY + cursorY
@@ -218,12 +220,13 @@ updateBrowser:
     endif 
     yy = currY - startY 'multiply by 6 to get to correct row for font4x6
     asm
-        LD  _yy
-        MULB6
-        ST  cursorXY + 1
+        LD      _yy
+        MULB6   
+        ADDI    4
+        ST      cursorXY + 1
     endasm
-    at 2
-    print string$(currAddr);spc$(12 - currLen);
+    at 4
+    print string$(currAddr);spc$(NAME_SIZE + 6 - currLen);
     runStrAddr = currAddr
 return
 
@@ -400,14 +403,39 @@ initialise:
     gosub getLoaderNextByte
     commsAddr = @commsCmd
 
-    mode 2 : set FGBG_COLOUR, &h2A20 : cls INIT : cls : tfnt4x6 on
+    mode 2 : set BG_COLOUR, &h30 : cls INIT : cls : tfnt4x6 on
+    
+    set FG_COLOUR, &h20 : rectf 2, 2, 157, 100
+    set FG_COLOUR, &h10 : rectf 2, 101, 157, 117
 
     tscroll off
     set BG_COLOUR, &h10
-    at 0, 108 : print "USE";   : call help, @help0$, &h3F : print "TO SELECT and PAGE UP/DOWN ";
-    at 0, 114 : print "PRESS"; : call help, @help1$, &h3F : print "TO LIST OR EXECUTE";
+    'l = len(pathName$)
+    'm = min(l, 40)
+    'if(l > 40)
+    '    path$ = right$(pathName$, 40)
+    'else
+    '    path$ = left$(pathName$, m)
+    'endif
+    'at 0, 98 : print path$;spc$(40 - m)
+    set FG_COLOUR, &h2A
+    at 18, 104 : print "USE";   : call help, @help0$, &h3F : print "TO SELECT and PAGE";
+    at 8, 110 : print "PRESS"; : call help, @help1$, &h3F : print "TO LIST OR RUN";
     set FGBG_COLOUR, &h2A20
     tscroll on
+
+    'test
+    'for i=0 to MAX_LINES-1
+    '    asm
+    '        LD      _i
+    '        MULB6   
+    '        ADDI    4
+    '        ST      cursorXY + 1
+    '    endasm
+    '    at 4
+    '    print i;
+    'next i
+
 return
 
 

@@ -443,14 +443,9 @@ screenMemory = 0x0800   # Default start of screen memory: 0x0800 to 0x7fff
  
 maxTicks = 30//2                 # Duration of vCPU's slowest virtual opcode (ticks)
 minTicks = 14//2                 # vcPU's fastest instruction
-v6502_maxTicks = 38//2           # Max duration of v6502 processing phase (ticks)
 
 runVcpu_overhead = 5            # Caller overhead (cycles)
 vCPU_overhead = 9               # Callee overhead of jumping in and out (cycles)
-v6502_overhead = 11             # Callee overhead for v6502 (cycles)
-
-v6502_adjust = (v6502_maxTicks - maxTicks) + (v6502_overhead - vCPU_overhead)//2
-assert v6502_adjust >= 0        # v6502's overhead is a bit more than vCPU
 
 def runVcpu(n, ref=None, returnTo=None):
   """Macro to run interpreter for exactly n cycles. Returns 0 in AC.
@@ -493,62 +488,11 @@ def runVcpu(n, ref=None, returnTo=None):
   n //= 2
   n -= maxTicks                 # First instruction always runs
   assert n < 128
-  assert n >= v6502_adjust
-
+  
   ld([vCpuSelect],Y)            #2
   jmp(Y,'ENTER')                #3
   ld(n)                         #4
 assert runVcpu_overhead ==       5
-
-#-----------------------------------------------------------------------
-#       v6502 definitions
-#-----------------------------------------------------------------------
-#
-# Registers are zero page variables
-v6502_PC        = vLR           # Program Counter
-v6502_PCL       = vLR+0         # Program Counter Low
-v6502_PCH       = vLR+1         # Program Counter High
-v6502_S         = vSP           # Stack Pointer (kept as "S+1")
-v6502_A         = vAC+0         # Accumulator
-v6502_BI        = vAC+1         # B Input Register (used by SBC)
-v6502_ADL       = sysArgs+0     # Low Address Register
-v6502_ADH       = sysArgs+1     # High Address Register
-v6502_IR        = sysArgs+2     # Instruction Register
-v6502_P         = sysArgs+3     # Processor Status Register (V flag in bit 7)
-v6502_Qz        = sysArgs+4     # Quick Status Register for Z flag
-v6502_Qn        = sysArgs+5     # Quick Status Register for N flag
-v6502_X         = sysArgs+6     # Index Register X
-v6502_Y         = sysArgs+7     # Index Register Y
-v6502_Tmp       = vTmp          # Scratch (may be clobbered outside v6502)
-
-# MOS 6502 definitions for P register
-v6502_Cflag = 1                 # Carry Flag (unsigned overflow)
-v6502_Zflag = 2                 # Zero Flag (all bits zero)
-v6502_Iflag = 4                 # Interrupt Enable Flag (1=Disable)
-v6502_Dflag = 8                 # Decimal Enable Flag (aka BCD mode, 1=Enable)
-v6502_Bflag = 16                # Break (or PHP) Instruction Flag
-v6502_Uflag = 32                # Unused (always 1)
-v6502_Vflag = 64                # Overflow Flag (signed overflow)
-v6502_Nflag = 128               # Negative Flag (bit 7 of result)
-
-# In emulation it is much faster to keep the V flag in bit 7
-# This can be corrected when importing/exporting with PHP, PLP, etc
-v6502_Vemu = 128
-
-# On overflow:
-#       """Overflow is set if two inputs with the same sign produce
-#          a result with a different sign. Otherwise it is clear."""
-# Formula (without carry/borrow in!):
-#       (A ^ (A+B)) & (B ^ (A+B)) & 0x80
-# References:
-#       http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
-#       http://6502.org/tutorials/vflag.html
-
-# Memory layout
-v6502_Stack     = 0x0000        # 0x0100 is already used in the Gigatron
-#v6502_NMI      = 0xfffa
-#v6502_RESET    = 0xfffc
-#v6502_IRQ      = 0xfffe
 
 
 #-----------------------------------------------------------------------
@@ -654,7 +598,7 @@ st(0,                 [Y,Xpp])  # vIRQ_v5
 st(0b11111100,        [Y,Xpp])  # Control register
 st(0,                 [Y,Xpp])  # videoTop
 
-ld(hi('ENTER'))                 # Active interpreter (vCPU,v6502) = vCPU
+ld(hi('ENTER'))                 # Active interpreter = vCPU
 st([vCpuSelect])
 
 ld(255)                         # Setup serial input
@@ -2919,30 +2863,6 @@ jmp(Y,'REENTER')                #42
 #nop()                          #43
 
 #-----------------------------------------------------------------------
-#       v6502 right shift instruction
-#-----------------------------------------------------------------------
-
-label('v6502_lsr#30')
-ld([v6502_ADH],Y)               #30 Result
-st([Y,X])                       #31
-st([v6502_Qz])                  #32 Z flag
-st([v6502_Qn])                  #33 N flag
-ld(hi('v6502_next'),Y)          #34
-ld(-38/2)                       #35
-jmp(Y,'v6502_next')             #36
-#nop()                          #37 Overlap
-#
-label('v6502_ror#38')
-ld([v6502_ADH],Y)               #38,38 Result
-ora([v6502_BI])                 #39 Transfer bit 8
-st([Y,X])                       #40
-st([v6502_Qz])                  #41 Z flag
-st([v6502_Qn])                  #42 N flag
-ld(hi('v6502_next'),Y)          #43
-jmp(Y,'v6502_next')             #44
-ld(-46/2)                       #45
-
-#-----------------------------------------------------------------------
 #       vCPU LSRB
 #-----------------------------------------------------------------------
 
@@ -3078,18 +2998,12 @@ trampoline()
 
 #-----------------------------------------------------------------------
 #
-#  $0a00 ROM page 10: Inversion table
+#  $0a00 ROM page 10: SPARE
 #
 #-----------------------------------------------------------------------
 
 align(0x100, size=0x100)
-label('invTable')
-
-# Unit 64, table offset 16 (=1/4), value offset 1: (x+16)*(y+1) == 64*64 - e
-for i in range(251):
-  ld(4096//(i+16)-1)
-
-trampoline()
+fillers(until=0xff)
 
 #-----------------------------------------------------------------------
 #
@@ -3214,81 +3128,11 @@ ld(0b00001100)                  #17
 #    `--------- B1
 
 #-----------------------------------------------------------------------
-# Extension SYS_Run6502_v4_80
+# Extension SPARE
 #-----------------------------------------------------------------------
-#
-# Transfer control to v6502
-#
-# Calling 6502 code from vCPU goes (only) through this SYS function.
-# Directly modifying the vCpuSelect variable is unreliable. The
-# control transfer is immediate, without waiting for the current
-# time slice to end or first returning to vCPU.
-#
-# vCPU code and v6502 code can interoperate without much hassle:
-# - The v6502 program counter is vLR, and v6502 doesn't touch vPC
-# - Returning to vCPU is with the BRK instruction
-# - BRK doesn't dump process state on the stack
-# - vCPU can save/restore the vLR with PUSH/POP
-# - Stacks are shared, vAC is shared
-# - vAC can indicate what the v6502 code wants. vAC+1 will be cleared
-# - Alternative is to leave a word in sysArgs[6:7] (v6502 X and Y registers)
-# - Another way is to set vPC before BRK, and vCPU will continue there(+2)
-#
-# Calling v6502 code from vCPU looks like this:
-#       LDWI  SYS_Run6502_v4_80
-#       STW   sysFn
-#       LDWI  $6502_start_address
-#       STW   vLR
-#       SYS   80
-#
-# Variables:
-#       vAC             Accumulator
-#       vLR             Program Counter
-#       vSP             Stack Pointer (+1)
-#       sysArgs[6]      Index Register X
-#       sysArgs[7]      Index Register Y
-# For info:
-#       sysArgs[0:1]    Address Register, free to clobber
-#       sysArgs[2]      Instruction Register, free to clobber
-#       sysArgs[3:5]    Flags, don't touch
-#
-# Implementation details::
-#
-#  The time to reserve for this transition is the maximum time
-#  between NEXT and v6502_check. This is
-#       SYS call duration + 2*v6502_maxTicks + (v6502_overhead - vCPU_overhead)
-#     = 22 + 38 + (11 - 9) = 62 cycles.
-#  So reserving 80 cycles is future proof. This isn't overhead, as it includes
-#  the fetching of the first 6502 opcode and its operands..
-#
-#                      0            10                 28=0         9
-#    ---+----+---------+------------+------------------+-----------+---
-# video | nop| runVcpu |   ENTER    | At least one ins |   EXIT    | video
-#    ---+----+---------+------------+------------------+-----------+---
-#        sync  prelude  ENTER-to-ins    ins-to-NEXT     NEXT-to-video
-#       |<-->|
-#        0/1 |<------->|
-#                 5    |<----------------------------->|
-#          runVCpu_overhead           28               |<--------->|
-#                                 2*maxTicks                 9
-#                                                      vCPU_overhead
-#
-#                      0                21                    38=0       11
-#    ---+----+---------+----------------+--------------------+-----------+---
-# video | nop| runVcpu |   v6502_ENTER  | At least one fetch |v6502_exitB| video
-#    ---+----+---------+----------------+--------------------+-----------+---
-#        sync  prelude   enter-to-fetch     fetch-to-check    check-to-video
-#       |<-->|
-#        0/1 |<------->|
-#                 5    |<----------------------------------->|
-#          runVcpu_overhead           38                     |<--------->|
-#                              2*v6520_maxTicks                    11
-#                                                            v6502_overhead
-
-label('SYS_Run6502_v4_80')
-ld(hi('sys_v6502'),Y)           #15
-jmp(Y,'sys_v6502')              #16
-ld(hi('v6502_ENTER'))           #17 Activate v6502
+ld(hi('REENTER'),Y)             #15 slot 0xa7
+jmp(Y,'REENTER')                #16
+ld(-20/2)                       #17
 
 #-----------------------------------------------------------------------
 # Extension SYS_ResetWaveforms_v4_50
@@ -3891,6 +3735,9 @@ ld(hi('REENTER'),Y)             #57
 jmp(Y,'REENTER')                #58
 ld(-62/2)                       #59
 
+
+#-----------------------------------------------------------------------
+#       More SYS functions, (0x0d00)
 #-----------------------------------------------------------------------
 
 align(0x100)
@@ -3969,1340 +3816,9 @@ ld(hi('NEXTY'),Y)               #128 Continue program
 jmp(Y,'NEXTY')                  #129
 ld(-132/2)                      #130
 
-#-----------------------------------------------------------------------
-
-label('sys_v6502')
-
-st([vCpuSelect],Y)              #18 Activate v6502
-ld(-22/2)                       #19
-jmp(Y,'v6502_ENTER')            #20 Transfer control in the same time slice
-adda([vTicks])                  #21
-assert (38 - 22)//2 >= v6502_adjust
 
 #-----------------------------------------------------------------------
-#       MOS 6502 emulator
-#-----------------------------------------------------------------------
-#
-# Some quirks:
-# - Stack in zero page instead of page 1
-# - No interrupts
-# - No decimal mode (may never be added). D flag is emulated but ignored.
-# - BRK switches back to running 16-bits vCPU
-# - Illegal opcodes map to BRK, but can read ghost operands before trapping
-# - Illegal opcode $ff won't be trapped and cause havoc instead
-
-# Big things TODO:
-# XXX Tuning, put most frequent instructions in the primary page
-
-label('v6502_ror')
-assert v6502_Cflag == 1
-ld([v6502_ADH],Y)               #12
-ld(-46//2+v6502_maxTicks)       #13 Is there enough time for the excess ticks?
-adda([vTicks])                  #14
-blt('.recheck17')               #15
-ld([v6502_P])                   #16 Transfer C to "bit 8"
-anda(1)                         #17
-adda(127)                       #18
-anda(128)                       #19
-st([v6502_BI])                  #20 The real 6502 wouldn't use BI for this
-ld([v6502_P])                   #21 Transfer bit 0 to C
-anda(~1)                        #22
-st([v6502_P])                   #23
-ld([Y,X])                       #24
-anda(1)                         #25
-ora([v6502_P])                  #26
-st([v6502_P])                   #27
-ld('v6502_ror#38')              #28 Shift table lookup
-st([vTmp])                      #29
-ld([Y,X])                       #30
-anda(~1)                        #31
-ld(hi('shiftTable'),Y)          #32
-jmp(Y,AC)                       #33
-bra(255)                        #34 bra shiftTable+255
-label('.recheck17')
-ld(hi('v6502_check'),Y)         #17 Go back to time check before dispatch
-jmp(Y,'v6502_check')            #18
-ld(-20/2)                       #19
-
-label('v6502_lsr')
-assert v6502_Cflag == 1
-ld([v6502_ADH],Y)               #12
-ld([v6502_P])                   #13 Transfer bit 0 to C
-anda(~1)                        #14
-st([v6502_P])                   #15
-ld([Y,X])                       #16
-anda(1)                         #17
-ora([v6502_P])                  #18
-st([v6502_P])                   #19
-ld('v6502_lsr#30')              #20 Shift table lookup
-st([vTmp])                      #21
-ld([Y,X])                       #22
-anda(~1)                        #23
-ld(hi('shiftTable'),Y)          #24
-jmp(Y,AC)                       #25
-bra(255)                        #26 bra shiftTable+255
-
-label('v6502_rol')
-assert v6502_Cflag == 1
-ld([v6502_ADH],Y)               #12
-ld([Y,X])                       #13
-anda(0x80)                      #14
-st([v6502_Tmp])                 #15
-ld([v6502_P])                   #16
-anda(1)                         #17
-label('.rol#18')
-adda([Y,X])                     #18
-adda([Y,X])                     #19
-st([Y,X])                       #20
-st([v6502_Qz])                  #21 Z flag
-st([v6502_Qn])                  #22 N flag
-ld([v6502_P])                   #23 C Flag
-anda(~1)                        #24
-ld([v6502_Tmp],X)               #25
-ora([X])                        #26
-st([v6502_P])                   #27
-ld(hi('v6502_next'),Y)          #28
-ld(-32/2)                       #29
-jmp(Y,'v6502_next')             #30
-#nop()                          #31 Overlap
-#
-label('v6502_asl')
-ld([v6502_ADH],Y)               #12,32
-ld([Y,X])                       #13
-anda(0x80)                      #14
-st([v6502_Tmp])                 #15
-bra('.rol#18')                  #16
-ld(0)                           #17
-
-label('v6502_jmp1')
-nop()                           #12
-ld([v6502_ADL])                 #13
-st([v6502_PCL])                 #14
-ld([v6502_ADH])                 #15
-st([v6502_PCH])                 #16
-ld(hi('v6502_next'),Y)          #17
-jmp(Y,'v6502_next')             #18
-ld(-20/2)                       #19
-
-label('v6502_jmp2')
-nop()                           #12
-ld([v6502_ADH],Y)               #13
-ld([Y,X])                       #14
-st([Y,Xpp])                     #15 (Just X++) Wrap around: bug compatible with NMOS
-st([v6502_PCL])                 #16
-ld([Y,X])                       #17
-st([v6502_PCH])                 #18
-ld(hi('v6502_next'),Y)          #19
-jmp(Y,'v6502_next')             #20
-ld(-22/2)                       #21
-
-label('v6502_pla')
-ld([v6502_S])                   #12
-ld(AC,X)                        #13
-adda(1)                         #14
-st([v6502_S])                   #15
-ld([X])                         #16
-st([v6502_A])                   #17
-st([v6502_Qz])                  #18 Z flag
-st([v6502_Qn])                  #19 N flag
-ld(hi('v6502_next'),Y)          #20
-ld(-24/2)                       #21
-jmp(Y,'v6502_next')             #22
-#nop()                          #23 Overlap
-#
-label('v6502_pha')
-ld(hi('v6502_next'),Y)          #12,24
-ld([v6502_S])                   #13
-suba(1)                         #14
-st([v6502_S],X)                 #15
-ld([v6502_A])                   #16
-st([X])                         #17
-jmp(Y,'v6502_next')             #18
-ld(-20/2)                       #19
-
-label('v6502_brk')
-ld(hi('ENTER'))                 #12 Switch to vCPU
-st([vCpuSelect])                #13
-assert v6502_A == vAC
-ld(0)                           #14
-st([vAC+1])                     #15
-ld(hi('REENTER'),Y)             #16 Switch in the current time slice
-ld(-22//2+v6502_adjust)         #17
-jmp(Y,'REENTER')                #18
-nop()                           #19
-
-# All interpreter entry points must share the same page offset, because
-# this offset is hard-coded as immediate operand in the video driver.
-# The Gigatron's original vCPU's 'ENTER' label is already at $2ff, so we
-# just use $dff for 'v6502_ENTER'. v6502 actually has two entry points.
-# The other is 'v6502_RESUME' at $10ff. It is used for instructions
-# that were fetched but not yet executed. Allowing the split gives finer
-# granulariy, and hopefully more throughput for the simpler instructions.
-# (There is no "overhead" for allowing instruction splitting, because
-#  both emulation phases must administer [vTicks] anyway.)
-while pc()&255 < 255:
-  nop()
-label('v6502_ENTER')
-bra('v6502_next2')              #0 v6502 primary entry point
-# --- Page boundary ---
-suba(v6502_adjust)              #1,19 Adjust for vCPU/v6520 timing differences
-
-#19 Addressing modes
-(   'v6502_mode0'  ); bra('v6502_modeIZX'); bra('v6502_modeIMM'); bra('v6502_modeILL') # $00 xxx000xx
-bra('v6502_modeZP');  bra('v6502_modeZP');  bra('v6502_modeZP');  bra('v6502_modeILL') # $04 xxx001xx
-bra('v6502_modeIMP'); bra('v6502_modeIMM'); bra('v6502_modeACC'); bra('v6502_modeILL') # $08 xxx010xx
-bra('v6502_modeABS'); bra('v6502_modeABS'); bra('v6502_modeABS'); bra('v6502_modeILL') # $0c xxx011xx
-bra('v6502_modeREL'); bra('v6502_modeIZY'); bra('v6502_modeIMM'); bra('v6502_modeILL') # $10 xxx100xx
-bra('v6502_modeZPX'); bra('v6502_modeZPX'); bra('v6502_modeZPX'); bra('v6502_modeILL') # $14 xxx101xx
-bra('v6502_modeIMP'); bra('v6502_modeABY'); bra('v6502_modeIMP'); bra('v6502_modeILL') # $18 xxx110xx
-bra('v6502_modeABX'); bra('v6502_modeABX'); bra('v6502_modeABX'); bra('v6502_modeILL') # $1c xxx111xx
-
-# Special encoding cases for emulator:
-#     $00 BRK -         but gets mapped to #$DD      handled in v6502_mode0
-#     $20 JSR $DDDD     but gets mapped to #$DD      handled in v6502_mode0 and v6502_JSR
-#     $40 RTI -         but gets mapped to #$DD      handled in v6502_mode0
-#     $60 RTS -         but gets mapped to #$DD      handled in v6502_mode0
-#     $6C JMP ($DDDD)   but gets mapped to $DDDD     handled in v6502_JMP2
-#     $96 STX $DD,Y     but gets mapped to $DD,X     handled in v6502_STX2
-#     $B6 LDX $DD,Y     but gets mapped to $DD,X     handled in v6502_LDX2
-#     $BE LDX $DDDD,Y   but gets mapped to $DDDD,X   handled in v6502_modeABX
-
-label('v6502_next')
-adda([vTicks])                  #0
-blt('v6502_exitBefore')         #1 No more ticks
-label('v6502_next2')
-st([vTicks])                    #2
-#
-# Fetch opcode
-ld([v6502_PCL],X)               #3
-ld([v6502_PCH],Y)               #4
-ld([Y,X])                       #5 Fetch IR
-st([v6502_IR])                  #6
-ld([v6502_PCL])                 #7 PC++
-adda(1)                         #8
-st([v6502_PCL],X)               #9
-beq(pc()+3)                     #10
-bra(pc()+3)                     #11
-ld(0)                           #12
-ld(1)                           #12(!)
-adda([v6502_PCH])               #13
-st([v6502_PCH],Y)               #14
-#
-# Get addressing mode and fetch operands
-ld([v6502_IR])                  #15 Get addressing mode
-anda(31)                        #16
-bra(AC)                         #17
-bra('.next20')                  #18
-# (jump table)                  #19
-label('.next20')
-ld([Y,X])                       #20 Fetch L
-# Most opcodes branch away at this point, but IR & 31 == 0 falls through
-#
-# Implicit Mode for  BRK JSR RTI RTS (<  0x80) -- 26 cycles
-# Immediate Mode for LDY CPY CPX     (>= 0x80) -- 36 cycles
-label('v6502_mode0')
-ld([v6502_IR])                  #21 'xxx0000'
-bmi('.imm24')                   #22
-ld([v6502_PCH])                 #23
-bra('v6502_check')              #24
-ld(-26/2)                       #25
-
-# Resync with video driver. At this point we're returning BEFORE
-# fetching and executing the next instruction.
-label('v6502_exitBefore')
-adda(v6502_maxTicks)            #3 Exit BEFORE fetch
-bgt(pc()&255)                   #4 Resync
-suba(1)                         #5
-ld(hi('v6502_ENTER'))           #6 Set entry point to before 'fetch'
-st([vCpuSelect])                #7
-ld(hi('vBlankStart'),Y)         #8
-jmp(Y,[vReturn])                #9 To video driver
-ld(0)                           #10
-assert v6502_overhead ==         11
-
-# Immediate Mode: #$FF -- 36 cycles
-label('v6502_modeIMM')
-nop()                           #21 Wait for v6502_mode0 to join
-nop()                           #22
-ld([v6502_PCH])                 #23 Copy PC
-label('.imm24')
-st([v6502_ADH])                 #24
-ld([v6502_PCL])                 #25
-st([v6502_ADL],X)               #26
-adda(1)                         #27 PC++
-st([v6502_PCL])                 #28
-beq(pc()+3)                     #29
-bra(pc()+3)                     #30
-ld(0)                           #31
-ld(1)                           #31(!)
-adda([v6502_PCH])               #32
-st([v6502_PCH])                 #33
-bra('v6502_check')              #34
-ld(-36/2)                       #35
-
-# Accumulator Mode: ROL ROR LSL ASR -- 28 cycles
-label('v6502_modeACC')
-ld(v6502_A&255)                 #21 Address of AC
-st([v6502_ADL],X)               #22
-ld(v6502_A>>8)                  #23
-st([v6502_ADH])                 #24
-ld(-28/2)                       #25
-bra('v6502_check')              #26
-#nop()                          #27 Overlap
-#
-# Implied Mode: no operand -- 24 cycles
-label('v6502_modeILL')
-label('v6502_modeIMP')
-nop()                           #21,27
-bra('v6502_check')              #22
-ld(-24/2)                       #23
-
-# Zero Page Modes: $DD $DD,X $DD,Y -- 36 cycles
-label('v6502_modeZPX')
-bra('.zp23')                    #21
-adda([v6502_X])                 #22
-label('v6502_modeZP')
-bra('.zp23')                    #21
-nop()                           #22
-label('.zp23')
-st([v6502_ADL],X)               #23
-ld(0)                           #24 H=0
-st([v6502_ADH])                 #25
-ld(1)                           #26 PC++
-adda([v6502_PCL])               #27
-st([v6502_PCL])                 #28
-beq(pc()+3)                     #29
-bra(pc()+3)                     #30
-ld(0)                           #31
-ld(1)                           #31(!)
-adda([v6502_PCH])               #32
-st([v6502_PCH])                 #33
-bra('v6502_check')              #34
-ld(-36/2)                       #35
-
-# Possible retry loop for modeABS and modeIZY. Because these need
-# more time than the v6502_maxTicks of 38 Gigatron cycles, we may
-# have to restart them after the next horizontal pulse.
-label('.retry28')
-beq(pc()+3)                     #28,37 PC--
-bra(pc()+3)                     #29
-ld(0)                           #30
-ld(-1)                          #30(!)
-adda([v6502_PCH])               #31
-st([v6502_PCH])                 #32
-ld([v6502_PCL])                 #33
-suba(1)                         #34
-st([v6502_PCL])                 #35
-bra('v6502_next')               #36 Retry until sufficient time
-ld(-38/2)                       #37
-
-# Absolute Modes: $DDDD $DDDD,X $DDDD,Y -- 64 cycles
-label('v6502_modeABS')
-bra('.abs23')                   #21
-ld(0)                           #22
-label('v6502_modeABX')
-bra('.abs23')                   #21
-label('v6502_modeABY')
-ld([v6502_X])                   #21,22
-ld([v6502_Y])                   #22
-label('.abs23')
-st([v6502_ADL])                 #23
-ld(-64//2+v6502_maxTicks)       #24 Is there enough time for the excess ticks?
-adda([vTicks])                  #25
-blt('.retry28')                 #26
-ld([v6502_PCL])                 #27
-ld([v6502_IR])                  #28 Special case $BE: LDX $DDDD,Y (we got X in ADL)
-xora(0xbe)                      #29
-beq(pc()+3)                     #30
-bra(pc()+3)                     #31
-ld([v6502_ADL])                 #32
-ld([v6502_Y])                   #32(!)
-adda([Y,X])                     #33 Fetch and add L
-st([v6502_ADL])                 #34
-bmi('.abs37')                   #35 Carry?
-suba([Y,X])                     #36 Gets back original operand
-bra('.abs39')                   #37
-ora([Y,X])                      #38 Carry in bit 7
-label('.abs37')
-anda([Y,X])                     #37 Carry in bit 7
-nop()                           #38
-label('.abs39')
-anda(0x80,X)                    #39 Move carry to bit 0
-ld([X])                         #40
-st([v6502_ADH])                 #41
-ld([v6502_PCL])                 #42 PC++
-adda(1)                         #43
-st([v6502_PCL],X)               #44
-beq(pc()+3)                     #45
-bra(pc()+3)                     #46
-ld(0)                           #47
-ld(1)                           #47(!)
-adda([v6502_PCH])               #48
-st([v6502_PCH],Y)               #49
-ld([Y,X])                       #50 Fetch H
-adda([v6502_ADH])               #51
-st([v6502_ADH])                 #52
-ld([v6502_PCL])                 #53 PC++
-adda(1)                         #54
-st([v6502_PCL])                 #55
-beq(pc()+3)                     #56
-bra(pc()+3)                     #57
-ld(0)                           #58
-ld(1)                           #58(!)
-adda([v6502_PCH])               #59
-st([v6502_PCH])                 #60
-ld([v6502_ADL],X)               #61
-bra('v6502_check')              #62
-ld(-64/2)                       #63
-
-# Indirect Indexed Mode: ($DD),Y -- 54 cycles
-label('v6502_modeIZY')
-ld(AC,X)                        #21 $DD
-ld(0,Y)                         #22 $00DD
-ld(-54//2+v6502_maxTicks)       #23 Is there enough time for the excess ticks?
-adda([vTicks])                  #24
-nop()                           #25
-blt('.retry28')                 #26
-ld([v6502_PCL])                 #27
-adda(1)                         #28 PC++
-st([v6502_PCL])                 #29
-beq(pc()+3)                     #30
-bra(pc()+3)                     #31
-ld(0)                           #32
-ld(1)                           #32(!)
-adda([v6502_PCH])               #33
-st([v6502_PCH])                 #34
-ld([Y,X])                       #35 Read word from zero-page
-st([Y,Xpp])                     #36 (Just X++) Wrap-around is correct
-st([v6502_ADL])                 #37
-ld([Y,X])                       #38
-st([v6502_ADH])                 #39
-ld([v6502_Y])                   #40 Add Y
-adda([v6502_ADL])               #41
-st([v6502_ADL])                 #42
-bmi('.izy45')                   #43 Carry?
-suba([v6502_Y])                 #44 Gets back original operand
-bra('.izy47')                   #45
-ora([v6502_Y])                  #46 Carry in bit 7
-label('.izy45')
-anda([v6502_Y])                 #45 Carry in bit 7
-nop()                           #46
-label('.izy47')
-anda(0x80,X)                    #47 Move carry to bit 0
-ld([X])                         #48
-adda([v6502_ADH])               #49
-st([v6502_ADH])                 #50
-ld([v6502_ADL],X)               #51
-bra('v6502_check')              #52
-ld(-54/2)                       #53
-
-# Relative Mode: BEQ BNE BPL BMI BCC BCS BVC BVS -- 36 cycles
-label('v6502_modeREL')
-st([v6502_ADL],X)               #21 Offset (Only needed for branch)
-bmi(pc()+3)                     #22 Sign extend
-bra(pc()+3)                     #23
-ld(0)                           #24
-ld(255)                         #24(!)
-st([v6502_ADH])                 #25
-ld([v6502_PCL])                 #26 PC++ (Needed for both cases)
-adda(1)                         #27
-st([v6502_PCL])                 #28
-beq(pc()+3)                     #29
-bra(pc()+3)                     #30
-ld(0)                           #31
-ld(1)                           #31(!)
-adda([v6502_PCH])               #32
-st([v6502_PCH])                 #33
-bra('v6502_check')              #34
-ld(-36/2)                       #53
-
-# Indexed Indirect Mode: ($DD,X) -- 38 cycles
-label('v6502_modeIZX')
-adda([v6502_X])                 #21 Add X
-st([v6502_Tmp])                 #22
-adda(1,X)                       #23 Read word from zero-page
-ld([X])                         #24
-st([v6502_ADH])                 #25
-ld([v6502_Tmp],X)               #26
-ld([X])                         #27
-st([v6502_ADL],X)               #28
-ld([v6502_PCL])                 #29 PC++
-adda(1)                         #30
-st([v6502_PCL])                 #31
-beq(pc()+3)                     #32
-bra(pc()+3)                     #33
-ld(0)                           #34
-ld(1)                           #34(!)
-adda([v6502_PCH])               #35
-st([v6502_PCH])                 #36
-ld(-38/2)                       #37 !!! Fall through to v6502_check !!!
-#
-# Update elapsed time for the addressing mode processing.
-# Then check if we can immediately execute this instruction.
-# Otherwise transfer control to the video driver.
-label('v6502_check')
-adda([vTicks])                  #0
-blt('v6502_exitAfter')          #1 No more ticks
-st([vTicks])                    #2
-ld(hi('v6502_execute'),Y)       #3
-jmp(Y,[v6502_IR])               #4
-bra(255)                        #5
-
-# Otherwise resync with video driver. At this point we're returning AFTER
-# addressing mode decoding, but before executing the instruction.
-label('v6502_exitAfter')
-adda(v6502_maxTicks)            #3 Exit AFTER fetch
-bgt(pc()&255)                   #4 Resync
-suba(1)                         #5
-ld(hi('v6502_RESUME'))          #6 Set entry point to before 'execute'
-st([vCpuSelect])                #7
-ld(hi('vBlankStart'),Y)         #8
-jmp(Y,[vReturn])                #9 To video driver
-ld(0)                           #10
-assert v6502_overhead ==         11
-
-align(0x100,size=0x100)
-label('v6502_execute')
-# This page works as a 255-entry (0..254) jump table for 6502 opcodes.
-# Jumping into this page must have 'bra 255' in the branch delay slot
-# in order to get out again and dispatch to the right continuation.
-# X must hold [v6502_ADL],
-# Y will hold hi('v6502_execute'),
-# A will be loaded with the code offset (this is skipped at offset $ff)
-ld('v6502_BRK'); ld('v6502_ORA'); ld('v6502_ILL'); ld('v6502_ILL') #6 $00
-ld('v6502_ILL'); ld('v6502_ORA'); ld('v6502_ASL'); ld('v6502_ILL') #6
-ld('v6502_PHP'); ld('v6502_ORA'); ld('v6502_ASL'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_ORA'); ld('v6502_ASL'); ld('v6502_ILL') #6
-ld('v6502_BPL'); ld('v6502_ORA'); ld('v6502_ILL'); ld('v6502_ILL') #6 $10
-ld('v6502_ILL'); ld('v6502_ORA'); ld('v6502_ASL'); ld('v6502_ILL') #6
-ld('v6502_CLC'); ld('v6502_ORA'); ld('v6502_ILL'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_ORA'); ld('v6502_ASL'); ld('v6502_ILL') #6
-ld('v6502_JSR'); ld('v6502_AND'); ld('v6502_ILL'); ld('v6502_ILL') #6 $20
-ld('v6502_BIT'); ld('v6502_AND'); ld('v6502_ROL'); ld('v6502_ILL') #6
-ld('v6502_PLP'); ld('v6502_AND'); ld('v6502_ROL'); ld('v6502_ILL') #6
-ld('v6502_BIT'); ld('v6502_AND'); ld('v6502_ROL'); ld('v6502_ILL') #6
-ld('v6502_BMI'); ld('v6502_AND'); ld('v6502_ILL'); ld('v6502_ILL') #6 $30
-ld('v6502_ILL'); ld('v6502_AND'); ld('v6502_ROL'); ld('v6502_ILL') #6
-ld('v6502_SEC'); ld('v6502_AND'); ld('v6502_ILL'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_AND'); ld('v6502_ROL'); ld('v6502_ILL') #6
-ld('v6502_RTI'); ld('v6502_EOR'); ld('v6502_ILL'); ld('v6502_ILL') #6 $40
-ld('v6502_ILL'); ld('v6502_EOR'); ld('v6502_LSR'); ld('v6502_ILL') #6
-ld('v6502_PHA'); ld('v6502_EOR'); ld('v6502_LSR'); ld('v6502_ILL') #6
-ld('v6502_JMP1');ld('v6502_EOR'); ld('v6502_LSR'); ld('v6502_ILL') #6
-ld('v6502_BVC'); ld('v6502_EOR'); ld('v6502_ILL'); ld('v6502_ILL') #6 $50
-ld('v6502_ILL'); ld('v6502_EOR'); ld('v6502_LSR'); ld('v6502_ILL') #6
-ld('v6502_CLI'); ld('v6502_EOR'); ld('v6502_ILL'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_EOR'); ld('v6502_LSR'); ld('v6502_ILL') #6
-ld('v6502_RTS'); ld('v6502_ADC'); ld('v6502_ILL'); ld('v6502_ILL') #6 $60
-ld('v6502_ILL'); ld('v6502_ADC'); ld('v6502_ROR'); ld('v6502_ILL') #6
-ld('v6502_PLA'); ld('v6502_ADC'); ld('v6502_ROR'); ld('v6502_ILL') #6
-ld('v6502_JMP2');ld('v6502_ADC'); ld('v6502_ROR'); ld('v6502_ILL') #6
-ld('v6502_BVS'); ld('v6502_ADC'); ld('v6502_ILL'); ld('v6502_ILL') #6 $70
-ld('v6502_ILL'); ld('v6502_ADC'); ld('v6502_ROR'); ld('v6502_ILL') #6
-ld('v6502_SEI'); ld('v6502_ADC'); ld('v6502_ILL'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_ADC'); ld('v6502_ROR'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_STA'); ld('v6502_ILL'); ld('v6502_ILL') #6 $80
-ld('v6502_STY'); ld('v6502_STA'); ld('v6502_STX'); ld('v6502_ILL') #6
-ld('v6502_DEY'); ld('v6502_ILL'); ld('v6502_TXA'); ld('v6502_ILL') #6
-ld('v6502_STY'); ld('v6502_STA'); ld('v6502_STX'); ld('v6502_ILL') #6
-ld('v6502_BCC'); ld('v6502_STA'); ld('v6502_ILL'); ld('v6502_ILL') #6 $90
-ld('v6502_STY'); ld('v6502_STA'); ld('v6502_STX2');ld('v6502_ILL') #6
-ld('v6502_TYA'); ld('v6502_STA'); ld('v6502_TXS'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_STA'); ld('v6502_ILL'); ld('v6502_ILL') #6
-ld('v6502_LDY'); ld('v6502_LDA'); ld('v6502_LDX'); ld('v6502_ILL') #6 $A0
-ld('v6502_LDY'); ld('v6502_LDA'); ld('v6502_LDX'); ld('v6502_ILL') #6
-ld('v6502_TAY'); ld('v6502_LDA'); ld('v6502_TAX'); ld('v6502_ILL') #6
-ld('v6502_LDY'); ld('v6502_LDA'); ld('v6502_LDX'); ld('v6502_ILL') #6
-ld('v6502_BCS'); ld('v6502_LDA'); ld('v6502_ILL'); ld('v6502_ILL') #6 $B0
-ld('v6502_LDY'); ld('v6502_LDA'); ld('v6502_LDX2');ld('v6502_ILL') #6
-ld('v6502_CLV'); ld('v6502_LDA'); ld('v6502_TSX'); ld('v6502_ILL') #6
-ld('v6502_LDY'); ld('v6502_LDA'); ld('v6502_LDX'); ld('v6502_ILL') #6
-ld('v6502_CPY'); ld('v6502_CMP'); ld('v6502_ILL'); ld('v6502_ILL') #6 $C0
-ld('v6502_CPY'); ld('v6502_CMP'); ld('v6502_DEC'); ld('v6502_ILL') #6
-ld('v6502_INY'); ld('v6502_CMP'); ld('v6502_DEX'); ld('v6502_ILL') #6
-ld('v6502_CPY'); ld('v6502_CMP'); ld('v6502_DEC'); ld('v6502_ILL') #6
-ld('v6502_BNE'); ld('v6502_CMP'); ld('v6502_ILL'); ld('v6502_ILL') #6 $D0
-ld('v6502_ILL'); ld('v6502_CMP'); ld('v6502_DEC'); ld('v6502_ILL') #6
-ld('v6502_CLD'); ld('v6502_CMP'); ld('v6502_ILL'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_CMP'); ld('v6502_DEC'); ld('v6502_ILL') #6
-ld('v6502_CPX'); ld('v6502_SBC'); ld('v6502_ILL'); ld('v6502_ILL') #6 $E0
-ld('v6502_CPX'); ld('v6502_SBC'); ld('v6502_INC'); ld('v6502_ILL') #6
-ld('v6502_INX'); ld('v6502_SBC'); ld('v6502_NOP'); ld('v6502_ILL') #6
-ld('v6502_CPX'); ld('v6502_SBC'); ld('v6502_INC'); ld('v6502_ILL') #6
-ld('v6502_BEQ'); ld('v6502_SBC'); ld('v6502_ILL'); ld('v6502_ILL') #6 $F0
-ld('v6502_ILL'); ld('v6502_SBC'); ld('v6502_INC'); ld('v6502_ILL') #6
-ld('v6502_SED'); ld('v6502_SBC'); ld('v6502_ILL'); ld('v6502_ILL') #6
-ld('v6502_ILL'); ld('v6502_SBC'); ld('v6502_INC')                  #6
-bra(AC)                         #6,7 Dispatch into next page
-# --- Page boundary ---
-align(0x100,size=0x100)
-ld(hi('v6502_next'),Y)          #8 Handy for instructions that don't clobber Y
-
-label('v6502_ADC')
-assert pc()&255 == 1
-assert v6502_Cflag == 1
-assert v6502_Vemu == 128
-ld([v6502_ADH],Y)               #9 Must be at page offset 1, so A=1
-anda([v6502_P])                 #10 Carry in (AC=1 because lo('v6502_ADC')=1)
-adda([v6502_A])                 #11 Sum
-beq('.adc14')                   #12 Danger zone for dropping a carry
-adda([Y,X])                     #13
-st([v6502_Qz])                  #14 Z flag, don't overwrite left-hand side (A) yet
-st([v6502_Qn])                  #15 N flag
-xora([v6502_A])                 #16 V flag, (Q^A) & (B^Q) & 0x80
-st([v6502_A])                   #17
-ld([Y,X])                       #18
-xora([v6502_Qz])                #19
-anda([v6502_A])                 #20
-anda(0x80)                      #21
-st([v6502_Tmp])                 #22
-ld([v6502_Qz])                  #23 Update A
-st([v6502_A])                   #24
-bmi('.adc27')                   #25 C flag
-suba([Y,X])                     #26
-bra('.adc29')                   #27
-ora([Y,X])                      #28
-label('.adc27')
-anda([Y,X])                     #27
-nop()                           #28
-label('.adc29')
-anda(0x80,X)                    #29
-ld([v6502_P])                   #30 Update P
-anda(~v6502_Vemu&~v6502_Cflag)  #31
-ora([X])                        #32
-ora([v6502_Tmp])                #33
-st([v6502_P])                   #34
-ld(hi('v6502_next'),Y)          #35
-jmp(Y,'v6502_next')             #36
-ld(-38/2)                       #37
-# Cin=1, A=$FF, B=$DD --> Result=$DD, Cout=1, V=0
-# Cin=0, A=$00, B=$DD --> Result=$DD, Cout=0, V=0
-label('.adc14')
-st([v6502_A])                   #14 Special case
-st([v6502_Qz])                  #15 Z flag
-st([v6502_Qn])                  #16 N flag
-ld([v6502_P])                   #17
-anda(0x7f)                      #18 V=0, keep C
-st([v6502_P])                   #19
-ld(hi('v6502_next'),Y)          #20
-ld(-24/2)                       #21
-jmp(Y,'v6502_next')             #22
-#nop()                          #23 Overlap
-#
-label('v6502_SBC')
-# No matter how hard we try, v6502_SBC always comes out a lot clumsier
-# than v6502_ADC. And that one already barely fits in 38 cycles and is
-# hard to follow. So we use a hack: transmorph our SBC into an ADC with
-# inverted operand, and then dispatch again. Simple and effective.
-ld([v6502_ADH],Y)               #9,24
-ld([Y,X])                       #10
-xora(255)                       #11 Invert right-hand side operand
-st([v6502_BI])                  #12 Park modified operand for v6502_ADC
-ld(v6502_BI&255)                #13 Address of BI
-st([v6502_ADL],X)               #14
-ld(v6502_BI>>8)                 #15
-st([v6502_ADH])                 #16
-ld(0x69)                        #17 ADC #$xx (Any ADC opcode will do)
-st([v6502_IR])                  #18
-ld(hi('v6502_check'),Y)         #20 Go back to time check before dispatch
-jmp(Y,'v6502_check')            #20
-ld(-22/2)                       #21
-
-# Carry calculation table
-#   L7 R7 C7   RX UC SC
-#   -- -- -- | -- -- --
-#    0  0  0 |  0  0  0
-#    0  0  1 |  0  0  0
-#    1  0  0 |  0  1 +1
-#    1  0  1 |  0  0  0
-#    0  1  0 | -1  1  0
-#    0  1  1 | -1  0 -1
-#    1  1  0 | -1  1  0
-#    1  1  1 | -1  1  0
-#   -- -- -- | -- -- --
-#    ^  ^  ^    ^  ^  ^
-#    |  |  |    |  |  `--- Carry of unsigned L + signed R: SC = RX + UC
-#    |  |  |    |  `----- Carry of unsigned L + unsigned R: UC = C7 ? L7&R7 : L7|R7
-#    |  |  |    `------- Sign extension of signed R
-#    |  |  `--------- MSB of unextended L + R
-#    |  `----------- MSB of right operand R
-#    `------------- MSB of left operand L
-
-label('v6502_CLC')
-ld([v6502_P])                   #9
-bra('.sec12')                   #10
-label('v6502_SEC')
-anda(~v6502_Cflag)              #9,11 Overlap
-ld([v6502_P])                   #10
-ora(v6502_Cflag)                #11
-label('.sec12')
-st([v6502_P])                   #12
-nop()                           #13
-label('.next14')
-jmp(Y,'v6502_next')             #14
-ld(-16/2)                       #15
-
-label('v6502_BPL')
-ld([v6502_Qn])                  #9
-bmi('.next12')                  #10
-bpl('.branch13')                #11
-#nop()                          #12 Overlap
-label('v6502_BMI')
-ld([v6502_Qn])                  #9,12
-bpl('.next12')                  #10
-bmi('.branch13')                #11
-#nop()                          #12 Overlap
-label('v6502_BVC')
-ld([v6502_P])                   #9,12
-anda(v6502_Vemu)                #10
-beq('.branch13')                #11
-bne('.next14')                  #12
-#nop()                          #13 Overlap
-label('v6502_BVS')
-ld([v6502_P])                   #9,13
-anda(v6502_Vemu)                #10
-bne('.branch13')                #11
-beq('.next14')                  #12
-#nop()                          #13 Overlap
-label('v6502_BCC')
-ld([v6502_P])                   #9,13
-anda(v6502_Cflag)               #10
-beq('.branch13')                #11
-bne('.next14')                  #12
-#nop()                          #13 Overlap
-label('v6502_BCS')
-ld([v6502_P])                   #9,13
-anda(v6502_Cflag)               #10
-bne('.branch13')                #11
-beq('.next14')                  #12
-#nop()                          #13 Overlap
-label('v6502_BNE')
-ld([v6502_Qz])                  #9,13
-beq('.next12')                  #10
-bne('.branch13')                #11
-#nop()                          #12 Overlap
-label('v6502_BEQ')
-ld([v6502_Qz])                  #9,12
-bne('.next12')                  #10
-beq('.branch13')                #11
-#nop()                          #12 Overlap
-label('.branch13')
-ld([v6502_ADL])                 #13,12 PC + offset
-adda([v6502_PCL])               #14
-st([v6502_PCL])                 #15
-bmi('.bra0')                    #16 Carry
-suba([v6502_ADL])               #17
-bra('.bra1')                    #18
-ora([v6502_ADL])                #19
-label('.bra0')
-anda([v6502_ADL])               #18
-nop()                           #19
-label('.bra1')
-anda(0x80,X)                    #20
-ld([X])                         #21
-adda([v6502_ADH])               #22
-adda([v6502_PCH])               #23
-st([v6502_PCH])                 #24
-nop()                           #25
-jmp(Y,'v6502_next')             #26
-ld(-28/2)                       #27
-
-label('v6502_INX')
-nop()                           #9
-ld([v6502_X])                   #10
-adda(1)                         #11
-st([v6502_X])                   #12
-label('.inx13')
-st([v6502_Qz])                  #13 Z flag
-st([v6502_Qn])                  #14 N flag
-ld(-18/2)                       #15
-jmp(Y,'v6502_next')             #16
-nop()                           #17
-
-label('.next12')
-jmp(Y,'v6502_next')             #12
-ld(-14/2)                       #13
-
-label('v6502_DEX')
-ld([v6502_X])                   #9
-suba(1)                         #10
-bra('.inx13')                   #11
-st([v6502_X])                   #12
-
-label('v6502_INY')
-ld([v6502_Y])                   #9
-adda(1)                         #10
-bra('.inx13')                   #11
-st([v6502_Y])                   #12
-
-label('v6502_DEY')
-ld([v6502_Y])                   #9
-suba(1)                         #10
-bra('.inx13')                   #11
-st([v6502_Y])                   #12
-
-label('v6502_NOP')
-ld(-12/2)                       #9
-jmp(Y,'v6502_next')             #10
-#nop()                          #11 Overlap
-#
-label('v6502_AND')
-ld([v6502_ADH],Y)               #9,11
-ld([v6502_A])                   #10
-bra('.eor13')                   #11
-anda([Y,X])                     #12
-
-label('v6502_ORA')
-ld([v6502_ADH],Y)               #9
-ld([v6502_A])                   #10
-bra('.eor13')                   #11
-label('v6502_EOR')
-ora([Y,X])                      #12,9
-#
-#label('v6502_EOR')
-#nop()                          #9 Overlap
-ld([v6502_ADH],Y)               #10
-ld([v6502_A])                   #11
-xora([Y,X])                     #12
-label('.eor13')
-st([v6502_A])                   #13
-st([v6502_Qz])                  #14 Z flag
-st([v6502_Qn])                  #15 N flag
-ld(hi('v6502_next'),Y)          #16
-ld(-20/2)                       #17
-jmp(Y,'v6502_next')             #18
-#nop()                          #19 Overlap
-#
-label('v6502_JMP1')
-ld(hi('v6502_jmp1'),Y)          #9,19 JMP $DDDD
-jmp(Y,'v6502_jmp1')             #10
-#nop()                          #11 Overlap
-label('v6502_JMP2')
-ld(hi('v6502_jmp2'),Y)          #9 JMP ($DDDD)
-jmp(Y,'v6502_jmp2')             #10
-#nop()                          #11 Overlap
-label('v6502_JSR')
-ld([v6502_S])                   #9,11
-suba(2)                         #10
-st([v6502_S],X)                 #11
-ld(v6502_Stack>>8,Y)            #12
-ld([v6502_PCH])                 #13 Let ADL,ADH point to L operand
-st([v6502_ADH])                 #14
-ld([v6502_PCL])                 #15
-st([v6502_ADL])                 #16
-adda(1)                         #17 Push ++PC
-st([v6502_PCL])                 #18 Let PCL,PCH point to H operand
-st([Y,Xpp])                     #19
-beq(pc()+3)                     #20
-bra(pc()+3)                     #21
-ld(0)                           #22
-ld(1)                           #22(!)
-adda([v6502_PCH])               #23
-st([v6502_PCH])                 #24
-st([Y,X])                       #25
-ld([v6502_ADL],X)               #26 Fetch L
-ld([v6502_ADH],Y)               #27
-ld([Y,X])                       #28
-ld([v6502_PCL],X)               #29 Fetch H
-st([v6502_PCL])                 #30
-ld([v6502_PCH],Y)               #31
-ld([Y,X])                       #32
-st([v6502_PCH])                 #33
-ld(hi('v6502_next'),Y)          #34
-ld(-38/2)                       #35
-jmp(Y,'v6502_next')             #36
-#nop()                          #37 Overlap
-#
-label('v6502_INC')
-ld(hi('v6502_inc'),Y)           #9,37
-jmp(Y,'v6502_inc')              #10
-#nop()                          #11 Overlap
-label('v6502_LDA')
-ld(hi('v6502_lda'),Y)           #9,11
-jmp(Y,'v6502_lda')              #10
-#nop()                          #11 Overlap
-label('v6502_LDX')
-ld(hi('v6502_ldx'),Y)           #9,11
-jmp(Y,'v6502_ldx')              #10
-#nop()                          #11 Overlap
-label('v6502_LDX2')
-ld(hi('v6502_ldx2'),Y)          #9,11
-jmp(Y,'v6502_ldx2')             #10
-#nop()                          #11 Overlap
-label('v6502_LDY')
-ld(hi('v6502_ldy'),Y)           #9,11
-jmp(Y,'v6502_ldy')              #10
-#nop()                          #11 Overlap
-label('v6502_STA')
-ld(hi('v6502_sta'),Y)           #9,11
-jmp(Y,'v6502_sta')              #10
-#nop()                          #11 Overlap
-label('v6502_STX')
-ld(hi('v6502_stx'),Y)           #9,11
-jmp(Y,'v6502_stx')              #10
-#nop()                          #11 Overlap
-label('v6502_STX2')
-ld(hi('v6502_stx2'),Y)          #9,11
-jmp(Y,'v6502_stx2')             #10
-#nop()                          #11 Overlap
-label('v6502_STY')
-ld(hi('v6502_sty'),Y)           #9,11
-jmp(Y,'v6502_sty')              #10
-#nop()                          #11 Overlap
-label('v6502_TAX')
-ld(hi('v6502_tax'),Y)           #9,11
-jmp(Y,'v6502_tax')              #10
-#nop()                          #11 Overlap
-label('v6502_TAY')
-ld(hi('v6502_tay'),Y)           #9,11
-jmp(Y,'v6502_tay')              #10
-#nop()                          #11 Overlap
-label('v6502_TXA')
-ld(hi('v6502_txa'),Y)           #9,11
-jmp(Y,'v6502_txa')              #10
-#nop()                          #11 Overlap
-label('v6502_TYA')
-ld(hi('v6502_tya'),Y)           #9,11
-jmp(Y,'v6502_tya')              #10
-#nop()                          #11 Overlap
-label('v6502_CLV')
-ld(hi('v6502_clv'),Y)           #9,11
-jmp(Y,'v6502_clv')              #10
-#nop()                          #11 Overlap
-label('v6502_RTI')
-ld(hi('v6502_rti'),Y)           #9,11
-jmp(Y,'v6502_rti')              #10
-#nop()                          #11 Overlap
-label('v6502_ROR')
-ld(hi('v6502_ror'),Y)           #9,11
-jmp(Y,'v6502_ror')              #10
-#nop()                          #11 Overlap
-label('v6502_LSR')
-ld(hi('v6502_lsr'),Y)           #9,11
-jmp(Y,'v6502_lsr')              #10
-#nop()                          #11 Overlap
-label('v6502_PHA')
-ld(hi('v6502_pha'),Y)           #9,11
-jmp(Y,'v6502_pha')              #10
-#nop()                          #11 Overlap
-label('v6502_CLI')
-ld(hi('v6502_cli'),Y)           #9,11
-jmp(Y,'v6502_cli')              #10
-#nop()                          #11 Overlap
-label('v6502_RTS')
-ld(hi('v6502_rts'),Y)           #9,11
-jmp(Y,'v6502_rts')              #10
-#nop()                          #11 Overlap
-label('v6502_PLA')
-ld(hi('v6502_pla'),Y)           #9,11
-jmp(Y,'v6502_pla')              #10
-#nop()                          #11 Overlap
-label('v6502_SEI')
-ld(hi('v6502_sei'),Y)           #9,11
-jmp(Y,'v6502_sei')              #10
-#nop()                          #11 Overlap
-label('v6502_TXS')
-ld(hi('v6502_txs'),Y)           #9,11
-jmp(Y,'v6502_txs')              #10
-#nop()                          #11 Overlap
-label('v6502_TSX')
-ld(hi('v6502_tsx'),Y)           #9,11
-jmp(Y,'v6502_tsx')              #10
-#nop()                          #11 Overlap
-label('v6502_CPY')
-ld(hi('v6502_cpy'),Y)           #9,11
-jmp(Y,'v6502_cpy')              #10
-#nop()                          #11 Overlap
-label('v6502_CMP')
-ld(hi('v6502_cmp'),Y)           #9,11
-jmp(Y,'v6502_cmp')              #10
-#nop()                          #11 Overlap
-label('v6502_DEC')
-ld(hi('v6502_dec'),Y)           #9,11
-jmp(Y,'v6502_dec')              #10
-#nop()                          #11 Overlap
-label('v6502_CLD')
-ld(hi('v6502_cld'),Y)           #9,11
-jmp(Y,'v6502_cld')              #10
-#nop()                          #11 Overlap
-label('v6502_CPX')
-ld(hi('v6502_cpx'),Y)           #9,11
-jmp(Y,'v6502_cpx')              #10
-#nop()                          #11 Overlap
-label('v6502_ASL')
-ld(hi('v6502_asl'),Y)           #9,11
-jmp(Y,'v6502_asl')              #10
-#nop()                          #11 Overlap
-label('v6502_PHP')
-ld(hi('v6502_php'),Y)           #9,11
-jmp(Y,'v6502_php')              #10
-#nop()                          #11 Overlap
-label('v6502_BIT')
-ld(hi('v6502_bit'),Y)           #9
-jmp(Y,'v6502_bit')              #10
-#nop()                          #11 Overlap
-label('v6502_ROL')
-ld(hi('v6502_rol'),Y)           #9
-jmp(Y,'v6502_rol')              #10
-#nop()                          #11 Overlap
-label('v6502_PLP')
-ld(hi('v6502_plp'),Y)           #9
-jmp(Y,'v6502_plp')              #10
-#nop()                          #11 Overlap
-label('v6502_SED')              # Decimal mode not implemented
-ld(hi('v6502_sed'),Y)           #9,11
-jmp(Y,'v6502_sed')              #10
-#nop()                          #11 Overlap
-label('v6502_ILL') # All illegal opcodes map to BRK, except $FF which will crash
-label('v6502_BRK')
-ld(hi('v6502_brk'),Y)           #9
-jmp(Y,'v6502_brk')              #10
-#nop()                          #11 Overlap
-
-while pc()&255 < 255:
-  nop()
-
-# `v6502_RESUME' is the interpreter's secondary entry point for when
-# the opcode and operands were already fetched, just before the last hPulse.
-# It must be at $xxff, prefably somewhere in v6502's own code pages.
-label('v6502_RESUME')
-assert (pc()&255) == 255
-suba(v6502_adjust)              #0,11 v6502 secondary entry point
-# --- Page boundary ---
-align(0x100,size=0x200)
-st([vTicks])                    #1
-ld([v6502_ADL],X)               #2
-ld(hi('v6502_execute'),Y)       #3
-jmp(Y,[v6502_IR])               #4
-bra(255)                        #5
-
-label('v6502_dec')
-ld([v6502_ADH],Y)               #12
-ld([Y,X])                       #13
-suba(1)                         #14
-st([Y,X])                       #15
-st([v6502_Qz])                  #16 Z flag
-st([v6502_Qn])                  #17 N flag
-ld(hi('v6502_next'),Y)          #18
-ld(-22/2)                       #19
-jmp(Y,'v6502_next')             #20
-#nop()                          #21 Overlap
-#
-label('v6502_inc')
-ld([v6502_ADH],Y)               #12,22
-ld([Y,X])                       #13
-adda(1)                         #14
-st([Y,X])                       #15
-st([v6502_Qz])                  #16 Z flag
-st([v6502_Qn])                  #17 N flag
-ld(hi('v6502_next'),Y)          #18
-ld(-22/2)                       #19
-jmp(Y,'v6502_next')             #20
-nop()                           #21
-
-label('v6502_lda')
-nop()                           #12
-ld([v6502_ADH],Y)               #13
-ld([Y,X])                       #14
-st([v6502_A])                   #15
-label('.lda16')
-st([v6502_Qz])                  #16 Z flag
-st([v6502_Qn])                  #17 N flag
-nop()                           #18
-ld(hi('v6502_next'),Y)          #19
-jmp(Y,'v6502_next')             #20
-ld(-22/2)                       #21
-
-label('v6502_ldx')
-ld([v6502_ADH],Y)               #12
-ld([Y,X])                       #13
-bra('.lda16')                   #14
-st([v6502_X])                   #15
-
-label('v6502_ldy')
-ld([v6502_ADH],Y)               #12
-ld([Y,X])                       #13
-bra('.lda16')                   #14
-st([v6502_Y])                   #15
-
-label('v6502_ldx2')
-ld([v6502_ADL])                 #12 Special case $B6: LDX $DD,Y
-suba([v6502_X])                 #13 Undo X offset
-adda([v6502_Y],X)               #14 Apply Y instead
-ld([X])                         #15
-st([v6502_X])                   #16
-st([v6502_Qz])                  #17 Z flag
-st([v6502_Qn])                  #18 N flag
-ld(hi('v6502_next'),Y)          #19
-jmp(Y,'v6502_next')             #20
-ld(-22/2)                       #21
-
-label('v6502_sta')
-ld([v6502_ADH],Y)               #12
-ld([v6502_A])                   #13
-st([Y,X])                       #14
-ld(hi('v6502_next'),Y)          #15
-jmp(Y,'v6502_next')             #16
-ld(-18/2)                       #17
-
-label('v6502_stx')
-ld([v6502_ADH],Y)               #12
-ld([v6502_X])                   #13
-st([Y,X])                       #14
-ld(hi('v6502_next'),Y)          #15
-jmp(Y,'v6502_next')             #16
-ld(-18/2)                       #17
-
-label('v6502_stx2')
-ld([v6502_ADL])                 #12 Special case $96: STX $DD,Y
-suba([v6502_X])                 #13 Undo X offset
-adda([v6502_Y],X)               #14 Apply Y instead
-ld([v6502_X])                   #15
-st([X])                         #16
-ld(hi('v6502_next'),Y)          #17
-jmp(Y,'v6502_next')             #18
-ld(-20/2)                       #19
-
-label('v6502_sty')
-ld([v6502_ADH],Y)               #12
-ld([v6502_Y])                   #13
-st([Y,X])                       #14
-ld(hi('v6502_next'),Y)          #15
-jmp(Y,'v6502_next')             #16
-label('v6502_tax')
-ld(-18/2)                       #17,12
-#
-#label('v6502_tax')
-#nop()                          #12 Overlap
-ld([v6502_A])                   #13
-st([v6502_X])                   #14
-label('.tax15')
-st([v6502_Qz])                  #15 Z flag
-st([v6502_Qn])                  #16 N flag
-ld(hi('v6502_next'),Y)          #17
-jmp(Y,'v6502_next')             #18
-label('v6502_tsx')
-ld(-20/2)                       #19
-#
-#label('v6502_tsx')
-#nop()                          #12 Overlap
-ld([v6502_S])                   #13
-suba(1)                         #14 Shift down on export
-st([v6502_X])                   #15
-label('.tsx16')
-st([v6502_Qz])                  #16 Z flag
-st([v6502_Qn])                  #17 N flag
-nop()                           #18
-ld(hi('v6502_next'),Y)          #19
-jmp(Y,'v6502_next')             #20
-ld(-22/2)                       #21
-
-label('v6502_txs')
-ld([v6502_X])                   #12
-adda(1)                         #13 Shift up on import
-bra('.tsx16')                   #14
-st([v6502_S])                   #15
-
-label('v6502_tay')
-ld([v6502_A])                   #12
-bra('.tax15')                   #13
-st([v6502_Y])                   #14
-
-label('v6502_txa')
-ld([v6502_X])                   #12
-bra('.tax15')                   #13
-st([v6502_A])                   #14
-
-label('v6502_tya')
-ld([v6502_Y])                   #12
-bra('.tax15')                   #13
-st([v6502_A])                   #14
-
-label('v6502_cli')
-ld([v6502_P])                   #12
-bra('.clv15')                   #13
-anda(~v6502_Iflag)              #14
-
-label('v6502_sei')
-ld([v6502_P])                   #12
-bra('.clv15')                   #13
-ora(v6502_Iflag)                #14
-
-label('v6502_cld')
-ld([v6502_P])                   #12
-bra('.clv15')                   #13
-anda(~v6502_Dflag)              #14
-
-label('v6502_sed')
-ld([v6502_P])                   #12
-bra('.clv15')                   #13
-label('v6502_clv')
-ora(v6502_Dflag)                #14,12 Overlap
-#
-#label('v6502_clv')
-#nop()                          #12
-ld([v6502_P])                   #13
-anda(~v6502_Vemu)               #14
-label('.clv15')
-st([v6502_P])                   #15
-ld(hi('v6502_next'),Y)          #16
-ld(-20/2)                       #17
-jmp(Y,'v6502_next')             #18
-label('v6502_bit')
-nop()                           #19,12
-#
-#label('v6502_bit')
-#nop()                          #12 Overlap
-ld([v6502_ADL],X)               #13
-ld([v6502_ADH],Y)               #14
-ld([Y,X])                       #15
-st([v6502_Qn])                  #16 N flag
-anda([v6502_A])                 #17 This is a reason we keep N and Z in separate bytes
-st([v6502_Qz])                  #18 Z flag
-ld([v6502_P])                   #19
-anda(~v6502_Vemu)               #20
-st([v6502_P])                   #21
-ld([Y,X])                       #22
-adda(AC)                        #23
-anda(v6502_Vemu)                #24
-ora([v6502_P])                  #25
-st([v6502_P])                   #26 Update V
-ld(hi('v6502_next'),Y)          #27
-jmp(Y,'v6502_next')             #28
-ld(-30/2)                       #29
-
-label('v6502_rts')
-ld([v6502_S])                   #12
-ld(AC,X)                        #13
-adda(2)                         #14
-st([v6502_S])                   #15
-ld(0,Y)                         #16
-ld([Y,X])                       #17
-st([Y,Xpp])                     #18 Just X++
-adda(1)                         #19
-st([v6502_PCL])                 #20
-beq(pc()+3)                     #21
-bra(pc()+3)                     #22
-ld(0)                           #23
-ld(1)                           #23(!)
-adda([Y,X])                     #24
-st([v6502_PCH])                 #25
-nop()                           #26
-ld(hi('v6502_next'),Y)          #27
-jmp(Y,'v6502_next')             #28
-ld(-30/2)                       #29
-
-label('v6502_php')
-ld([v6502_S])                   #12
-suba(1)                         #13
-st([v6502_S],X)                 #14
-ld([v6502_P])                   #15
-anda(~v6502_Vflag&~v6502_Zflag) #16 Keep Vemu,B,D,I,C
-bpl(pc()+3)                     #17 V to bit 6 and clear N
-bra(pc()+2)                     #18
-xora(v6502_Vflag^v6502_Vemu)    #19
-st([X])                         #19,20
-ld([v6502_Qz])                  #21 Z flag
-beq(pc()+3)                     #22
-bra(pc()+3)                     #23
-ld(0)                           #24
-ld(v6502_Zflag)                 #24(!)
-ora([X])                        #25
-st([X])                         #26
-ld([v6502_Qn])                  #27 N flag
-anda(0x80)                      #28
-ora([X])                        #29
-ora(v6502_Uflag)                #30 Unused bit
-st([X])                         #31
-nop()                           #32
-ld(hi('v6502_next'),Y)          #33
-jmp(Y,'v6502_next')             #34
-ld(-36/2)                       #35
-
-label('v6502_cpx')
-bra('.cmp14')                   #12
-ld([v6502_X])                   #13
-
-label('v6502_cpy')
-bra('.cmp14')                   #12
-label('v6502_cmp')
-ld([v6502_Y])                   #13,12
-#
-#label('v6502_cmp')             #12 Overlap
-assert v6502_Cflag == 1
-ld([v6502_A])                   #13
-label('.cmp14')
-ld([v6502_ADH],Y)               #14
-bmi('.cmp17')                   #15 Carry?
-suba([Y,X])                     #16
-st([v6502_Qz])                  #17 Z flag
-st([v6502_Qn])                  #18 N flag
-bra('.cmp21')                   #19
-ora([Y,X])                      #20
-label('.cmp17')
-st([v6502_Qz])                  #17 Z flag
-st([v6502_Qn])                  #18 N flag
-anda([Y,X])                     #19
-nop()                           #20
-label('.cmp21')
-xora(0x80)                      #21
-anda(0x80,X)                    #22 Move carry to bit 0
-ld([v6502_P])                   #23 C flag
-anda(~1)                        #24
-ora([X])                        #25
-st([v6502_P])                   #26
-ld(hi('v6502_next'),Y)          #27
-jmp(Y,'v6502_next')             #28
-ld(-30/2)                       #29
-
-label('v6502_plp')
-assert v6502_Nflag == 128
-assert 2*v6502_Vflag == v6502_Vemu
-ld([v6502_S])                   #12
-ld(AC,X)                        #13
-adda(1)                         #14
-st([v6502_S])                   #15
-ld([X])                         #16
-st([v6502_Qn])                  #17 N flag
-anda(v6502_Zflag)               #18
-xora(v6502_Zflag)               #19
-st([v6502_Qz])                  #20 Z flag
-ld([X])                         #21
-anda(~v6502_Vemu)               #22 V to bit 7
-adda(v6502_Vflag)               #23
-st([v6502_P])                   #24 All other flags
-ld(hi('v6502_next'),Y)          #25
-jmp(Y,'v6502_next')             #26
-ld(-28/2)                       #27
-
-label('v6502_rti')
-ld([v6502_S])                   #12
-ld(AC,X)                        #13
-adda(3)                         #14
-st([v6502_S])                   #15
-ld([X])                         #16
-st([v6502_Qn])                  #17 N flag
-anda(v6502_Zflag)               #18
-xora(v6502_Zflag)               #19
-st([v6502_Qz])                  #20 Z flag
-ld(0,Y)                         #21
-ld([Y,X])                       #22
-st([Y,Xpp])                     #23 Just X++
-anda(~v6502_Vemu)               #24 V to bit 7
-adda(v6502_Vflag)               #25
-st([v6502_P])                   #26 All other flags
-ld([Y,X])                       #27
-st([Y,Xpp])                     #28 Just X++
-st([v6502_PCL])                 #29
-ld([Y,X])                       #30
-st([v6502_PCH])                 #31
-nop()                           #32
-ld(hi('v6502_next'),Y)          #33
-jmp(Y,'v6502_next')             #34
-ld(-36/2)                       #35
-
-#-----------------------------------------------------------------------
-#       Extended vertical blank logic: interrupts
+#       Extended vertical blank logic, (0x0e00)
 #-----------------------------------------------------------------------
 align(0x100)
 
@@ -5438,8 +3954,6 @@ bra('.buttons#48')              #46
 nop()                           #47
 
 
-#-----------------------------------------------------------------------
-#       More SYS functions, (0x1200)
 #-----------------------------------------------------------------------
 #
 # SYS_Exec_88 implementation
@@ -5617,6 +4131,38 @@ ld(hi('NEXTY'),Y)               #40
 jmp(Y,'NEXTY')                  #41
 ld(-44/2)                       #42
 
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+
+#-----------------------------------------------------------------------
+#       SPARE, (0x0f00)
+#-----------------------------------------------------------------------
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+
+#-----------------------------------------------------------------------
+#       SPARE, (0x1000)
+#-----------------------------------------------------------------------
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+
+#-----------------------------------------------------------------------
+#       SPARE, (0x1100)
+#-----------------------------------------------------------------------
+
+fillers(until=0xff)
+align(0x100, size=0x100)
+
+
+#-----------------------------------------------------------------------
+#       SPARE, (0x1200)
+#-----------------------------------------------------------------------
 
 fillers(until=0xff)
 align(0x100, size=0x100)
@@ -10260,6 +8806,13 @@ ld(hi('scrlh#13'),Y)            #10 #12
 jmp(Y,'scrlh#13')               #11
 ld(AC,X)                        #12
 
+# pc = 0x227a, Opcode = 0x7a
+# Instruction MULB: vAC.lo = vAC.lo * src.lo, vAC.hi = 0, 22 + 16 + min(vAC.lo, src.lo) cycles
+label('MULB')
+ld(hi('mulb#13'),Y)             #10
+jmp(Y,'mulb#13')                #11
+ld(AC,X)                        #12 src.lo address
+
 # SYS calls and instruction implementations rely on these
 fillers(until=0xca)
 ld(-28/2)                       #25
@@ -10301,7 +8854,6 @@ label('NEGL')
 ld(hi('negl#13'),Y)             #10
 jmp(Y,'negl#13')                #11
 ld(AC,X)                        #12
-
 
 fillers(until=0xff)
 
@@ -16660,6 +15212,66 @@ jmp(Y,'REENTER')                #20
 ld(-24/2)                       #21
 
 
+# MULB implementation
+label('mulb#13')
+#ld([X])                         #13 src.lo
+#beq('.mulb#16')                 #14
+#ld([vAC])                       #15 vAC.lo
+#beq('.mulb#18')                 #16
+#suba([X])                       #17
+#bgt('.mulb#20')                 #18
+#ld([vAC])                       #19
+#st([vTmp])                      #20
+#ld(0)                           #21
+#st([vAC])                       #22
+#
+#label('.mulb#23')
+#ld([vAC])                       #23
+#adda([X])                       #24
+#st([vAC]                        #25
+#ld([vTmp])                      #26
+#suba(1)                         #27
+#bgt('.mulb#23')                 #28
+#st([vTmp])                      #29
+#
+#
+#
+#
+#ld(min(0,maxTicks-46/2))        #13
+#adda([vTicks])                  #14
+#blt('.merge4#17')               #15 not enough time left, so retry
+#ld([sysArgs+4])                 #16 count
+#suba(1)                         #17
+#blt('.merge4#20')               #18
+#st([sysArgs+4])                 #19 count -= 1
+#
+#ld([0xB1],Y)                    #20 arrays0.hi
+#ld([0xB0],X)                    #21 arrays0.lo
+#
+#label('.mulb#16')
+#ld(0)                           #16
+#st([vAC])                       #17
+#st([vAC+1])                     #18
+#ld(hi('REENTER'),Y)             #19
+#jmp(Y,'REENTER')                #20
+#ld(-24/2)                       #21
+#
+#label('.mulb#18')
+#ld(0)                           #18
+#st([vAC])                       #19
+#st([vAC+1])                     #20
+#ld(hi('REENTER'),Y)             #21
+#jmp(Y,'REENTER')                #22
+#ld(-26/2)                       #23
+#
+#label('.mulb#19')
+#ld(hi('PREFX2_PAGE'))           #19 ENTER is at $(n-1)ff, where n = instruction page
+#st([vCpuSelect])                #20 restore PREFX2 instruction page
+#adda(1,Y)                       #21 retry instruction
+#jmp(Y,'REENTER')                #22
+#ld(-26/2)                       #23
+
+
 fillers(until=0xff)
 align(0x100, size=0x100)
 
@@ -17140,12 +15752,6 @@ define('keyH',       keyH)
 define('oscL',       oscL)
 define('oscH',       oscH)
 define('maxTicks',   maxTicks)
-define('v6502_PC',   v6502_PC)
-define('v6502_PCL',  v6502_PCL)
-define('v6502_PCH',  v6502_PCH)
-define('v6502_A',    v6502_A)
-define('v6502_X',    v6502_X)
-define('v6502_Y',    v6502_Y)
 define('qqVgaWidth', qqVgaWidth)
 define('qqVgaHeight',qqVgaHeight)
 define('buttonRight',buttonRight)

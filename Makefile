@@ -69,15 +69,11 @@ SDCARD.rom: Core/* Apps/*/* Makefile interface.json
 # New instructions and a 16bit stack pointer (vSP)
 ROMvX0.rom: Core/* Apps/*/* gasm/loader/* gbas/browser/* gbas/menu/* Makefile ROMvX0_interface.json
 	python3 Core/ROMvX0.asm.py\
-		SYS_Racer_v1.py\
-		zippedRacerHorizon=Apps/Racer/Horizon-256x16.rgb\
-		Racer=Apps/Racer/Racer_v2.gcl\
 		Credits=gbas/menu/Credits_vX0.gt1\
 		Clock=gbas/menu/Clock_vX0.gt1\
         Invader=gbas/menu/Invader_vX0.gt1\
+        VideoPoker=gbas/menu/VideoPoker_vX0.gt1\
 		TinyBASIC=Apps/TinyBASIC/TinyBASIC_v4.gcl\
-		WozMon=Apps/WozMon/WozMon_v2.gcl\
-		Apple1=Apps/Apple-1/Apple-1_v2.gt1\
 		Egg=Apps/Horizon/Horizon_at67_v1.gt1\
         SDCard=gbas/browser/Browser_SDCard_ROMvX0.gt1\
         Loader=gasm/loader/Loader_ROMvX0.gt1\

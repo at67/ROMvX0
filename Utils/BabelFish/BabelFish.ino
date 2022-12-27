@@ -380,7 +380,8 @@ uint8_t *gt1ProgmemLoc;
 #if sdChipSelectPin >= 0
 // SD card libraries
 #include <SPI.h>
-#include <SD.h>
+#include <SDFat.h>
+SdFat SD;
 
 // Current file to be transfered from SD card
 File rootSD;
@@ -389,6 +390,8 @@ uint8_t dirDepthSD = 0;
 bool validSD = false;
 bool createBackDirSD = false;
 File transferFileSD;
+const uint8_t kNameLength = 32;
+char nameEntry[kNameLength + 1];
 #endif
 
 
@@ -485,8 +488,8 @@ void loop()
         // Some commands are terminated by a zero trailer
         if(cmdSDMulti  ||  inByte < NumCmdSD)
         {
-            static char filename[13] = "", *namePtr = filename;
-            static char filepath[13] = "", *pathPtr = filepath;
+            static char filename[kNameLength+1] = "", *namePtr = filename;
+            static char filepath[kNameLength+1] = "", *pathPtr = filepath;
 
             // Valid command
             if(!cmdSDMulti  &&  inByte >= CmdSDList) cmdSDCard = inByte;
@@ -843,14 +846,15 @@ void doCommand(char line[])
 
 void doVersion()
 {
-#if 1
+#if hasSerial
     Serial.println(F(":Platform=" platform));
     Serial.println(F(":EEPROM:"));
     Serial.print(F(": size="));
     Serial.print(EEPROM.length());
     //doEcho(echo);
     Serial.println(F(":'H' help"));
-#else
+#endif
+#if 0
 #if hasSerial
     Serial.println(F(":BabelFish platform=" platform));
     Serial.println(F(":Pins:"));
@@ -1120,7 +1124,6 @@ void doSDDirPayload()
 {
     enum EntryType {EntryFile=1, EntryDir=2, EntryError=3};
 
-    const uint8_t kNameLength = 12;
     static char paths[8][kNameLength + 1];
 
     File entry;
@@ -1129,21 +1132,21 @@ void doSDDirPayload()
 
 
     // Gigatron payload is 63 bytes, protocol is <isLast>, <len>, <payload 0...62>
-    // Entry is maximum 15 bytes, <type> <len> <name:12> <0>, where name <= 12
+    // Entry is maximum 19 bytes, <type> <len> <name:16> <0>
     // Try and fit as many entry packets into the payload as possible before shipping it
     uint8_t packets = 0;
     const char parentDir[] = "..";
     for(;;)
     {
         uint8_t nameSize = 0;
-        char *nameEntry = nullptr;
+        strcpy(nameEntry, "");
 
         // SDCard error, (missing or incorrect format, etc)
         if(!isLast  &&  (!validSD  ||  !rootSD))
         {
             // Add error entry
             isLast = 1;
-            nameEntry = "SDCard Error";
+            strcpy(nameEntry, "SDCard Error");
             nameSize = strlen(nameEntry);
             payload[index++] = EntryError;
         }
@@ -1151,7 +1154,7 @@ void doSDDirPayload()
         else if(dirDepthSD  &&  createBackDirSD)
         {
             createBackDirSD = false;
-            nameEntry = (char *)parentDir;
+            strcpy(nameEntry, parentDir);
             nameSize = strlen(nameEntry);
             payload[index++] = EntryDir;
         }
@@ -1179,12 +1182,15 @@ void doSDDirPayload()
             else
             {
                 // Entry name and size
-                nameEntry = entry.name();
+                if(!entry.getName(nameEntry, kNameLength)) continue;
                 nameSize = strlen(nameEntry);
 
                 // File
                 if(!entry.isDirectory())
                 {
+#if 1
+                    payload[index++] = EntryFile;
+#else
                     // Accept .gt1 and .gt1x files
                     String name = nameEntry;
                     if(name.endsWith(".GT1") || name.endsWith(".GT1X"))
@@ -1197,6 +1203,7 @@ void doSDDirPayload()
                         entry.close();
                         continue;
                     }
+#endif
                 }
                 // Dir
                 else
@@ -1245,17 +1252,18 @@ void doPrintSDFiles(char *filepath)
     if(path[path.length()-1] != '/') path = path + '/';
     while(current = root.openNextFile())
     {
+        if(!current.getName(nameEntry, kNameLength)) continue;
         if(!current.isDirectory())
         {
             Serial.print(F(": File: "));
             Serial.print(path);
-            Serial.println(current.name());
+            Serial.println(nameEntry);
         }
         else
         {
             Serial.print(F(": Dir: "));
             Serial.print(path);
-            Serial.println(current.name());
+            Serial.println(nameEntry);
         }
         current.close();
     }
