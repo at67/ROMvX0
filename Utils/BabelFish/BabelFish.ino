@@ -58,6 +58,12 @@
   // Pin 11  PORTB3 6 hSync  SER_PULSE 10 CLOCK   11 SRCLK 12 RCLK 4
 
 #if defined(ARDUINO_AVR_UNO)
+#include <SysCall.h>
+#include <sdios.h>
+#include <SdFatConfig.h>
+#include <MinimumSerial.h>
+#include <FreeStack.h>
+#include <BlockDriver.h>
 #define platform "ArduinoUno"
 
 // Pinout reference:
@@ -390,7 +396,7 @@ uint8_t dirDepthSD = 0;
 bool validSD = false;
 bool createBackDirSD = false;
 File transferFileSD;
-const uint8_t kNameLength = 32;
+const uint8_t kNameLength = 38;
 char nameEntry[kNameLength + 1];
 #endif
 
@@ -1132,7 +1138,7 @@ void doSDDirPayload()
 
 
     // Gigatron payload is 63 bytes, protocol is <isLast>, <len>, <payload 0...62>
-    // Entry is maximum 19 bytes, <type> <len> <name:16> <0>
+    // Entry is 4 to 41 bytes, <type> <len> <name> <0>, where name can be length 1 to 38
     // Try and fit as many entry packets into the payload as possible before shipping it
     uint8_t packets = 0;
     const char parentDir[] = "..";
@@ -1261,7 +1267,7 @@ void doPrintSDFiles(char *filepath)
         }
         else
         {
-            Serial.print(F(": Dir: "));
+            Serial.print(F(": Dir:  "));
             Serial.print(path);
             Serial.println(nameEntry);
         }
