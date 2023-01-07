@@ -16,7 +16,7 @@ const SECS_LEN = 48
 const MINS_LEN = 40
 const HOUR_LEN = 32
 
-const BACK_COLOUR = &h15
+const BACK_COLOUR = &h20
 const DIAL_COLOUR = &h10
 const DIAL_RADIUS = 48
 
@@ -46,7 +46,7 @@ sound off
 'disable video, (except last line so that we don't lose sync), for fast cls
 set VIDEO_TOP, 238
 set BG_COLOUR, BACK_COLOUR
-set FG_COLOUR, &h0F
+set FG_COLOUR, &h2A
 mode, 2
 cls
 set VIDEO_TOP, 0  'enable video
@@ -55,8 +55,8 @@ tscroll off
 tfnt4x6 on
 
 audioOnOff = 0
-at 2, 119 : print "Help: Press Enter to reset clock";
-at 2, 0   : input "Enter Time ", H,"H:";2;, M,"M:";2;, S,"S:";2;, audioOnOffStr$,"audio(y/n):";1;
+at 0, 119 : print "Help: Press Enter to reset clock";
+at 0, 0   : input "Enter Time ", H,"H:";2;, M,"M:";2;, S,"S:";2;, audioOnOffStr$,"audio(y/n):";1;
 if audioOnOffStr$ = "y" OR audioOnOffStr$ = "Y"
     audioOnOff = 1
 endif

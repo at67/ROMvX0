@@ -12,7 +12,7 @@ const sysArg7 = &h2B
 const MAX_FILES     = 100
 const PAYLOAD_SIZE  = 63
 const PROTOCOL_SIZE = 1 + 1 + PAYLOAD_SIZE
-const NAME_SIZE     = 32
+const NAME_SIZE     = 38
 const PACKET_SIZE   = 1 + 1 + NAME_SIZE + 1
 const MAX_LINES     = 16
 
@@ -37,6 +37,10 @@ dim commsCmd%(PACKET_SIZE-1) = 0
 dim buffer%(PROTOCOL_SIZE-1) = 0
 dim browser%(MAX_FILES-1, PACKET_SIZE-1)
 
+
+mode 2 : set BG_COLOUR, &h30 : cls INIT : cls : tfnt4x6 on
+set FG_COLOUR, &h20 : rectf 2, 2, 157, 100
+set FG_COLOUR, &h10 : rectf 2, 101, 157, 117
 
 restart:
 
@@ -180,7 +184,7 @@ printBrowser:
                 ST      cursorXY + 1
             endasm
             at 4
-            print string$(strAddr);spc$(NAME_SIZE + 6 - strLen);
+            print string$(strAddr);spc$(NAME_SIZE - strLen);
         endif
     next i
 return
@@ -206,7 +210,7 @@ updateBrowser:
         ST      cursorXY + 1
     endasm
     at 4
-    print string$(prevAddr);spc$(NAME_SIZE + 6 - prevLen);
+    print string$(prevAddr);spc$(NAME_SIZE - prevLen);
     cursOldY = cursorY
 
     currY = startY + cursorY
@@ -226,7 +230,7 @@ updateBrowser:
         ST      cursorXY + 1
     endasm
     at 4
-    print string$(currAddr);spc$(NAME_SIZE + 6 - currLen);
+    print string$(currAddr);spc$(NAME_SIZE - currLen);
     runStrAddr = currAddr
 return
 
@@ -403,26 +407,12 @@ initialise:
     gosub getLoaderNextByte
     commsAddr = @commsCmd
 
-    mode 2 : set BG_COLOUR, &h30 : cls INIT : cls : tfnt4x6 on
-    
     set FG_COLOUR, &h20 : rectf 2, 2, 157, 100
-    set FG_COLOUR, &h10 : rectf 2, 101, 157, 117
 
-    tscroll off
-    set BG_COLOUR, &h10
-    'l = len(pathName$)
-    'm = min(l, 40)
-    'if(l > 40)
-    '    path$ = right$(pathName$, 40)
-    'else
-    '    path$ = left$(pathName$, m)
-    'endif
-    'at 0, 98 : print path$;spc$(40 - m)
-    set FG_COLOUR, &h2A
-    at 18, 104 : print "USE";   : call help, @help0$, &h3F : print "TO SELECT and PAGE";
+    set FGBG_COLOUR, &h2A10 : tscroll off
+    at 6, 104 : print "USE";   : call help, @help0$, &h3F : print "TO SELECT OR CHANGE PAGE";
     at 8, 110 : print "PRESS"; : call help, @help1$, &h3F : print "TO LIST OR RUN";
-    set FGBG_COLOUR, &h2A20
-    tscroll on
+    set BG_COLOUR, &h20 : tscroll on
 
     'test
     'for i=0 to MAX_LINES-1
@@ -435,7 +425,6 @@ initialise:
     '    at 4
     '    print i;
     'next i
-
 return
 
 

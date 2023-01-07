@@ -6,3 +6,4 @@ __pycache__
 *.obj
 res/mod
 gbas/**/*.gasm
+vCPU_trace.txt
